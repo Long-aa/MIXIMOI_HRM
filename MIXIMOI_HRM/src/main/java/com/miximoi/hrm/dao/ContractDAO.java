@@ -1,0 +1,154 @@
+package com.miximoi.hrm.dao;
+
+import com.miximoi.hrm.model.Contract;
+import com.miximoi.hrm.util.DBConnection;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * DAO xử lý các thao tác DB liên quan đến Contract (Hợp đồng lao động).
+ */
+public class ContractDAO {
+
+    private static final String BASE_SELECT =
+        "SELECT c.id, c.contract_code, c.employee_id, e.employee_code, e.full_name, "
+      + "c.contract_type, c.start_date, c.end_date, c.base_salary, c.status, c.notes, "
+      + "c.created_at, c.updated_at "
+      + "FROM contracts c JOIN employees e ON c.employee_id = e.id ";
+
+    public List<Contract> findAll() {
+        List<Contract> list = new ArrayList<>();
+        String sql = BASE_SELECT + "ORDER BY c.start_date DESC";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) list.add(mapRow(rs));
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.findAll lỗi: " + e.getMessage());
+        }
+        return list;
+    }
+
+    public List<Contract> findByEmployeeId(int employeeId) {
+        List<Contract> list = new ArrayList<>();
+        String sql = BASE_SELECT + "WHERE c.employee_id = ? ORDER BY c.start_date DESC";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.findByEmployeeId lỗi: " + e.getMessage());
+        }
+        return list;
+    }
+
+    /** Tìm hợp đồng sắp hết hạn trong N ngày tới */
+    public List<Contract> findExpiringSoon(int daysAhead) {
+        List<Contract> list = new ArrayList<>();
+        String sql = BASE_SELECT
+                   + "WHERE c.status = 'ACTIVE' "
+                   + "AND c.end_date IS NOT NULL "
+                   + "AND c.end_date BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL '"
+                   + daysAhead + " days') ORDER BY c.end_date";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) list.add(mapRow(rs));
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.findExpiringSoon lỗi: " + e.getMessage());
+        }
+        return list;
+    }
+
+    public Contract findById(int id) {
+        String sql = BASE_SELECT + "WHERE c.id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return mapRow(rs);
+            }
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.findById lỗi: " + e.getMessage());
+        }
+        return null;
+    }
+
+    public boolean insert(Contract c) {
+        String sql = "INSERT INTO contracts (contract_code, employee_id, contract_type, "
+                   + "start_date, end_date, base_salary, status, notes) VALUES (?,?,?,?,?,?,?,?)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, c.getContractCode());
+            ps.setInt(2, c.getEmployeeId());
+            ps.setString(3, c.getContractType());
+            ps.setDate(4, c.getStartDate() != null ? Date.valueOf(c.getStartDate()) : null);
+            ps.setDate(5, c.getEndDate() != null ? Date.valueOf(c.getEndDate()) : null);
+            ps.setBigDecimal(6, c.getBaseSalary());
+            ps.setString(7, c.getStatus() != null ? c.getStatus() : "ACTIVE");
+            ps.setString(8, c.getNotes());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.insert lỗi: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean update(Contract c) {
+        String sql = "UPDATE contracts SET contract_type=?, start_date=?, end_date=?, "
+                   + "base_salary=?, status=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, c.getContractType());
+            ps.setDate(2, c.getStartDate() != null ? Date.valueOf(c.getStartDate()) : null);
+            ps.setDate(3, c.getEndDate() != null ? Date.valueOf(c.getEndDate()) : null);
+            ps.setBigDecimal(4, c.getBaseSalary());
+            ps.setString(5, c.getStatus());
+            ps.setString(6, c.getNotes());
+            ps.setInt(7, c.getId());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.update lỗi: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean delete(int id) {
+        String sql = "DELETE FROM contracts WHERE id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.delete lỗi: " + e.getMessage());
+        }
+        return false;
+    }
+
+
+    private Contract mapRow(ResultSet rs) throws SQLException {
+        Contract c = new Contract();
+        c.setId(rs.getInt("id"));
+        c.setContractCode(rs.getString("contract_code"));
+        c.setEmployeeId(rs.getInt("employee_id"));
+        c.setEmployeeCode(rs.getString("employee_code"));
+        c.setEmployeeName(rs.getString("full_name"));
+        c.setContractType(rs.getString("contract_type"));
+        Date sd = rs.getDate("start_date");
+        if (sd != null) c.setStartDate(sd.toLocalDate());
+        Date ed = rs.getDate("end_date");
+        if (ed != null) c.setEndDate(ed.toLocalDate());
+        c.setBaseSalary(rs.getBigDecimal("base_salary"));
+        c.setStatus(rs.getString("status"));
+        c.setNotes(rs.getString("notes"));
+        Timestamp ca = rs.getTimestamp("created_at");
+        if (ca != null) c.setCreatedAt(ca.toLocalDateTime());
+        Timestamp ua = rs.getTimestamp("updated_at");
+        if (ua != null) c.setUpdatedAt(ua.toLocalDateTime());
+        return c;
+    }
+}
