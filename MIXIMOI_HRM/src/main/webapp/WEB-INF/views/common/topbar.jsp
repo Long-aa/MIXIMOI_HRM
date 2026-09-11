@@ -13,9 +13,135 @@
         <nav class="topbar-breadcrumb d-none d-md-flex align-items-center" aria-label="breadcrumb">
             <span class="breadcrumb-brand">MIXIMOI</span>
             <i class="bi bi-chevron-right breadcrumb-separator"></i>
-            <span class="breadcrumb-parent">Trang điều hành</span>
-            <span class="breadcrumb-slash">/</span>
-            <span class="breadcrumb-current">Dashboard Tổng quan</span>
+            <c:choose>
+                <c:when test="${activeMenu eq 'employees'}">
+                    <span class="breadcrumb-parent">Quản lý tổ chức</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Nhân viên</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'departments'}">
+                    <span class="breadcrumb-parent">Quản lý tổ chức</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Phòng ban</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'positions'}">
+                    <span class="breadcrumb-parent">Quản lý tổ chức</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Chức vụ</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'contracts'}">
+                    <span class="breadcrumb-parent">Quản lý tổ chức</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Hợp đồng</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'attendance'}">
+                    <span class="breadcrumb-parent">Quản lý chấm công</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Chấm công</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'timesheet'}">
+                    <span class="breadcrumb-parent">Quản lý chấm công</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Bảng công</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'overtime'}">
+                    <span class="breadcrumb-parent">Quản lý chấm công</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Tăng ca</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'leave'}">
+                    <span class="breadcrumb-parent">Quản lý chấm công</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Nghỉ phép</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'salary-config'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Thiết lập lương</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'payroll'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Bảng lương</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'allowances'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Phụ cấp</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'bonuses'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Thưởng</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'deductions'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Khấu trừ</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'payment'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Thanh toán</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'payslip'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Phiếu lương</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'disciplines'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Kỷ luật</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'performance'}">
+                    <span class="breadcrumb-parent">Quản lý hiệu suất</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">KPI</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'evaluations'}">
+                    <span class="breadcrumb-parent">Quản lý hiệu suất</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Đánh giá hiệu suất</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'users'}">
+                    <span class="breadcrumb-parent">Hệ thống</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Tài khoản & Phân quyền</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'settings'}">
+                    <span class="breadcrumb-parent">Hệ thống</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <c:choose>
+                        <c:when test="${activeSubMenu eq 'profile'}">
+                            <span class="breadcrumb-current">Cài đặt hệ thống</span>
+                        </c:when>
+                        <c:otherwise>
+                            <span class="breadcrumb-current">Thiết lập hệ thống</span>
+                        </c:otherwise>
+                    </c:choose>
+                </c:when>
+                <c:when test="${activeMenu eq 'recruitment'}">
+                    <span class="breadcrumb-parent">Quản lý tuyển dụng</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <c:choose>
+                        <c:when test="${activeSubMenu eq 'jobs'}">
+                            <span class="breadcrumb-current">Vị trí tuyển dụng</span>
+                        </c:when>
+                        <c:when test="${activeSubMenu eq 'candidates'}">
+                            <span class="breadcrumb-current">Ứng viên</span>
+                        </c:when>
+                        <c:otherwise>
+                            <span class="breadcrumb-current">Tuyển dụng</span>
+                        </c:otherwise>
+                    </c:choose>
+                </c:when>
+                <c:otherwise>
+                    <span class="breadcrumb-parent">Trang chủ</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Dashboard</span>
+                </c:otherwise>
+            </c:choose>
         </nav>
     </div>
 

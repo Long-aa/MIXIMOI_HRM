@@ -1,0 +1,585 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <jsp:include page="/WEB-INF/views/common/head.jsp">
+        <jsp:param name="title" value="Quản lý Khấu trừ & Giảm trừ Lương - MIXIMOI HRM" />
+    </jsp:include>
+</head>
+<body class="hrm-app-body">
+<div class="app-layout">
+    <!-- Sidebar -->
+    <jsp:include page="/WEB-INF/views/common/sidebar.jsp" />
+
+    <div class="app-main">
+        <!-- Topbar -->
+        <jsp:include page="/WEB-INF/views/common/topbar.jsp" />
+
+        <!-- Main Content Area -->
+        <main class="app-content p-3 p-lg-4">
+            <!-- Toast notification if success -->
+            <c:if test="${param.success eq 'saved'}">
+                <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-3" role="alert">
+                    <i class="bi bi-check-circle-fill fs-5"></i>
+                    <div>Đã lưu và áp dụng dữ liệu khấu trừ - đối soát VssID thành công!</div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </c:if>
+
+            <!-- Page Header -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+                <div>
+                    <div class="d-inline-flex align-items-center gap-2 px-2 py-1 rounded bg-primary-subtle text-primary fw-bold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                        <i class="bi bi-shield-check"></i> PAYROLL DEDUCTIONS ENGINE • Q3-2026 / KỲ 09
+                    </div>
+                    <h1 class="h3 fw-bold text-dark mb-1">Quản lý Khấu trừ & Giảm trừ lương</h1>
+                    <p class="text-muted mb-0" style="font-size: 0.875rem;">
+                        Quản lý trích nộp bảo hiểm bắt buộc, thuế TNCN lũy tiến từng phần, tạm ứng và đối soát BHXH điện tử VssID.
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2" onclick="window.print()">
+                        <i class="bi bi-file-earmark-spreadsheet"></i>
+                        <span>Xuất file Quyết toán</span>
+                    </button>
+                    <button type="button" class="btn btn-primary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addDeductionModal">
+                        <i class="bi bi-plus-lg"></i>
+                        <span>+ Thêm khoản khấu trừ</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- VssID Sync Banner -->
+            <div class="vssid-banner-box d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center justify-content-center bg-white rounded-circle text-success shadow-sm" style="width: 44px; height: 44px;">
+                        <i class="bi bi-patch-check-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold text-dark">Cổng đối soát dữ liệu Bảo hiểm Xã hội Điện tử (VssID / BHXH Việt Nam)</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
+                                <span class="vssid-status-dot"></span> Đã kết nối API
+                            </span>
+                        </div>
+                        <div class="text-muted small mt-1">
+                            Đã đồng bộ tự động lúc <strong>08:30 hôm nay</strong> • Tỷ lệ khớp hồ sơ <strong>98.8%</strong> (242/245 CBNV) • Có <strong>1 bản ghi cảnh báo</strong> cần rà soát.
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-success bg-white d-flex align-items-center gap-1 shadow-sm" onclick="this.innerHTML='<span class=\'spinner-border spinner-border-sm\'></span> Đang đồng bộ...'; setTimeout(() => location.reload(), 1200);">
+                        <i class="bi bi-arrow-repeat"></i> Đồng bộ lại VssID
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4 Metric KPI Cards -->
+            <div class="row g-3 mb-4">
+                <!-- KPI 1 -->
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Tổng khấu trừ kỳ này</span>
+                            <div class="kpi-icon-box coral">
+                                <i class="bi bi-dash-circle"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-1 mb-2">
+                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.7rem;">78.000.000</span>
+                            <span class="text-muted fw-semibold" style="font-size: 0.85rem;">đ</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="badge bg-danger-subtle text-danger fw-semibold" style="font-size: 0.73rem;">
+                                18.4% tổng quỹ lương
+                            </span>
+                            <span class="text-muted small">kỳ Tháng 09</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 2 -->
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Trích nộp BHXH / BHYT / BHTN</span>
+                            <div class="kpi-icon-box blue">
+                                <i class="bi bi-shield-shaded"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-1 mb-2">
+                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.7rem;">54.200.000</span>
+                            <span class="text-muted fw-semibold" style="font-size: 0.85rem;">đ</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="badge bg-primary-subtle text-primary fw-semibold" style="font-size: 0.73rem;">
+                                10.5% lương đóng BH
+                            </span>
+                            <span class="text-muted small">245 lao động</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 3 -->
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Thuế TNCN tạm khấu trừ</span>
+                            <div class="kpi-icon-box amber">
+                                <i class="bi bi-percent"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-1 mb-2">
+                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.7rem;">18.500.000</span>
+                            <span class="text-muted fw-semibold" style="font-size: 0.85rem;">đ</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="badge bg-warning-subtle text-warning-emphasis fw-semibold" style="font-size: 0.73rem;">
+                                Lũy tiến 7 bậc
+                            </span>
+                            <span class="text-muted small">Thông tư 111</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 4 -->
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Thu hồi & Tạm ứng khác</span>
+                            <div class="kpi-icon-box purple">
+                                <i class="bi bi-arrow-left-right"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-1 mb-2">
+                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.7rem;">5.300.000</span>
+                            <span class="text-muted fw-semibold" style="font-size: 0.85rem;">đ</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="badge bg-purple-subtle text-purple fw-semibold" style="font-size: 0.73rem; background: #f3e8ff; color: #7e22ce;">
+                                12 trường hợp
+                            </span>
+                            <span class="text-muted small">đã đối soát</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Card -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-body p-3">
+                    <form method="get" action="${pageContext.request.contextPath}/deductions" class="row g-2 align-items-center">
+                        <div class="col-12 col-md-4">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" name="keyword" class="form-control border-start-0" placeholder="Tìm tên nhân viên, mã NV..." value="${param.keyword}">
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <select name="dept" class="form-select form-select-sm">
+                                <option value="">Tất cả phòng ban</option>
+                                <option value="IT" ${param.dept eq 'IT' ? 'selected' : ''}>Kỹ thuật & Công nghệ</option>
+                                <option value="Sales" ${param.dept eq 'Sales' ? 'selected' : ''}>Kinh doanh & Marketing</option>
+                                <option value="HR" ${param.dept eq 'HR' ? 'selected' : ''}>Nhân sự & Hành chính</option>
+                                <option value="Finance" ${param.dept eq 'Finance' ? 'selected' : ''}>Tài chính kế toán</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <select name="status" class="form-select form-select-sm">
+                                <option value="">Tất cả đối soát VssID</option>
+                                <option value="synced" ${param.status eq 'synced' ? 'selected' : ''}>Đã khớp dữ liệu</option>
+                                <option value="warning" ${param.status eq 'warning' ? 'selected' : ''}>Cảnh báo chênh lệch</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-sm btn-primary w-100 d-flex align-items-center justify-content-center gap-1">
+                                <i class="bi bi-funnel"></i> Lọc
+                            </button>
+                            <a href="${pageContext.request.contextPath}/deductions" class="btn btn-sm btn-outline-secondary" title="Đặt lại">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Deductions Detail Table -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4 overflow-hidden">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="h6 fw-bold mb-0 text-dark">Bảng chi tiết khấu trừ cá nhân kỳ Tháng 09/2026</h2>
+                        <span class="text-muted small">Hiển thị danh sách 5 nhân sự tiêu biểu trong kỳ lương</span>
+                    </div>
+                    <span class="badge bg-light text-dark border">Tổng cộng: 245 nhân sự</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 text-nowrap" style="font-size: 0.83rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3 py-3" style="width: 110px;">Mã NV</th>
+                                <th style="width: 220px;">Họ tên & Vị trí</th>
+                                <th class="text-end">BHXH (8%)</th>
+                                <th class="text-end">BHYT (1.5%)</th>
+                                <th class="text-end">BHTN (1%)</th>
+                                <th class="text-end">Thuế TNCN</th>
+                                <th class="text-end">Tạm ứng</th>
+                                <th class="text-end">Khác</th>
+                                <th class="text-end fw-bold text-danger">Tổng khấu trừ</th>
+                                <th class="text-center">Đối soát VssID</th>
+                                <th class="text-center pe-3">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Row 1 -->
+                            <tr>
+                                <td class="ps-3 fw-bold text-primary">MXM-0102</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar-circle bg-primary-subtle text-primary fw-bold" style="width: 32px; height: 32px; font-size: 0.78rem;">NA</div>
+                                        <div>
+                                            <div class="fw-bold text-dark">Nguyễn Văn An</div>
+                                            <small class="text-muted">Senior Tech Lead • IT</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end">2.384.000 đ</td>
+                                <td class="text-end">447.000 đ</td>
+                                <td class="text-end">298.000 đ</td>
+                                <td class="text-end fw-semibold text-warning-emphasis">1.850.000 đ</td>
+                                <td class="text-end text-muted">0 đ</td>
+                                <td class="text-end text-muted">0 đ</td>
+                                <td class="text-end fw-bold text-danger">4.979.000 đ</td>
+                                <td class="text-center">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-check2-all"></i> Đã khớp
+                                    </span>
+                                </td>
+                                <td class="text-center pe-3">
+                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV001" class="btn btn-sm btn-outline-primary py-1 px-2" title="Xem phiếu lương">
+                                        <i class="bi bi-receipt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- Row 2 -->
+                            <tr>
+                                <td class="ps-3 fw-bold text-primary">MXM-0245</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar-circle bg-info-subtle text-info fw-bold" style="width: 32px; height: 32px; font-size: 0.78rem;">TM</div>
+                                        <div>
+                                            <div class="fw-bold text-dark">Trần Thị Mai</div>
+                                            <small class="text-muted">Kế toán trưởng • Finance</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end">2.384.000 đ</td>
+                                <td class="text-end">447.000 đ</td>
+                                <td class="text-end">298.000 đ</td>
+                                <td class="text-end fw-semibold text-warning-emphasis">2.150.000 đ</td>
+                                <td class="text-end fw-semibold text-purple">2.000.000 đ</td>
+                                <td class="text-end text-muted">0 đ</td>
+                                <td class="text-end fw-bold text-danger">7.279.000 đ</td>
+                                <td class="text-center">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-check2-all"></i> Đã khớp
+                                    </span>
+                                </td>
+                                <td class="text-center pe-3">
+                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV002" class="btn btn-sm btn-outline-primary py-1 px-2" title="Xem phiếu lương">
+                                        <i class="bi bi-receipt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- Row 3: Warning record -->
+                            <tr class="table-warning bg-opacity-25">
+                                <td class="ps-3 fw-bold text-primary">MXM-0311</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar-circle bg-warning-subtle text-warning fw-bold" style="width: 32px; height: 32px; font-size: 0.78rem;">HN</div>
+                                        <div>
+                                            <div class="fw-bold text-dark">Lê Hoàng Nam</div>
+                                            <small class="text-muted">Product Manager • Product</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end">2.384.000 đ</td>
+                                <td class="text-end">447.000 đ</td>
+                                <td class="text-end">298.000 đ</td>
+                                <td class="text-end fw-semibold text-warning-emphasis">1.450.000 đ</td>
+                                <td class="text-end text-muted">0 đ</td>
+                                <td class="text-end fw-semibold text-danger">500.000 đ</td>
+                                <td class="text-end fw-bold text-danger">5.079.000 đ</td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" title="Mức đóng BHXH trên sổ VssID chênh 200k">
+                                        <i class="bi bi-exclamation-triangle-fill"></i> Lệch mức đóng
+                                    </span>
+                                </td>
+                                <td class="text-center pe-3">
+                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV003" class="btn btn-sm btn-outline-primary py-1 px-2" title="Xem phiếu lương">
+                                        <i class="bi bi-receipt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- Row 4 -->
+                            <tr>
+                                <td class="ps-3 fw-bold text-primary">MXM-0089</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar-circle bg-success-subtle text-success fw-bold" style="width: 32px; height: 32px; font-size: 0.78rem;">PT</div>
+                                        <div>
+                                            <div class="fw-bold text-dark">Phạm Thu Trang</div>
+                                            <small class="text-muted">Chuyên viên Nhân sự • HR</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end">1.200.000 đ</td>
+                                <td class="text-end">225.000 đ</td>
+                                <td class="text-end">150.000 đ</td>
+                                <td class="text-end fw-semibold text-warning-emphasis">450.000 đ</td>
+                                <td class="text-end text-muted">0 đ</td>
+                                <td class="text-end text-muted">0 đ</td>
+                                <td class="text-end fw-bold text-danger">2.025.000 đ</td>
+                                <td class="text-center">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-check2-all"></i> Đã khớp
+                                    </span>
+                                </td>
+                                <td class="text-center pe-3">
+                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV004" class="btn btn-sm btn-outline-primary py-1 px-2" title="Xem phiếu lương">
+                                        <i class="bi bi-receipt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- Row 5 -->
+                            <tr>
+                                <td class="ps-3 fw-bold text-primary">MXM-0412</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar-circle bg-secondary-subtle text-secondary fw-bold" style="width: 32px; height: 32px; font-size: 0.78rem;">VL</div>
+                                        <div>
+                                            <div class="fw-bold text-dark">Vũ Đình Long</div>
+                                            <small class="text-muted">QA Lead • IT</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end">1.760.000 đ</td>
+                                <td class="text-end">330.000 đ</td>
+                                <td class="text-end">220.000 đ</td>
+                                <td class="text-end fw-semibold text-warning-emphasis">980.000 đ</td>
+                                <td class="text-end fw-semibold text-purple">1.500.000 đ</td>
+                                <td class="text-end text-muted">0 đ</td>
+                                <td class="text-end fw-bold text-danger">4.790.000 đ</td>
+                                <td class="text-center">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-check2-all"></i> Đã khớp
+                                    </span>
+                                </td>
+                                <td class="text-center pe-3">
+                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV005" class="btn btn-sm btn-outline-primary py-1 px-2" title="Xem phiếu lương">
+                                        <i class="bi bi-receipt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Bottom 2 Cards: Tax Brackets & Legal Framework -->
+            <div class="row g-4">
+                <!-- Card 1: 7-Level Tax Bracket -->
+                <div class="col-12 col-lg-7">
+                    <div class="tax-bracket-card p-4 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h3 class="h6 fw-bold text-dark mb-1">
+                                    <i class="bi bi-diagram-3-fill text-primary me-2"></i>Biểu thuế thu nhập cá nhân lũy tiến từng phần
+                                </h3>
+                                <span class="text-muted small">Căn cứ theo Thông tư 111/2013/TT-BTC & Nghị định quy định chi tiết</span>
+                            </div>
+                            <span class="badge bg-primary-subtle text-primary">7 Bậc thuế</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="tax-bracket-table w-100 table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center" style="width: 50px;">Bậc</th>
+                                        <th>Thu nhập tính thuế / tháng</th>
+                                        <th class="text-center" style="width: 85px;">Thuế suất</th>
+                                        <th class="text-end">Số thuế tính theo cách 1</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="text-center"><span class="tax-badge-step">1</span></td>
+                                        <td>Đến 5 triệu VNĐ</td>
+                                        <td class="text-center fw-bold text-success">5%</td>
+                                        <td class="text-end">0 + 5% TNTT</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><span class="tax-badge-step">2</span></td>
+                                        <td>Trên 5 đến 10 triệu VNĐ</td>
+                                        <td class="text-center fw-bold text-success">10%</td>
+                                        <td class="text-end">0.25 tr + 10% (TNTT - 5 tr)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><span class="tax-badge-step">3</span></td>
+                                        <td>Trên 10 đến 18 triệu VNĐ</td>
+                                        <td class="text-center fw-bold text-primary">15%</td>
+                                        <td class="text-end">0.75 tr + 15% (TNTT - 10 tr)</td>
+                                    </tr>
+                                    <tr class="table-primary bg-opacity-25">
+                                        <td class="text-center"><span class="tax-badge-step active">4</span></td>
+                                        <td><strong>Trên 18 đến 32 triệu VNĐ</strong> <span class="badge bg-primary ms-1">Mức phổ biến</span></td>
+                                        <td class="text-center fw-bold text-primary">20%</td>
+                                        <td class="text-end fw-bold">1.95 tr + 20% (TNTT - 18 tr)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><span class="tax-badge-step">5</span></td>
+                                        <td>Trên 32 đến 52 triệu VNĐ</td>
+                                        <td class="text-center fw-bold text-warning-emphasis">25%</td>
+                                        <td class="text-end">4.75 tr + 25% (TNTT - 32 tr)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><span class="tax-badge-step">6</span></td>
+                                        <td>Trên 52 đến 80 triệu VNĐ</td>
+                                        <td class="text-center fw-bold text-warning-emphasis">30%</td>
+                                        <td class="text-end">9.75 tr + 30% (TNTT - 52 tr)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><span class="tax-badge-step">7</span></td>
+                                        <td>Trên 80 triệu VNĐ</td>
+                                        <td class="text-center fw-bold text-danger">35%</td>
+                                        <td class="text-end">18.15 tr + 35% (TNTT - 80 tr)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Legal Relief Parameters -->
+                <div class="col-12 col-lg-5">
+                    <div class="tax-bracket-card p-4 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h3 class="h6 fw-bold text-dark mb-1">
+                                    <i class="bi bi-bank2 text-success me-2"></i>Mức giảm trừ gia cảnh & Căn cứ pháp lý
+                                </h3>
+                                <span class="text-muted small">Cập nhật áp dụng cho năm tài chính 2026</span>
+                            </div>
+                            <span class="badge bg-success-subtle text-success">Hiệu lực</span>
+                        </div>
+                        
+                        <div class="list-group list-group-flush border-top border-bottom mb-3" style="font-size: 0.83rem;">
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                                <div>
+                                    <div class="fw-semibold text-dark">Giảm trừ cho bản thân người nộp thuế</div>
+                                    <small class="text-muted">Nghị quyết 954/2020/UBTVQH14</small>
+                                </div>
+                                <span class="fw-bold text-success fs-6">11.000.000 đ/tháng</span>
+                            </div>
+
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                                <div>
+                                    <div class="fw-semibold text-dark">Giảm trừ mỗi người phụ thuộc (NPT)</div>
+                                    <small class="text-muted">Đã đăng ký MST phụ thuộc</small>
+                                </div>
+                                <span class="fw-bold text-primary fs-6">4.400.000 đ/tháng</span>
+                            </div>
+
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                                <div>
+                                    <div class="fw-semibold text-dark">Mức trần đóng BHXH & BHYT</div>
+                                    <small class="text-muted">20 lần lương cơ sở 2.340.000 đ</small>
+                                </div>
+                                <span class="fw-bold text-dark fs-6">46.800.000 đ</span>
+                            </div>
+
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                                <div>
+                                    <div class="fw-semibold text-dark">Mức trần đóng BHTN (Vùng I)</div>
+                                    <small class="text-muted">20 lần lương tối thiểu vùng I (4.96 tr)</small>
+                                </div>
+                                <span class="fw-bold text-dark fs-6">99.200.000 đ</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-light rounded-3" style="font-size: 0.78rem;">
+                            <div class="fw-bold text-dark mb-1">Tỷ lệ đóng bắt buộc của Người lao động:</div>
+                            <div class="d-flex justify-content-between text-muted mb-1">
+                                <span>BHXH (8.0%) + BHYT (1.5%) + BHTN (1.0%)</span>
+                                <span class="fw-bold text-danger">Tổng trừ: 10.5%</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted">
+                                <span>Phần Doanh nghiệp chịu (BHXH, BHYT, BHTN, BHTNLĐ)</span>
+                                <span class="fw-bold text-dark">Tổng đóng: 21.5%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <jsp:include page="/WEB-INF/views/common/footer.jsp" />
+    </div>
+</div>
+
+<!-- Modal Thêm khoản khấu trừ -->
+<div class="modal fade" id="addDeductionModal" tabindex="-1" aria-labelledby="addDeductionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="addDeductionModalLabel">Thêm khoản khấu trừ / Giảm trừ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="${pageContext.request.contextPath}/deductions">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Chọn Nhân viên</label>
+                        <select name="empId" class="form-select" required>
+                            <option value="">-- Chọn nhân viên --</option>
+                            <option value="1">MXM-0102 - Nguyễn Văn An</option>
+                            <option value="2">MXM-0245 - Trần Thị Mai</option>
+                            <option value="3">MXM-0311 - Lê Hoàng Nam</option>
+                            <option value="4">MXM-0089 - Phạm Thu Trang</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Loại khấu trừ</label>
+                        <select name="deductionType" class="form-select" required>
+                            <option value="ADVANCE">Tạm ứng lương</option>
+                            <option value="DISCIPLINE">Thu hồi vi phạm / Kỷ luật</option>
+                            <option value="LOAN">Khấu trừ tiền vay nội bộ</option>
+                            <option value="EQUIPMENT">Bồi hoàn trang thiết bị</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Số tiền khấu trừ (VNĐ)</label>
+                        <input type="number" name="amount" class="form-control" placeholder="VD: 1000000" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Lý do & Ghi chú</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Ghi chú chi tiết lý do khấu trừ"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu khoản khấu trừ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="${pageContext.request.contextPath}/assets/js/main.js"></script>
+</body>
+</html>

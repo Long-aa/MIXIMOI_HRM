@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPeriodFilterTabs();
     initRefreshButtons();
     initActionButtons();
+    initPersonnelStructureTabs();
 });
 
 let personnelChartInstance = null;
@@ -310,4 +311,121 @@ function initActionButtons() {
             alert('Hệ thống đang tổng hợp dữ liệu toàn diện các phòng ban T09/2026.');
         });
     }
+}
+
+/**
+ * 6. Phân tích cơ cấu nhân sự (Độ tuổi, Giới tính, Thâm niên, Trình độ)
+ */
+function initPersonnelStructureTabs() {
+    const tabs = document.querySelectorAll('#structureFilterTabs [data-structure-tab]');
+    const subtitleEl = document.getElementById('structureCardSubtitle');
+    const sub1Title = document.getElementById('structureSub1Title');
+    const sub1Val = document.getElementById('structureSub1Val');
+    const sub2Title = document.getElementById('structureSub2Title');
+    const sub2Val = document.getElementById('structureSub2Val');
+
+    if (!tabs || tabs.length === 0) return;
+
+    const tabConfig = {
+        age: {
+            subtitle: 'Phân bổ theo tuổi và cơ cấu nhân sự chi tiết toàn hệ thống',
+            sub1Title: 'Tỷ lệ giới tính',
+            sub1Val: '<i class="bi bi-gender-male"></i> Nam: 55% &nbsp;|&nbsp; <i class="bi bi-gender-female text-danger"></i> Nữ: 45%',
+            sub1Class: 'text-primary',
+            sub2Title: 'Thâm niên trung bình',
+            sub2Val: '2.8 năm <span class="text-muted fw-normal">(38% từ 1-3 năm)</span>',
+            sub2Class: 'text-success'
+        },
+        gender: {
+            subtitle: 'Cơ cấu giới tính và phân bổ cân bằng nhân sự theo từng khối phòng ban',
+            sub1Title: 'Tỷ lệ toàn công ty',
+            sub1Val: '<i class="bi bi-gender-male"></i> Nam: 55% (135) &nbsp;|&nbsp; <i class="bi bi-gender-female text-danger"></i> Nữ: 45% (110)',
+            sub1Class: 'text-primary',
+            sub2Title: 'Cân bằng giới cấp quản lý',
+            sub2Val: '<span class="text-primary fw-bold">♂ 58%</span> &nbsp;|&nbsp; <span class="text-danger fw-bold">♀ 42%</span> <span class="text-muted fw-normal">(Đạt chuẩn ESG)</span>',
+            sub2Class: 'text-dark'
+        },
+        seniority: {
+            subtitle: 'Phân bổ thời gian công tác và mức độ gắn kết nhân sự tại MIXIMOI',
+            sub1Title: 'Thâm niên trung bình',
+            sub1Val: '2.8 năm <span class="text-muted fw-normal">(Tăng +0.4 năm so với 2025)</span>',
+            sub1Class: 'text-success',
+            sub2Title: 'Tỷ lệ gắn bó (> 1 năm)',
+            sub2Val: '<span class="text-success fw-bold">76.0%</span> <span class="text-muted fw-normal">(186/245 nhân sự)</span>',
+            sub2Class: 'text-success'
+        },
+        education: {
+            subtitle: 'Phân bổ theo trình độ học vấn, bằng cấp chuyên môn và chứng chỉ nghề',
+            sub1Title: 'Đại học & Sau Đại học',
+            sub1Val: '<span class="text-primary fw-bold">76.3%</span> <span class="text-muted fw-normal">(187/245 nhân sự chính quy)</span>',
+            sub1Class: 'text-primary',
+            sub2Title: 'Chứng chỉ quốc tế',
+            sub2Val: '<span class="fw-bold text-purple">42 chứng chỉ</span> <span class="text-muted fw-normal">(PMP, AWS, CFA, CPA)</span>',
+            sub2Class: 'text-dark'
+        }
+    };
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetKey = tab.getAttribute('data-structure-tab');
+            if (!targetKey) return;
+
+            // 1. Update active tab pill
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            // 2. Switch tab pane
+            const allPanes = document.querySelectorAll('.structure-tab-pane');
+            allPanes.forEach(pane => pane.classList.remove('active'));
+
+            const targetPane = document.getElementById('structure-pane-' + targetKey);
+            if (targetPane) {
+                targetPane.classList.add('active');
+
+                // Animate progress bars from 0 to original width
+                const bars = targetPane.querySelectorAll('.age-dist-bar-fill, .gender-bar-male, .gender-bar-female');
+                bars.forEach(bar => {
+                    const originalWidth = bar.style.width;
+                    bar.style.transition = 'none';
+                    bar.style.width = '0%';
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            bar.style.transition = 'width 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+                            bar.style.width = originalWidth;
+                        });
+                    });
+                });
+            }
+
+            // 3. Smoothly update subtitle
+            const cfg = tabConfig[targetKey];
+            if (cfg && subtitleEl) {
+                subtitleEl.style.opacity = '0';
+                setTimeout(() => {
+                    subtitleEl.textContent = cfg.subtitle;
+                    subtitleEl.style.opacity = '1';
+                }, 120);
+            }
+
+            // 4. Update demographic subcards
+            if (cfg) {
+                if (sub1Title) sub1Title.textContent = cfg.sub1Title;
+                if (sub1Val) {
+                    sub1Val.className = 'demo-subcard-val ' + (cfg.sub1Class || '');
+                    sub1Val.innerHTML = cfg.sub1Val;
+                }
+                if (sub2Title) sub2Title.textContent = cfg.sub2Title;
+                if (sub2Val) {
+                    sub2Val.className = 'demo-subcard-val ' + (cfg.sub2Class || '');
+                    sub2Val.innerHTML = cfg.sub2Val;
+                }
+            }
+        });
+    });
+}
+
+// Fallback initialization if DOMContentLoaded already fired
+if (document.readyState !== 'loading') {
+    initPersonnelStructureTabs();
 }

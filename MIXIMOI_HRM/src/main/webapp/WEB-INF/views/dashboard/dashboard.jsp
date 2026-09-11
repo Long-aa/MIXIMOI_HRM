@@ -947,82 +947,285 @@
                                         <i class="bi bi-pie-chart text-primary me-1"></i>
                                         Phân tích cơ cấu nhân sự
                                     </div>
-                                    <p class="app-card-subtitle">Phân bổ theo tuổi và cơ cấu nhân sự chi tiết toàn hệ thống</p>
+                                    <p class="app-card-subtitle" id="structureCardSubtitle">Phân bổ theo tuổi và cơ cấu nhân sự chi tiết toàn hệ thống</p>
                                 </div>
 
-                                <!-- Right Filter Tabs -->
-                                <div class="card-filter-pills">
-                                    <button type="button" class="filter-pill active">Độ tuổi</button>
-                                    <button type="button" class="filter-pill">Giới tính</button>
-                                    <button type="button" class="filter-pill">Thâm niên</button>
+                                <!-- Right Filter Tabs: Độ tuổi, Giới tính, Thâm niên, Trình độ -->
+                                <div class="card-filter-pills" id="structureFilterTabs">
+                                    <button type="button" class="filter-pill active" data-structure-tab="age">Độ tuổi</button>
+                                    <button type="button" class="filter-pill" data-structure-tab="gender">Giới tính</button>
+                                    <button type="button" class="filter-pill" data-structure-tab="seniority">Thâm niên</button>
+                                    <button type="button" class="filter-pill" data-structure-tab="education">Trình độ</button>
                                 </div>
                             </div>
 
-                            <!-- Age Distribution Bars -->
-                            <div class="age-dist-list my-3">
-                                <div class="age-dist-item">
-                                    <div class="age-dist-header">
-                                        <span class="age-dist-label">18 – 25 tuổi</span>
-                                        <span class="age-dist-val">18% <span class="text-muted fw-normal">(44 nhân sự)</span></span>
+                            <!-- TAB 1: ĐỘ TUỔI -->
+                            <div class="structure-tab-pane active" id="structure-pane-age">
+                                <div class="age-dist-list my-3">
+                                    <div class="age-dist-item">
+                                        <div class="age-dist-header">
+                                            <span class="age-dist-label">18 – 25 tuổi</span>
+                                            <span class="age-dist-val">18% <span class="text-muted fw-normal">(44 nhân sự)</span></span>
+                                        </div>
+                                        <div class="age-dist-bar-bg">
+                                            <div class="age-dist-bar-fill" style="width: 18%;"></div>
+                                        </div>
                                     </div>
-                                    <div class="age-dist-bar-bg">
-                                        <div class="age-dist-bar-fill" style="width: 18%;"></div>
+
+                                    <div class="age-dist-item">
+                                        <div class="age-dist-header">
+                                            <span class="age-dist-label fw-bold text-primary">25 – 35 tuổi</span>
+                                            <span class="age-dist-val text-primary">52% <span class="text-muted fw-normal">(128 nhân sự)</span></span>
+                                        </div>
+                                        <div class="age-dist-bar-bg">
+                                            <div class="age-dist-bar-fill highlight" style="width: 52%;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="age-dist-item">
+                                        <div class="age-dist-header">
+                                            <span class="age-dist-label">35 – 45 tuổi (Lực lượng nòng cốt)</span>
+                                            <span class="age-dist-val">18% <span class="text-muted fw-normal">(44 nhân sự)</span></span>
+                                        </div>
+                                        <div class="age-dist-bar-bg">
+                                            <div class="age-dist-bar-fill" style="width: 18%;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="age-dist-item">
+                                        <div class="age-dist-header">
+                                            <span class="age-dist-label">45 – 55 tuổi</span>
+                                            <span class="age-dist-val">12% <span class="text-muted fw-normal">(30 nhân sự)</span></span>
+                                        </div>
+                                        <div class="age-dist-bar-bg">
+                                            <div class="age-dist-bar-fill" style="width: 12%;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="age-dist-item">
+                                        <div class="age-dist-header">
+                                            <span class="age-dist-label">Trên 55 tuổi</span>
+                                            <span class="age-dist-val">5% <span class="text-muted fw-normal">(11 nhân sự)</span></span>
+                                        </div>
+                                        <div class="age-dist-bar-bg">
+                                            <div class="age-dist-bar-fill" style="width: 5%;"></div>
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div class="age-dist-item">
-                                    <div class="age-dist-header">
-                                        <span class="age-dist-label fw-bold text-primary">25 – 35 tuổi</span>
-                                        <span class="age-dist-val text-primary">52% <span class="text-muted fw-normal">(128 nhân sự)</span></span>
+                            <!-- TAB 2: GIỚI TÍNH -->
+                            <div class="structure-tab-pane" id="structure-pane-gender">
+                                <div class="my-3">
+                                    <!-- Thanh phân bổ tổng quan toàn công ty -->
+                                    <div class="gender-overview-card p-2 px-3 mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.8rem;">
+                                            <span class="fw-bold text-primary d-flex align-items-center gap-1">
+                                                <i class="bi bi-gender-male fs-6"></i> Nam: <strong>55%</strong> <span class="text-muted fw-normal">(135 NS)</span>
+                                            </span>
+                                            <span class="fw-bold text-danger d-flex align-items-center gap-1">
+                                                <i class="bi bi-gender-female fs-6"></i> Nữ: <strong>45%</strong> <span class="text-muted fw-normal">(110 NS)</span>
+                                            </span>
+                                        </div>
+                                        <div class="gender-dual-bar" style="height: 10px; border-radius: 9999px;">
+                                            <div class="gender-bar-male" style="width: 55%;"></div>
+                                            <div class="gender-bar-female" style="width: 45%;"></div>
+                                        </div>
                                     </div>
-                                    <div class="age-dist-bar-bg">
-                                        <div class="age-dist-bar-fill highlight" style="width: 52%;"></div>
+
+                                    <!-- Cơ cấu theo khối chức năng -->
+                                    <div class="age-dist-list">
+                                        <div class="age-dist-item">
+                                            <div class="age-dist-header">
+                                                <span class="age-dist-label">Cấp Quản lý & Lãnh đạo</span>
+                                                <span class="age-dist-val" style="font-size: 0.76rem;">
+                                                    <span class="text-primary fw-bold">♂ 58%</span> <span class="text-muted fw-normal">(14)</span> &nbsp;|&nbsp; 
+                                                    <span class="text-danger fw-bold">♀ 42%</span> <span class="text-muted fw-normal">(10)</span>
+                                                </span>
+                                            </div>
+                                            <div class="gender-dual-bar" style="height: 7px; border-radius: 9999px;">
+                                                <div class="gender-bar-male" style="width: 58%;"></div>
+                                                <div class="gender-bar-female" style="width: 42%;"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="age-dist-item">
+                                            <div class="age-dist-header">
+                                                <span class="age-dist-label">Khối Công nghệ & R&D</span>
+                                                <span class="age-dist-val" style="font-size: 0.76rem;">
+                                                    <span class="text-primary fw-bold">♂ 78%</span> <span class="text-muted fw-normal">(42)</span> &nbsp;|&nbsp; 
+                                                    <span class="text-danger fw-bold">♀ 22%</span> <span class="text-muted fw-normal">(12)</span>
+                                                </span>
+                                            </div>
+                                            <div class="gender-dual-bar" style="height: 7px; border-radius: 9999px;">
+                                                <div class="gender-bar-male" style="width: 78%;"></div>
+                                                <div class="gender-bar-female" style="width: 22%;"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="age-dist-item">
+                                            <div class="age-dist-header">
+                                                <span class="age-dist-label">Khối Kinh doanh & Marketing</span>
+                                                <span class="age-dist-val" style="font-size: 0.76rem;">
+                                                    <span class="text-primary fw-bold">♂ 46%</span> <span class="text-muted fw-normal">(38)</span> &nbsp;|&nbsp; 
+                                                    <span class="text-danger fw-bold">♀ 54%</span> <span class="text-muted fw-normal">(45)</span>
+                                                </span>
+                                            </div>
+                                            <div class="gender-dual-bar" style="height: 7px; border-radius: 9999px;">
+                                                <div class="gender-bar-male" style="width: 46%;"></div>
+                                                <div class="gender-bar-female" style="width: 54%;"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="age-dist-item">
+                                            <div class="age-dist-header">
+                                                <span class="age-dist-label">Khối Tài chính & Hành chính HR</span>
+                                                <span class="age-dist-val" style="font-size: 0.76rem;">
+                                                    <span class="text-primary fw-bold">♂ 35%</span> <span class="text-muted fw-normal">(15)</span> &nbsp;|&nbsp; 
+                                                    <span class="text-danger fw-bold">♀ 65%</span> <span class="text-muted fw-normal">(28)</span>
+                                                </span>
+                                            </div>
+                                            <div class="gender-dual-bar" style="height: 7px; border-radius: 9999px;">
+                                                <div class="gender-bar-male" style="width: 35%;"></div>
+                                                <div class="gender-bar-female" style="width: 65%;"></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div class="age-dist-item">
-                                    <div class="age-dist-header">
-                                        <span class="age-dist-label">35 – 45 tuổi (Lực lượng nòng cốt)</span>
-                                        <span class="age-dist-val">18% <span class="text-muted fw-normal">(44 nhân sự)</span></span>
+                            <!-- TAB 3: THÂM NIÊN -->
+                            <div class="structure-tab-pane" id="structure-pane-seniority">
+                                <div class="age-dist-list my-3">
+                                    <div class="age-dist-item">
+                                        <div class="age-dist-header">
+                                            <span class="age-dist-label">Dưới 1 năm (Tân binh & Thử việc)</span>
+                                            <span class="age-dist-val">24% <span class="text-muted fw-normal">(59 nhân sự)</span></span>
+                                        </div>
+                                        <div class="age-dist-bar-bg">
+                                            <div class="age-dist-bar-fill" style="width: 24%; background: #38bdf8;"></div>
+                                        </div>
                                     </div>
-                                    <div class="age-dist-bar-bg">
-                                        <div class="age-dist-bar-fill" style="width: 18%;"></div>
+
+                                    <div class="age-dist-item">
+                                        <div class="age-dist-header">
+                                            <span class="age-dist-label fw-bold text-primary">1 – 3 năm (Cống hiến ổn định)</span>
+                                            <span class="age-dist-val text-primary">38% <span class="text-muted fw-normal">(93 nhân sự)</span></span>
+                                        </div>
+                                        <div class="age-dist-bar-bg">
+                                            <div class="age-dist-bar-fill highlight" style="width: 38%;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="age-dist-item">
+                                        <div class="age-dist-header">
+                                            <span class="age-dist-label">3 – 5 năm (Chuyên viên nòng cốt)</span>
+                                            <span class="age-dist-val">22% <span class="text-muted fw-normal">(54 nhân sự)</span></span>
+                                        </div>
+                                        <div class="age-dist-bar-bg">
+                                            <div class="age-dist-bar-fill" style="width: 22%; background: #6366f1;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="age-dist-item">
+                                        <div class="age-dist-header">
+                                            <span class="age-dist-label">Trên 5 năm (Cán bộ nguồn & Gắn bó)</span>
+                                            <span class="age-dist-val text-success">16% <span class="text-muted fw-normal">(39 nhân sự)</span></span>
+                                        </div>
+                                        <div class="age-dist-bar-bg">
+                                            <div class="age-dist-bar-fill" style="width: 16%; background: #10b981;"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Gắn kết card -->
+                                    <div class="p-2 px-3 rounded-2 mt-1 d-flex align-items-center justify-content-between" style="background: #f0fdf4; border: 1px dashed #86efac; font-size: 0.77rem;">
+                                        <div class="text-success fw-semibold d-flex align-items-center gap-1">
+                                            <i class="bi bi-shield-check fs-6"></i> Tỷ lệ nhân sự gắn bó trên 1 năm: <strong>76.0%</strong>
+                                        </div>
+                                        <span class="badge bg-success text-white">Chỉ số ổn định cao</span>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div class="age-dist-item">
-                                    <div class="age-dist-header">
-                                        <span class="age-dist-label">45 – 55 tuổi</span>
-                                        <span class="age-dist-val">12% <span class="text-muted fw-normal">(30 nhân sự)</span></span>
+                            <!-- TAB 4: TRÌNH ĐỘ (NEW TAB) -->
+                            <div class="structure-tab-pane" id="structure-pane-education">
+                                <div class="age-dist-list my-3">
+                                    <div class="age-dist-item">
+                                        <div class="age-dist-header">
+                                            <span class="age-dist-label d-flex align-items-center gap-1">
+                                                <i class="bi bi-mortarboard-fill text-purple"></i>
+                                                <span>Sau Đại học (Thạc sĩ, Tiến sĩ)</span>
+                                                <span class="badge bg-purple-subtle ms-1" style="font-size:0.68rem;">Chuyên gia</span>
+                                            </span>
+                                            <span class="age-dist-val text-purple">8% <span class="text-muted fw-normal">(20 nhân sự)</span></span>
+                                        </div>
+                                        <div class="age-dist-bar-bg">
+                                            <div class="age-dist-bar-fill" style="width: 8%; background: #8b5cf6;"></div>
+                                        </div>
                                     </div>
-                                    <div class="age-dist-bar-bg">
-                                        <div class="age-dist-bar-fill" style="width: 12%;"></div>
-                                    </div>
-                                </div>
 
-                                <div class="age-dist-item">
-                                    <div class="age-dist-header">
-                                        <span class="age-dist-label">Trên 55 tuổi</span>
-                                        <span class="age-dist-val">5% <span class="text-muted fw-normal">(11 nhân sự)</span></span>
+                                    <div class="age-dist-item">
+                                        <div class="age-dist-header">
+                                            <span class="age-dist-label fw-bold text-primary d-flex align-items-center gap-1">
+                                                <i class="bi bi-award-fill text-primary"></i>
+                                                <span>Đại học chính quy (Cử nhân, Kỹ sư)</span>
+                                                <span class="badge bg-primary-subtle text-primary ms-1" style="font-size:0.68rem;">Lực lượng chủ lực</span>
+                                            </span>
+                                            <span class="age-dist-val text-primary">68% <span class="text-muted fw-normal">(167 nhân sự)</span></span>
+                                        </div>
+                                        <div class="age-dist-bar-bg">
+                                            <div class="age-dist-bar-fill highlight" style="width: 68%;"></div>
+                                        </div>
                                     </div>
-                                    <div class="age-dist-bar-bg">
-                                        <div class="age-dist-bar-fill" style="width: 5%;"></div>
+
+                                    <div class="age-dist-item">
+                                        <div class="age-dist-header">
+                                            <span class="age-dist-label d-flex align-items-center gap-1">
+                                                <i class="bi bi-journal-bookmark text-info"></i>
+                                                <span>Cao đẳng chuyên nghiệp</span>
+                                            </span>
+                                            <span class="age-dist-val">16% <span class="text-muted fw-normal">(39 nhân sự)</span></span>
+                                        </div>
+                                        <div class="age-dist-bar-bg">
+                                            <div class="age-dist-bar-fill" style="width: 16%; background: #0ea5e9;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="age-dist-item">
+                                        <div class="age-dist-header">
+                                            <span class="age-dist-label d-flex align-items-center gap-1">
+                                                <i class="bi bi-tools text-secondary"></i>
+                                                <span>Trung cấp &amp; Chứng chỉ nghề</span>
+                                            </span>
+                                            <span class="age-dist-val">8% <span class="text-muted fw-normal">(19 nhân sự)</span></span>
+                                        </div>
+                                        <div class="age-dist-bar-bg">
+                                            <div class="age-dist-bar-fill" style="width: 8%; background: #64748b;"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Chứng chỉ quốc tế highlight -->
+                                    <div class="p-2 px-3 rounded-2 mt-1 d-flex align-items-center justify-content-between" style="background: #eff6ff; border: 1px dashed #bfdbfe; font-size: 0.77rem;">
+                                        <div class="text-primary fw-semibold d-flex align-items-center gap-1">
+                                            <i class="bi bi-patch-check-fill fs-6 text-primary"></i> Trình độ từ Đại học trở lên: <strong>76.3%</strong> (187 NS)
+                                        </div>
+                                        <span class="badge bg-primary text-white">42 Chứng chỉ quốc tế</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 2 Demographic Subcards -->
-                        <div class="demographic-subcards">
+                        <!-- 2 Demographic Subcards (Dynamic theo tab) -->
+                        <div class="demographic-subcards" id="structureSubcards">
                             <div class="demo-subcard">
-                                <div class="demo-subcard-title">Tỷ lệ giới tính</div>
-                                <div class="demo-subcard-val text-primary">
+                                <div class="demo-subcard-title" id="structureSub1Title">Tỷ lệ giới tính</div>
+                                <div class="demo-subcard-val text-primary" id="structureSub1Val">
                                     <i class="bi bi-gender-male"></i> Nam: 55% &nbsp;|&nbsp; <i class="bi bi-gender-female text-danger"></i> Nữ: 45%
                                 </div>
                             </div>
                             <div class="demo-subcard">
-                                <div class="demo-subcard-title">Thâm niên trung bình</div>
-                                <div class="demo-subcard-val text-success">
+                                <div class="demo-subcard-title" id="structureSub2Title">Thâm niên trung bình</div>
+                                <div class="demo-subcard-val text-success" id="structureSub2Val">
                                     2.8 năm <span class="text-muted fw-normal">(38% từ 1-3 năm)</span>
                                 </div>
                             </div>

@@ -1,36 +1,48 @@
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\AttendanceServlet.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\ContractServlet.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\DashboardServlet.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\DepartmentServlet.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\EmployeeServlet.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\LeaveServlet.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\LoginServlet.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\LogoutServlet.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\PayrollServlet.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\PositionServlet.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\AttendanceDAO.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\ContractDAO.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\DepartmentDAO.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\EmployeeDAO.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\LeaveDAO.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\OvertimeDAO.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\PayrollDAO.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\PositionDAO.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\UserDAO.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Attendance.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Contract.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Department.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Employee.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\LeaveRequest.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Overtime.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Payroll.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Position.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\User.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\service\AttendanceService.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\service\AuthService.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\service\EmployeeService.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\service\LeaveService.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\service\PayrollService.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\util\DBConnection.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\util\PasswordUtil.java
-D:\BaiTapCNJAVA\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\util\ValidationUtil.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\AllowanceServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\AttendanceServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\BonusServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\ContractServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\DashboardServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\DeductionServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\DepartmentServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\DisciplineServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\EmployeeServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\EvaluationServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\LeaveServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\LoginServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\LogoutServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\PaymentServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\PayrollServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\PayslipServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\PerformanceServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\PositionServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\RecruitmentServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\SalaryConfigServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\SettingServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\controller\UserServlet.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\AttendanceDAO.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\ContractDAO.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\DepartmentDAO.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\EmployeeDAO.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\LeaveDAO.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\OvertimeDAO.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\PayrollDAO.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\PositionDAO.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\dao\UserDAO.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Attendance.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Contract.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Department.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Employee.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\LeaveRequest.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Overtime.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Payroll.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\Position.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\model\User.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\service\AttendanceService.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\service\AuthService.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\service\EmployeeService.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\service\LeaveService.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\service\PayrollService.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\util\DBConnection.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\util\PasswordUtil.java
+C:\BT_Java\BaiTap Java\MIXIMOI_HRM\MIXIMOI_HRM\src\main\java\com\miximoi\hrm\util\ValidationUtil.java

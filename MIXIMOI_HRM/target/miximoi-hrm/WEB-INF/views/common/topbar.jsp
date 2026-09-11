@@ -9,33 +9,168 @@
             <i class="bi bi-list fs-5"></i>
         </button>
 
-        <!-- Search Box -->
-        <div class="topbar-search-box">
-            <i class="bi bi-search topbar-search-icon"></i>
-            <input type="text" class="topbar-search-input" placeholder="Tìm kiếm nhanh..." aria-label="Search">
-            <span class="topbar-search-shortcut">Ctrl+K</span>
-        </div>
+        <!-- Topbar Breadcrumb -->
+        <nav class="topbar-breadcrumb d-none d-md-flex align-items-center" aria-label="breadcrumb">
+            <span class="breadcrumb-brand">MIXIMOI</span>
+            <i class="bi bi-chevron-right breadcrumb-separator"></i>
+            <c:choose>
+                <c:when test="${activeMenu eq 'employees'}">
+                    <span class="breadcrumb-parent">Quản lý tổ chức</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Nhân viên</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'departments'}">
+                    <span class="breadcrumb-parent">Quản lý tổ chức</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Phòng ban</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'positions'}">
+                    <span class="breadcrumb-parent">Quản lý tổ chức</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Chức vụ</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'contracts'}">
+                    <span class="breadcrumb-parent">Quản lý tổ chức</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Hợp đồng</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'attendance'}">
+                    <span class="breadcrumb-parent">Quản lý chấm công</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Chấm công</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'timesheet'}">
+                    <span class="breadcrumb-parent">Quản lý chấm công</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Bảng công</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'overtime'}">
+                    <span class="breadcrumb-parent">Quản lý chấm công</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Tăng ca</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'leave'}">
+                    <span class="breadcrumb-parent">Quản lý chấm công</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Nghỉ phép</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'salary-config'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Thiết lập lương</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'payroll'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Bảng lương</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'allowances'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Phụ cấp</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'bonuses'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Thưởng</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'deductions'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Khấu trừ</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'payment'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Thanh toán</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'payslip'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Phiếu lương</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'disciplines'}">
+                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Kỷ luật</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'performance'}">
+                    <span class="breadcrumb-parent">Quản lý hiệu suất</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">KPI</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'evaluations'}">
+                    <span class="breadcrumb-parent">Quản lý hiệu suất</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Đánh giá hiệu suất</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'users'}">
+                    <span class="breadcrumb-parent">Hệ thống</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Tài khoản & Phân quyền</span>
+                </c:when>
+                <c:when test="${activeMenu eq 'settings'}">
+                    <span class="breadcrumb-parent">Hệ thống</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <c:choose>
+                        <c:when test="${activeSubMenu eq 'profile'}">
+                            <span class="breadcrumb-current">Cài đặt hệ thống</span>
+                        </c:when>
+                        <c:otherwise>
+                            <span class="breadcrumb-current">Thiết lập hệ thống</span>
+                        </c:otherwise>
+                    </c:choose>
+                </c:when>
+                <c:when test="${activeMenu eq 'recruitment'}">
+                    <span class="breadcrumb-parent">Quản lý tuyển dụng</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <c:choose>
+                        <c:when test="${activeSubMenu eq 'jobs'}">
+                            <span class="breadcrumb-current">Vị trí tuyển dụng</span>
+                        </c:when>
+                        <c:when test="${activeSubMenu eq 'candidates'}">
+                            <span class="breadcrumb-current">Ứng viên</span>
+                        </c:when>
+                        <c:otherwise>
+                            <span class="breadcrumb-current">Tuyển dụng</span>
+                        </c:otherwise>
+                    </c:choose>
+                </c:when>
+                <c:otherwise>
+                    <span class="breadcrumb-parent">Trang chủ</span>
+                    <span class="breadcrumb-slash">/</span>
+                    <span class="breadcrumb-current">Dashboard</span>
+                </c:otherwise>
+            </c:choose>
+        </nav>
+    </div>
+
+    <!-- Center Search Box -->
+    <div class="topbar-search-box mx-auto d-none d-lg-block">
+        <i class="bi bi-search topbar-search-icon"></i>
+        <input type="text" class="topbar-search-input" placeholder="Tìm kiếm nhân viên, báo cáo, phòng ban..." aria-label="Search">
+        <span class="topbar-search-shortcut">⌘ K</span>
     </div>
 
     <!-- Right Side Actions & User Profile -->
     <div class="topbar-actions">
         <!-- Notification Bell -->
         <div class="dropdown">
-            <button class="topbar-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo">
+            <button class="topbar-btn position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo">
                 <i class="bi bi-bell"></i>
-                <span class="topbar-badge-dot">3</span>
+                <span class="topbar-badge-dot"></span>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="width: 300px; font-size: 0.85rem;">
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="width: 320px; font-size: 0.85rem;">
                 <li class="px-2 py-1 fw-bold text-dark border-bottom pb-2 mb-2 d-flex justify-content-between align-items-center">
-                    <span>Thông báo mới</span>
+                    <span>Thông báo hệ thống</span>
                     <span class="badge bg-primary-subtle text-primary">3 chưa đọc</span>
                 </li>
                 <li>
                     <a class="dropdown-item py-2 rounded d-flex gap-2 align-items-start" href="#">
                         <i class="bi bi-person-plus text-primary fs-6 mt-1"></i>
                         <div>
-                            <div class="fw-semibold">Nguyễn Văn A được tiếp nhận</div>
-                            <small class="text-muted">2 phút trước</small>
+                            <div class="fw-semibold">Nguyễn Văn An được tiếp nhận</div>
+                            <small class="text-muted">3 phút trước</small>
                         </div>
                     </a>
                 </li>
@@ -66,13 +201,16 @@
         <!-- User Profile Dropdown -->
         <div class="dropdown">
             <div class="topbar-user" data-bs-toggle="dropdown" aria-expanded="false">
-                <div class="topbar-avatar-placeholder">
-                    <c:choose>
-                        <c:when test="${not empty sessionScope.currentUser.fullName}">
-                            ${sessionScope.currentUser.fullName.substring(0, 1).toUpperCase()}
-                        </c:when>
-                        <c:otherwise>A</c:otherwise>
-                    </c:choose>
+                <div class="position-relative">
+                    <div class="topbar-avatar-placeholder">
+                        <c:choose>
+                            <c:when test="${not empty sessionScope.currentUser.fullName}">
+                                ${sessionScope.currentUser.fullName.substring(0, 1).toUpperCase()}
+                            </c:when>
+                            <c:otherwise>A</c:otherwise>
+                        </c:choose>
+                    </div>
+                    <span class="user-online-indicator"></span>
                 </div>
                 <div class="topbar-user-info d-none d-sm-flex">
                     <span class="topbar-user-name">
@@ -98,7 +236,7 @@
                 <i class="bi bi-chevron-down text-muted" style="font-size: 0.75rem;"></i>
             </div>
             
-            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="min-width: 200px; font-size: 0.85rem;">
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="min-width: 210px; font-size: 0.85rem;">
                 <li class="px-3 py-2 border-bottom mb-1">
                     <div class="fw-bold text-dark">
                         <c:choose>
@@ -129,7 +267,7 @@
                 </li>
                 <li>
                     <a class="dropdown-item rounded py-2 d-flex align-items-center gap-2" href="${pageContext.request.contextPath}/settings">
-                        <i class="bi bi-gear text-muted"></i> Cài đặt
+                        <i class="bi bi-gear text-muted"></i> Cài đặt hệ thống
                     </a>
                 </li>
                 <li><hr class="dropdown-divider my-1"></li>

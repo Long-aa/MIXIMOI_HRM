@@ -45,6 +45,7 @@ public class PayrollServlet extends HttpServlet {
             payrollList = payrollDAO.findByPeriod(month, year);
         }
 
+        request.setAttribute("activeMenu", "payroll");
         request.setAttribute("payrollList", payrollList);
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);

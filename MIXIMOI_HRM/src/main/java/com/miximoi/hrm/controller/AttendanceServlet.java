@@ -20,7 +20,7 @@ import java.util.List;
  * Servlet quản lý chấm công.
  * URL: /attendance
  */
-@WebServlet("/attendance")
+@WebServlet({"/attendance", "/timesheet", "/overtime"})
 public class AttendanceServlet extends HttpServlet {
 
     private final AttendanceService attendanceService = new AttendanceService();
@@ -30,6 +30,15 @@ public class AttendanceServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
+
+        String path = request.getServletPath();
+        if ("/timesheet".equals(path)) {
+            request.setAttribute("activeMenu", "timesheet");
+        } else if ("/overtime".equals(path)) {
+            request.setAttribute("activeMenu", "overtime");
+        } else {
+            request.setAttribute("activeMenu", "attendance");
+        }
 
         LocalDate now = LocalDate.now();
         String mStr = request.getParameter("month");
