@@ -67,15 +67,14 @@ INSERT INTO employees (employee_code, full_name, date_of_birth, gender, phone, e
 -- =============================================================
 -- 6. TÀI KHOẢN NGƯỜI DÙNG
 -- Password: 'miximoi@2026' — BCrypt hash (cost=12)
--- Khi chạy thực tế, thay bằng hash từ PasswordUtil.hash()
 -- =============================================================
 INSERT INTO users (username, password, role, employee_id, active) VALUES
-    ('admin',     '$2a$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36QNQNdKR4B6PlZKVXLmX4C', 'ADMIN',      NULL, TRUE),
-    ('hr01',      '$2a$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36QNQNdKR4B6PlZKVXLmX4C', 'HR',         2,    TRUE),
-    ('accountant','$2a$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36QNQNdKR4B6PlZKVXLmX4C', 'ACCOUNTANT', 3,    TRUE),
-    ('manager01', '$2a$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36QNQNdKR4B6PlZKVXLmX4C', 'MANAGER',    1,    TRUE),
-    ('nv004',     '$2a$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36QNQNdKR4B6PlZKVXLmX4C', 'EMPLOYEE',   4,    TRUE),
-    ('nv005',     '$2a$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36QNQNdKR4B6PlZKVXLmX4C', 'EMPLOYEE',   5,    TRUE);
+    ('admin',     '$2a$12$RKn6YXs8E0Vg7A.wHsgC8O9L3uLuBlyynP7d0ob0X6SWWxdjKOmwC', 'ADMIN',      NULL, TRUE),
+    ('hr01',      '$2a$12$RKn6YXs8E0Vg7A.wHsgC8O9L3uLuBlyynP7d0ob0X6SWWxdjKOmwC', 'HR',         2,    TRUE),
+    ('accountant','$2a$12$RKn6YXs8E0Vg7A.wHsgC8O9L3uLuBlyynP7d0ob0X6SWWxdjKOmwC', 'ACCOUNTANT', 3,    TRUE),
+    ('manager01', '$2a$12$RKn6YXs8E0Vg7A.wHsgC8O9L3uLuBlyynP7d0ob0X6SWWxdjKOmwC', 'MANAGER',    1,    TRUE),
+    ('nv004',     '$2a$12$RKn6YXs8E0Vg7A.wHsgC8O9L3uLuBlyynP7d0ob0X6SWWxdjKOmwC', 'EMPLOYEE',   4,    TRUE),
+    ('nv005',     '$2a$12$RKn6YXs8E0Vg7A.wHsgC8O9L3uLuBlyynP7d0ob0X6SWWxdjKOmwC', 'EMPLOYEE',   5,    TRUE);
 
 -- =============================================================
 -- 7. HỢP ĐỒNG LAO ĐỘNG MẪU

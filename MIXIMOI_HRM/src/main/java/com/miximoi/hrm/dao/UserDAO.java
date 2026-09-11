@@ -15,8 +15,10 @@ public class UserDAO {
      */
     public User findByUsername(String username) {
         String sql = "SELECT u.id, u.username, u.password, u.role, u.employee_id, u.active, "
-                   + "u.created_at, u.updated_at "
-                   + "FROM users u WHERE u.username = ? AND u.active = true";
+                   + "u.created_at, u.updated_at, e.full_name, e.email "
+                   + "FROM users u "
+                   + "LEFT JOIN employees e ON u.employee_id = e.id "
+                   + "WHERE u.username = ? AND u.active = true";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
@@ -35,8 +37,11 @@ public class UserDAO {
      * Tìm user theo ID.
      */
     public User findById(int id) {
-        String sql = "SELECT id, username, password, role, employee_id, active, "
-                   + "created_at, updated_at FROM users WHERE id = ?";
+        String sql = "SELECT u.id, u.username, u.password, u.role, u.employee_id, u.active, "
+                   + "u.created_at, u.updated_at, e.full_name, e.email "
+                   + "FROM users u "
+                   + "LEFT JOIN employees e ON u.employee_id = e.id "
+                   + "WHERE u.id = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -98,6 +103,12 @@ public class UserDAO {
         if (createdAt != null) u.setCreatedAt(createdAt.toLocalDateTime());
         Timestamp updatedAt = rs.getTimestamp("updated_at");
         if (updatedAt != null) u.setUpdatedAt(updatedAt.toLocalDateTime());
+        try {
+            u.setFullName(rs.getString("full_name"));
+        } catch (SQLException ignored) {}
+        try {
+            u.setEmail(rs.getString("email"));
+        } catch (SQLException ignored) {}
         return u;
     }
 }

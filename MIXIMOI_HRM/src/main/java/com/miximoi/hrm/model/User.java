@@ -16,6 +16,9 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    private String fullName;
+    private String email;
+
     public User() {}
 
     public User(int id, String username, String password, String role,
@@ -47,6 +50,22 @@ public class User {
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+
+    public String getFullName() {
+        if (fullName != null && !fullName.trim().isEmpty()) {
+            return fullName;
+        }
+        return username != null ? username : "Administrator";
+    }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getEmail() {
+        if (email != null && !email.trim().isEmpty()) {
+            return email;
+        }
+        return (username != null ? username : "admin") + "@miximoi.vn";
+    }
+    public void setEmail(String email) { this.email = email; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
