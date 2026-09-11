@@ -117,31 +117,31 @@
             
             <a href="${pageContext.request.contextPath}/deductions" 
                class="sidebar-nav-link ${activeMenu eq 'deductions' ? 'active' : ''}">
-                <i class="bi bi-journal-minus"></i>
+                <i class="bi bi-dash-circle"></i>
                 <span>Khấu trừ</span>
             </a>
             
-            <a href="${pageContext.request.contextPath}/payslip" 
-               class="sidebar-nav-link ${activeMenu eq 'payslip' ? 'active' : ''}">
-                <i class="bi bi-receipt"></i>
-                <span>Phiếu lương</span>
+            <a href="${pageContext.request.contextPath}/rewards" 
+               class="sidebar-nav-link ${activeMenu eq 'rewards' ? 'active' : ''}">
+                <i class="bi bi-award"></i>
+                <span>Khen thưởng</span>
             </a>
             
-            <a href="${pageContext.request.contextPath}/payment" 
-               class="sidebar-nav-link ${activeMenu eq 'payment' ? 'active' : ''}">
-                <i class="bi bi-credit-card"></i>
-                <span>Thanh toán</span>
+            <a href="${pageContext.request.contextPath}/disciplines" 
+               class="sidebar-nav-link ${activeMenu eq 'disciplines' ? 'active' : ''}">
+                <i class="bi bi-shield-exclamation"></i>
+                <span>Kỷ luật</span>
             </a>
         </div>
 
-        <!-- BÁO CÁO & THỐNG KÊ -->
+        <!-- QUẢN TRỊ TUYỂN DỤNG -->
         <div class="menu-section">
-            <div class="menu-section-label">Báo cáo & Thống kê</div>
+            <div class="menu-section-label">Quản trị tuyển dụng</div>
             
-            <a href="${pageContext.request.contextPath}/reports" 
-               class="sidebar-nav-link ${activeMenu eq 'reports' ? 'active' : ''}">
-                <i class="bi bi-bar-chart-line"></i>
-                <span>Báo cáo tổng quan</span>
+            <a href="${pageContext.request.contextPath}/recruitment" 
+               class="sidebar-nav-link ${activeMenu eq 'recruitment' ? 'active' : ''}">
+                <i class="bi bi-person-plus"></i>
+                <span>Tuyển dụng</span>
             </a>
         </div>
 
@@ -161,5 +161,36 @@
                 <span>Cài đặt hệ thống</span>
             </a>
         </div>
+    </div>
+
+    <!-- Sidebar Bottom User Status Card -->
+    <div class="sidebar-user-footer">
+        <div class="sidebar-user-avatar position-relative">
+            <div class="avatar-circle">
+                <c:choose>
+                    <c:when test="${not empty sessionScope.currentUser.fullName}">
+                        ${sessionScope.currentUser.fullName.substring(0, 1).toUpperCase()}
+                    </c:when>
+                    <c:otherwise>A</c:otherwise>
+                </c:choose>
+            </div>
+            <span class="user-online-indicator"></span>
+        </div>
+        <div class="sidebar-user-details">
+            <div class="sidebar-user-name">
+                <c:choose>
+                    <c:when test="${not empty sessionScope.currentUser.fullName}">
+                        ${sessionScope.currentUser.fullName}
+                    </c:when>
+                    <c:otherwise>Nguyễn Văn Admin</c:otherwise>
+                </c:choose>
+            </div>
+            <div class="sidebar-user-status">
+                <span class="online-dot"></span> Đang trực tuyến
+            </div>
+        </div>
+        <a href="${pageContext.request.contextPath}/logout" class="sidebar-logout-btn" title="Đăng xuất">
+            <i class="bi bi-box-arrow-right"></i>
+        </a>
     </div>
 </aside>

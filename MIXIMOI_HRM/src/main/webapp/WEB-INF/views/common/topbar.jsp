@@ -9,33 +9,42 @@
             <i class="bi bi-list fs-5"></i>
         </button>
 
-        <!-- Search Box -->
-        <div class="topbar-search-box">
-            <i class="bi bi-search topbar-search-icon"></i>
-            <input type="text" class="topbar-search-input" placeholder="Tìm kiếm nhanh..." aria-label="Search">
-            <span class="topbar-search-shortcut">Ctrl+K</span>
-        </div>
+        <!-- Topbar Breadcrumb -->
+        <nav class="topbar-breadcrumb d-none d-md-flex align-items-center" aria-label="breadcrumb">
+            <span class="breadcrumb-brand">MIXIMOI</span>
+            <i class="bi bi-chevron-right breadcrumb-separator"></i>
+            <span class="breadcrumb-parent">Trang điều hành</span>
+            <span class="breadcrumb-slash">/</span>
+            <span class="breadcrumb-current">Dashboard Tổng quan</span>
+        </nav>
+    </div>
+
+    <!-- Center Search Box -->
+    <div class="topbar-search-box mx-auto d-none d-lg-block">
+        <i class="bi bi-search topbar-search-icon"></i>
+        <input type="text" class="topbar-search-input" placeholder="Tìm kiếm nhân viên, báo cáo, phòng ban..." aria-label="Search">
+        <span class="topbar-search-shortcut">⌘ K</span>
     </div>
 
     <!-- Right Side Actions & User Profile -->
     <div class="topbar-actions">
         <!-- Notification Bell -->
         <div class="dropdown">
-            <button class="topbar-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo">
+            <button class="topbar-btn position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo">
                 <i class="bi bi-bell"></i>
-                <span class="topbar-badge-dot">3</span>
+                <span class="topbar-badge-dot"></span>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="width: 300px; font-size: 0.85rem;">
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="width: 320px; font-size: 0.85rem;">
                 <li class="px-2 py-1 fw-bold text-dark border-bottom pb-2 mb-2 d-flex justify-content-between align-items-center">
-                    <span>Thông báo mới</span>
+                    <span>Thông báo hệ thống</span>
                     <span class="badge bg-primary-subtle text-primary">3 chưa đọc</span>
                 </li>
                 <li>
                     <a class="dropdown-item py-2 rounded d-flex gap-2 align-items-start" href="#">
                         <i class="bi bi-person-plus text-primary fs-6 mt-1"></i>
                         <div>
-                            <div class="fw-semibold">Nguyễn Văn A được tiếp nhận</div>
-                            <small class="text-muted">2 phút trước</small>
+                            <div class="fw-semibold">Nguyễn Văn An được tiếp nhận</div>
+                            <small class="text-muted">3 phút trước</small>
                         </div>
                     </a>
                 </li>
@@ -66,13 +75,16 @@
         <!-- User Profile Dropdown -->
         <div class="dropdown">
             <div class="topbar-user" data-bs-toggle="dropdown" aria-expanded="false">
-                <div class="topbar-avatar-placeholder">
-                    <c:choose>
-                        <c:when test="${not empty sessionScope.currentUser.fullName}">
-                            ${sessionScope.currentUser.fullName.substring(0, 1).toUpperCase()}
-                        </c:when>
-                        <c:otherwise>A</c:otherwise>
-                    </c:choose>
+                <div class="position-relative">
+                    <div class="topbar-avatar-placeholder">
+                        <c:choose>
+                            <c:when test="${not empty sessionScope.currentUser.fullName}">
+                                ${sessionScope.currentUser.fullName.substring(0, 1).toUpperCase()}
+                            </c:when>
+                            <c:otherwise>A</c:otherwise>
+                        </c:choose>
+                    </div>
+                    <span class="user-online-indicator"></span>
                 </div>
                 <div class="topbar-user-info d-none d-sm-flex">
                     <span class="topbar-user-name">
@@ -98,7 +110,7 @@
                 <i class="bi bi-chevron-down text-muted" style="font-size: 0.75rem;"></i>
             </div>
             
-            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="min-width: 200px; font-size: 0.85rem;">
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="min-width: 210px; font-size: 0.85rem;">
                 <li class="px-3 py-2 border-bottom mb-1">
                     <div class="fw-bold text-dark">
                         <c:choose>
@@ -129,7 +141,7 @@
                 </li>
                 <li>
                     <a class="dropdown-item rounded py-2 d-flex align-items-center gap-2" href="${pageContext.request.contextPath}/settings">
-                        <i class="bi bi-gear text-muted"></i> Cài đặt
+                        <i class="bi bi-gear text-muted"></i> Cài đặt hệ thống
                     </a>
                 </li>
                 <li><hr class="dropdown-divider my-1"></li>

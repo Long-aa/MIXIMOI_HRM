@@ -6,7 +6,7 @@
 <head>
     <title>Dashboard Tổng Quan — MIXIMOI HRM & PAYROLL</title>
     <%@ include file="/WEB-INF/views/common/head.jsp" %>
-    <!-- Chart.js for interactive analytics -->
+    <!-- Chart.js 4.4 for high-performance interactive analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -39,36 +39,84 @@
                             <c:otherwise>Admin</c:otherwise>
                         </c:choose>
                         <span>👋</span>
-                        <span class="welcome-version-badge">Enterprise HRM v2.4</span>
+                        <span class="welcome-version-badge">Executive Suite 2026</span>
                     </div>
-                    <div class="welcome-meta">
-                        <span class="welcome-date-chip">
-                            <i class="bi bi-calendar3 text-primary"></i>
-                            <span data-dynamic-date>Hôm nay, Thứ Hai 15/09/2026</span>
-                        </span>
-                        <span class="d-none d-md-inline text-muted">|</span>
-                        <span>Chúc bạn một ngày làm việc hiệu quả và tràn đầy năng lượng!</span>
-                    </div>
+                    <p class="text-muted mb-0" style="font-size: 0.88rem;">
+                        Chúc bạn một ngày làm việc hiệu quả. Dưới đây là tổng quan tình hình toàn bộ hệ thống doanh nghiệp.
+                    </p>
                 </div>
 
                 <div class="welcome-actions">
-                    <button class="btn-action-light" type="button">
-                        <i class="bi bi-download"></i>
+                    <button class="btn-action-light" type="button" id="btnExportReport">
+                        <i class="bi bi-box-arrow-up"></i>
                         <span>Xuất báo cáo</span>
                     </button>
-                    <a href="${pageContext.request.contextPath}/employees?action=new" class="btn-action-soft">
-                        <i class="bi bi-person-plus"></i>
-                        <span>Thêm nhân viên</span>
-                    </a>
-                    <a href="${pageContext.request.contextPath}/payroll" class="btn-action-primary">
-                        <i class="bi bi-credit-card-2-front"></i>
-                        <span>Tạo bảng lương tháng</span>
+                    <button class="btn-action-light" type="button" id="btnGenerateComposite">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span>Tạo báo cáo tổng hợp</span>
+                    </button>
+                    <a href="${pageContext.request.contextPath}/employees?action=new" class="btn-action-primary">
+                        <i class="bi bi-plus-lg"></i>
+                        <span>+ Thêm nhân viên</span>
                     </a>
                 </div>
             </div>
 
-            <!-- 2. Four Stat KPI Cards -->
-            <div class="row g-3 mb-4">
+            <!-- 2. Multi-Criteria Filter Bar (Bộ lọc đa chiều) -->
+            <div class="dashboard-filter-card">
+                <div class="filter-row-top">
+                    <div class="filter-controls-group">
+                        <select class="filter-select" id="filterMonth">
+                            <option value="9" selected>Tháng 09/2026</option>
+                            <option value="8">Tháng 08/2026</option>
+                            <option value="7">Tháng 07/2026</option>
+                            <option value="6">Tháng 06/2026</option>
+                        </select>
+
+                        <select class="filter-select" id="filterDepartment">
+                            <option value="all" selected>Tất cả phòng ban</option>
+                            <option value="sales">Kinh doanh & Bán hàng</option>
+                            <option value="it">Công nghệ & R&D</option>
+                            <option value="marketing">Marketing & Truyền thông</option>
+                            <option value="finance">Tài chính - Kế toán</option>
+                            <option value="hr">Hành chính - Nhân sự</option>
+                        </select>
+
+                        <select class="filter-select" id="filterBranch">
+                            <option value="all" selected>Tất cả chi nhánh</option>
+                            <option value="hanoi">Hà Nội (Trụ sở chính)</option>
+                            <option value="hcm">TP. Hồ Chí Minh</option>
+                            <option value="danang">Đà Nẵng</option>
+                        </select>
+
+                        <select class="filter-select" id="filterStatus">
+                            <option value="all" selected>Tất cả trạng thái</option>
+                            <option value="active">Đang làm việc</option>
+                            <option value="probation">Thử việc</option>
+                            <option value="leave">Đang nghỉ phép</option>
+                        </select>
+                    </div>
+
+                    <button type="button" class="btn-filter-refresh" id="btnRefreshFilters" title="Làm mới bộ lọc">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        <span>Làm mới</span>
+                    </button>
+                </div>
+
+                <!-- Segmented Period Tabs -->
+                <div class="period-segments-wrapper">
+                    <button type="button" class="period-tab-btn" data-range="today">Hôm nay</button>
+                    <button type="button" class="period-tab-btn" data-range="week">Tuần này</button>
+                    <button type="button" class="period-tab-btn active" data-range="month">Tháng này</button>
+                    <button type="button" class="period-tab-btn" data-range="quarter">Quý này</button>
+                    <button type="button" class="period-tab-btn" data-range="year">Năm nay</button>
+                    <button type="button" class="period-tab-btn" data-range="custom">Tùy chỉnh</button>
+                </div>
+            </div>
+
+            <!-- 3. Eight Stat KPI Cards (2 Rows of 4 Cards) -->
+            <!-- Row 1 of KPI Cards -->
+            <div class="row g-3 mb-3">
                 <!-- KPI 1: Tổng nhân viên -->
                 <div class="col-xl-3 col-md-6">
                     <div class="kpi-card">
@@ -85,361 +133,1021 @@
                                     <span class="kpi-unit">nhân sự</span>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box">
+                            <div class="kpi-icon-box blue">
                                 <i class="bi bi-people-fill"></i>
                             </div>
                         </div>
                         <div class="kpi-footer">
                             <span class="trend-badge positive">
-                                <i class="bi bi-graph-up-arrow"></i> +3.2%
+                                <i class="bi bi-arrow-up-short"></i> +4.2%
                             </span>
-                            <span class="text-muted">+12 nhân viên trong tháng</span>
+                            <span class="text-muted">so với tháng trước</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- KPI 2: Cơ cấu phòng ban -->
+                <!-- KPI 2: Nhân viên đang làm việc -->
                 <div class="col-xl-3 col-md-6">
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
-                                <div class="kpi-label">Cơ cấu phòng ban</div>
+                                <div class="kpi-label">Nhân viên đang làm việc</div>
+                                <div class="kpi-value-row">
+                                    <span class="kpi-value">232</span>
+                                    <span class="kpi-unit">nhân sự</span>
+                                </div>
+                            </div>
+                            <div class="kpi-icon-box green">
+                                <i class="bi bi-person-check-fill"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-footer">
+                            <span class="trend-badge positive">
+                                <i class="bi bi-arrow-up-short"></i> +3.1%
+                            </span>
+                            <span class="text-muted">Năng suất tại các công ty</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 3: Nhân viên mới -->
+                <div class="col-xl-3 col-md-6">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <div class="kpi-label">Nhân viên mới</div>
+                                <div class="kpi-value-row">
+                                    <span class="kpi-value">12</span>
+                                    <span class="kpi-unit">tuyển mới</span>
+                                </div>
+                            </div>
+                            <div class="kpi-icon-box purple">
+                                <i class="bi bi-person-plus-fill"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-footer">
+                            <span class="trend-badge" style="background:#eff6ff; color:#2563eb;">
+                                <i class="bi bi-arrow-up-short"></i> +20%
+                            </span>
+                            <span class="text-muted">so với tháng trước</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 4: Nhân viên nghỉ việc -->
+                <div class="col-xl-3 col-md-6">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <div class="kpi-label">Nhân viên nghỉ việc</div>
+                                <div class="kpi-value-row">
+                                    <span class="kpi-value">3</span>
+                                    <span class="kpi-unit">nghỉ việc</span>
+                                </div>
+                            </div>
+                            <div class="kpi-icon-box coral">
+                                <i class="bi bi-person-dash-fill"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-footer">
+                            <span class="trend-badge positive">
+                                <i class="bi bi-arrow-down-short"></i> -12%
+                            </span>
+                            <span class="text-muted">Tỷ lệ biến động giảm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2 of KPI Cards -->
+            <div class="row g-3 mb-4">
+                <!-- KPI 5: Phòng ban -->
+                <div class="col-xl-3 col-md-6">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <div class="kpi-label">Phòng ban</div>
                                 <div class="kpi-value-row">
                                     <span class="kpi-value">12</span>
                                     <span class="kpi-unit">đơn vị</span>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box">
+                            <div class="kpi-icon-box cyan">
                                 <i class="bi bi-buildings-fill"></i>
                             </div>
                         </div>
                         <div class="kpi-footer">
-                            <span class="fw-semibold text-dark">Hoạt động ổn định</span>
-                            <span class="text-muted">100% chỉ tiêu nhân sự</span>
+                            <span class="kpi-chip-soft">+1 phòng ban mới</span>
+                            <span class="text-muted">Bộ phận AI Lab</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- KPI 3: Tổng quỹ lương -->
+                <!-- KPI 6: Tổng quỹ lương -->
                 <div class="col-xl-3 col-md-6">
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
                                 <div class="kpi-label">Tổng quỹ lương</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value text-primary" style="font-size: 1.6rem;">
+                                    <span class="kpi-value text-primary">
                                         <c:choose>
                                             <c:when test="${totalPayroll != null}">
-                                                <fmt:formatNumber value="${totalPayroll}" type="number" groupingUsed="true"/> đ
+                                                <fmt:formatNumber value="${totalPayroll}" type="number" groupingUsed="true"/>
                                             </c:when>
-                                            <c:otherwise>850.000.000 đ</c:otherwise>
+                                            <c:otherwise>850.000.000</c:otherwise>
                                         </c:choose>
                                     </span>
+                                    <span class="kpi-unit text-primary fw-bold">đ</span>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box">
+                            <div class="kpi-icon-box blue">
                                 <i class="bi bi-wallet2"></i>
                             </div>
                         </div>
                         <div class="kpi-footer">
-                            <span>Kỳ: T09/2026</span>
-                            <span class="text-primary fw-semibold">96% đã hoàn tất chi trả</span>
+                            <span class="trend-badge" style="background:#eff6ff; color:#2563eb;">
+                                <i class="bi bi-arrow-up-short"></i> +3.5%
+                            </span>
+                            <span class="text-muted">Kỳ: T09/2026</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- KPI 4: Nghỉ phép hôm nay -->
+                <!-- KPI 7: Hợp đồng sắp hết hạn -->
                 <div class="col-xl-3 col-md-6">
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
-                                <div class="kpi-label">Nghỉ phép hôm nay</div>
+                                <div class="kpi-label">Hợp đồng sắp hết hạn</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value">
-                                        <c:choose>
-                                            <c:when test="${pendingLeaves != null and pendingLeaves > 0}">0${pendingLeaves}</c:when>
-                                            <c:otherwise>08</c:otherwise>
-                                        </c:choose>
-                                    </span>
-                                    <span class="kpi-unit">trường hợp</span>
+                                    <span class="kpi-value text-warning" style="color: #ea580c !important;">08</span>
+                                    <span class="kpi-unit">hợp đồng</span>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box">
-                                <i class="bi bi-calendar2-week-fill"></i>
+                            <div class="kpi-icon-box amber">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
                             </div>
                         </div>
                         <div class="kpi-footer">
-                            <div class="d-flex align-items-center gap-1">
-                                <span class="badge bg-primary-subtle text-primary border-0">5 phép năm</span>
-                                <span class="badge bg-danger-subtle text-danger border-0">3 ốm đau</span>
+                            <span class="kpi-chip-warning">
+                                <i class="bi bi-dot fs-5 p-0"></i> Có cảnh báo
+                            </span>
+                            <span class="text-muted">Trong 30 ngày tới</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 8: Đơn nghỉ phép chờ duyệt -->
+                <div class="col-xl-3 col-md-6">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <div class="kpi-label">Đơn nghỉ phép chờ duyệt</div>
+                                <div class="kpi-value-row">
+                                    <span class="kpi-value text-primary">
+                                        <c:choose>
+                                            <c:when test="${pendingLeaves != null and pendingLeaves > 0}">
+                                                ${pendingLeaves}
+                                            </c:when>
+                                            <c:otherwise>12</c:otherwise>
+                                        </c:choose>
+                                    </span>
+                                    <span class="kpi-unit">yêu cầu</span>
+                                </div>
                             </div>
-                            <a href="${pageContext.request.contextPath}/leave" class="text-primary fw-semibold text-decoration-none">Chi tiết</a>
+                            <div class="kpi-icon-box blue">
+                                <i class="bi bi-clipboard2-check-fill"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-footer">
+                            <span class="kpi-chip-soft">Còn xử lý</span>
+                            <span class="text-danger fw-semibold">Cần xử lý gấp</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 3. Middle Row: Biến động nhân sự & Cơ cấu phòng ban -->
+            <!-- 4. Main Charts Row: Biến động nhân sự & Cơ cấu nhân sự -->
             <div class="row g-3 mb-4">
-                <!-- Left: Biến động nhân sự (Line Chart) -->
+                <!-- Left: Biến động nhân sự (8 Columns) -->
                 <div class="col-lg-8">
                     <div class="app-card">
-                        <div class="app-card-header">
+                        <div class="app-card-header flex-wrap gap-2">
                             <div>
                                 <div class="app-card-title">
                                     <span>Biến động nhân sự</span>
-                                    <i class="bi bi-info-circle text-muted fs-6" title="Thống kê quy mô biến động nhân sự theo thời gian" style="cursor:help;"></i>
+                                    <i class="bi bi-info-circle text-muted fs-6" title="Xu hướng biến động quy mô nhân sự qua các tháng" style="cursor:help;"></i>
                                 </div>
-                                <p class="app-card-subtitle">Tăng trưởng liên tục 6 tháng qua (Tháng 4 - Tháng 9/2026)</p>
+                                <p class="app-card-subtitle">Xu hướng nhân sự trong 6 tháng gần nhất (Tháng 4 - Tháng 9/2026)</p>
                             </div>
 
-                            <!-- Filter Pills -->
-                            <div class="card-filter-pills">
-                                <button type="button" class="filter-pill active" data-period="6m">6 Tháng</button>
-                                <button type="button" class="filter-pill" data-period="1y">Năm nay</button>
-                                <button type="button" class="filter-pill" data-period="all">Tất cả</button>
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <!-- Legend Indicators -->
+                                <div class="chart-header-badges">
+                                    <span><span class="badge-dot-indicator" style="background-color: #2563eb;"></span>Tổng NS</span>
+                                    <span><span class="badge-dot-indicator" style="background-color: #10b981;"></span>Mới (+12)</span>
+                                    <span><span class="badge-dot-indicator" style="background-color: #ef4444;"></span>Nghỉ (-3)</span>
+                                </div>
+
+                                <!-- Filter dropdown -->
+                                <button type="button" class="btn btn-sm btn-light border py-1 px-2 fw-semibold text-secondary" style="font-size: 0.78rem;">
+                                    6 tháng gần nhất <i class="bi bi-chevron-down ms-1"></i>
+                                </button>
                             </div>
                         </div>
 
-                        <div style="height: 275px; position: relative;">
+                        <div style="height: 285px; position: relative;" class="mt-2">
                             <canvas id="personnelGrowthChart"></canvas>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right: Cơ cấu phòng ban (Donut Chart) -->
+                <!-- Right: Cơ cấu nhân sự (4 Columns) -->
                 <div class="col-lg-4">
                     <div class="app-card d-flex flex-column justify-content-between">
                         <div>
-                            <div class="app-card-header mb-2">
+                            <div class="app-card-header mb-1">
                                 <div>
-                                    <div class="app-card-title">Cơ cấu phòng ban</div>
-                                    <p class="app-card-subtitle">Phân bổ 245 nhân sự trên toàn hệ thống</p>
+                                    <div class="app-card-title">Cơ cấu nhân sự</div>
+                                    <p class="app-card-subtitle">Phân bố 245 nhân sự trong công ty</p>
+                                </div>
+
+                                <!-- Toggle Tabs -->
+                                <div class="card-filter-pills">
+                                    <button type="button" class="filter-pill active" data-donut-tab="dept">Phòng ban</button>
+                                    <button type="button" class="filter-pill" data-donut-tab="gender">Giới tính</button>
+                                    <button type="button" class="filter-pill" data-donut-tab="age">Độ tuổi</button>
                                 </div>
                             </div>
 
-                            <!-- Donut Wrapper with Centered Text -->
+                            <!-- Donut Wrapper with Centered Indicator -->
                             <div class="donut-chart-wrapper my-2">
-                                <canvas id="departmentDonutChart" width="180" height="180"></canvas>
+                                <canvas id="departmentDonutChart" width="185" height="185"></canvas>
                                 <div class="donut-center-info">
                                     <div class="donut-center-val">245</div>
-                                    <div class="donut-center-label">Tổng cộng</div>
+                                    <div class="donut-center-label">Tổng nhân sự</div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Legend Items matching colors in mockup -->
-                        <div class="legend-grid">
-                            <div class="legend-item">
-                                <span class="legend-name">
-                                    <span class="legend-bullet" style="background-color: #2563eb;"></span>
+                        <!-- 2-Column Legend Grid Matching Mockup -->
+                        <div class="donut-legend-row">
+                            <div class="donut-legend-item">
+                                <span class="legend-label">
+                                    <span class="color-square" style="background-color: #2563eb;"></span>
                                     Kinh doanh
                                 </span>
-                                <span class="legend-pct">35%</span>
+                                <span class="legend-val">28% <span class="text-muted fw-normal">(68)</span></span>
                             </div>
-                            <div class="legend-item">
-                                <span class="legend-name">
-                                    <span class="legend-bullet" style="background-color: #0ea5e9;"></span>
-                                    Công nghệ (IT)
+                            <div class="donut-legend-item">
+                                <span class="legend-label">
+                                    <span class="color-square" style="background-color: #0ea5e9;"></span>
+                                    CNTT & R&D
                                 </span>
-                                <span class="legend-pct">25%</span>
+                                <span class="legend-val">22% <span class="text-muted fw-normal">(54)</span></span>
                             </div>
-                            <div class="legend-item">
-                                <span class="legend-name">
-                                    <span class="legend-bullet" style="background-color: #6366f1;"></span>
+                            <div class="donut-legend-item">
+                                <span class="legend-label">
+                                    <span class="color-square" style="background-color: #f97316;"></span>
                                     Marketing
                                 </span>
-                                <span class="legend-pct">18%</span>
+                                <span class="legend-val">18% <span class="text-muted fw-normal">(44)</span></span>
                             </div>
-                            <div class="legend-item">
-                                <span class="legend-name">
-                                    <span class="legend-bullet" style="background-color: #38bdf8;"></span>
+                            <div class="donut-legend-item">
+                                <span class="legend-label">
+                                    <span class="color-square" style="background-color: #10b981;"></span>
                                     Kế toán
                                 </span>
-                                <span class="legend-pct">12%</span>
+                                <span class="legend-val">15% <span class="text-muted fw-normal">(37)</span></span>
                             </div>
-                            <div class="legend-item" style="grid-column: span 2;">
-                                <span class="legend-name">
-                                    <span class="legend-bullet" style="background-color: #93c5fd;"></span>
-                                    Nhân sự & Vận hành
+                            <div class="donut-legend-item">
+                                <span class="legend-label">
+                                    <span class="color-square" style="background-color: #8b5cf6;"></span>
+                                    Nhân sự
                                 </span>
-                                <span class="legend-pct">10%</span>
+                                <span class="legend-val">10% <span class="text-muted fw-normal">(25)</span></span>
+                            </div>
+                            <div class="donut-legend-item">
+                                <span class="legend-label">
+                                    <span class="color-square" style="background-color: #64748b;"></span>
+                                    Khác
+                                </span>
+                                <span class="legend-val">7% <span class="text-muted fw-normal">(17)</span></span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 4. Bottom Row: Quỹ lương theo phòng ban & Hoạt động gần đây -->
-            <div class="row g-3">
-                <!-- Left: Quỹ lương theo phòng ban -->
-                <div class="col-lg-7">
+            <!-- 5. Three Columns Widget: Chấm công, Nghỉ phép, Việc cần xử lý gấp -->
+            <div class="row g-3 mb-4">
+                <!-- Col 1: Tình hình chấm công hôm nay -->
+                <div class="col-lg-4">
                     <div class="app-card d-flex flex-column justify-content-between">
                         <div>
                             <div class="app-card-header">
                                 <div>
-                                    <div class="app-card-title">Quỹ lương theo phòng ban</div>
-                                    <p class="app-card-subtitle">Tổng chi trả lương thực tế kỳ Tháng 09/2026</p>
+                                    <div class="app-card-title">Tình hình chấm công hôm nay</div>
+                                    <p class="app-card-subtitle">Tổng số nhân sự theo lịch trực: <strong>245</strong></p>
                                 </div>
-                                <span class="badge bg-primary-subtle text-primary px-3 py-2 fw-bold" style="font-size:0.9rem;">
-                                    850.000.000 đ
+                                <span class="badge bg-success-subtle text-success px-2 py-1 fw-bold" style="font-size: 0.75rem;">
+                                    ● Trực tiếp
                                 </span>
                             </div>
 
-                            <!-- Progress list per department -->
-                            <div class="dept-payroll-list my-3">
-                                <!-- Department 1 -->
-                                <div class="dept-payroll-item">
-                                    <div class="dept-payroll-info">
-                                        <span class="dept-name">Kinh doanh & Bán hàng</span>
-                                        <span class="dept-amount">260.000.000 đ <span class="text-muted fw-normal">(30.5%)</span></span>
-                                    </div>
-                                    <div class="dept-progress">
-                                        <div class="dept-progress-bar" style="width: 30.5%; background-color: #2563eb;"></div>
-                                    </div>
-                                </div>
+                            <!-- Stacked Progress Bar -->
+                            <div class="attendance-stacked-bar">
+                                <div class="attendance-stacked-segment" style="width: 88%; background-color: #10b981;" title="Đúng giờ: 88%"></div>
+                                <div class="attendance-stacked-segment" style="width: 5%; background-color: #f59e0b;" title="Đi muộn/Về sớm: 5%"></div>
+                                <div class="attendance-stacked-segment" style="width: 3%; background-color: #3b82f6;" title="Nghỉ có lương: 3%"></div>
+                                <div class="attendance-stacked-segment" style="width: 1%; background-color: #ef4444;" title="Vắng không phép: 1%"></div>
+                            </div>
 
-                                <!-- Department 2 -->
-                                <div class="dept-payroll-item">
-                                    <div class="dept-payroll-info">
-                                        <span class="dept-name">Công nghệ thông tin & R&D</span>
-                                        <span class="dept-amount">240.000.000 đ <span class="text-muted fw-normal">(28.2%)</span></span>
-                                    </div>
-                                    <div class="dept-progress">
-                                        <div class="dept-progress-bar" style="width: 28.2%; background-color: #2563eb;"></div>
-                                    </div>
+                            <!-- Breakdown Items -->
+                            <div class="attendance-breakdown-list">
+                                <div class="attendance-item">
+                                    <span class="attendance-item-label">
+                                        <span class="badge-dot-indicator" style="background-color: #10b981;"></span>
+                                        Đi làm đúng giờ
+                                    </span>
+                                    <span class="attendance-item-val text-success">215 nhân sự (88%)</span>
                                 </div>
-
-                                <!-- Department 3 -->
-                                <div class="dept-payroll-item">
-                                    <div class="dept-payroll-info">
-                                        <span class="dept-name">Marketing & Truyền thông</span>
-                                        <span class="dept-amount">150.000.000 đ <span class="text-muted fw-normal">(17.6%)</span></span>
-                                    </div>
-                                    <div class="dept-progress">
-                                        <div class="dept-progress-bar" style="width: 17.6%; background-color: #3b82f6;"></div>
-                                    </div>
+                                <div class="attendance-item">
+                                    <span class="attendance-item-label">
+                                        <span class="badge-dot-indicator" style="background-color: #f59e0b;"></span>
+                                        Đi muộn / Về sớm
+                                    </span>
+                                    <span class="attendance-item-val text-warning" style="color:#d97706 !important;">12 nhân sự (5%)</span>
                                 </div>
-
-                                <!-- Department 4 -->
-                                <div class="dept-payroll-item">
-                                    <div class="dept-payroll-info">
-                                        <span class="dept-name">Tài chính - Kế toán</span>
-                                        <span class="dept-amount">110.000.000 đ <span class="text-muted fw-normal">(12.9%)</span></span>
-                                    </div>
-                                    <div class="dept-progress">
-                                        <div class="dept-progress-bar" style="width: 12.9%; background-color: #60a5fa;"></div>
-                                    </div>
+                                <div class="attendance-item">
+                                    <span class="attendance-item-label">
+                                        <span class="badge-dot-indicator" style="background-color: #3b82f6;"></span>
+                                        Nghỉ phép có lương
+                                    </span>
+                                    <span class="attendance-item-val text-primary">8 nhân sự (3%)</span>
                                 </div>
-
-                                <!-- Department 5 -->
-                                <div class="dept-payroll-item">
-                                    <div class="dept-payroll-info">
-                                        <span class="dept-name">Hành chính - Nhân sự</span>
-                                        <span class="dept-amount">90.000.000 đ <span class="text-muted fw-normal">(10.6%)</span></span>
-                                    </div>
-                                    <div class="dept-progress">
-                                        <div class="dept-progress-bar" style="width: 10.6%; background-color: #93c5fd;"></div>
-                                    </div>
+                                <div class="attendance-item">
+                                    <span class="attendance-item-label">
+                                        <span class="badge-dot-indicator" style="background-color: #ef4444;"></span>
+                                        Vắng mặt không phép
+                                    </span>
+                                    <span class="attendance-item-val text-danger">2 nhân sự (1%)</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Bottom Notice & Details Link -->
-                        <div class="pt-3 border-top d-flex justify-content-between align-items-center" style="font-size:0.83rem;">
-                            <span class="text-muted d-flex align-items-center gap-1">
-                                <i class="bi bi-shield-check text-primary fs-6"></i>
-                                Đã bao gồm đóng bảo hiểm & thuế TNCN
-                            </span>
-                            <a href="${pageContext.request.contextPath}/payroll" class="text-primary fw-bold text-decoration-none d-flex align-items-center gap-1">
-                                Xem chi tiết bảng lương <i class="bi bi-arrow-right"></i>
+                        <div class="pt-3 mt-3 border-top">
+                            <a href="${pageContext.request.contextPath}/attendance" class="text-primary fw-bold text-decoration-none d-flex align-items-center justify-content-between" style="font-size:0.83rem;">
+                                <span>Xem chi tiết chấm công</span>
+                                <i class="bi bi-arrow-right"></i>
                             </a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right: Hoạt động gần đây -->
-                <div class="col-lg-5">
+                <!-- Col 2: Nghỉ phép -->
+                <div class="col-lg-4">
                     <div class="app-card d-flex flex-column justify-content-between">
                         <div>
                             <div class="app-card-header">
                                 <div>
-                                    <div class="app-card-title">Hoạt động gần đây</div>
-                                    <p class="app-card-subtitle">Nhật ký tác vụ thời gian thực</p>
+                                    <div class="app-card-title">Nghỉ phép</div>
+                                    <p class="app-card-subtitle">Quỹ phép toàn công ty: <strong>450.5 ngày</strong></p>
                                 </div>
-                                <button class="btn btn-sm btn-light border-0 btn-activity-refresh" title="Làm mới">
-                                    <i class="bi bi-arrow-clockwise fs-6 text-muted"></i>
-                                </button>
+                                <span class="badge bg-primary-subtle text-primary px-2 py-1 fw-bold" style="font-size: 0.75rem;">
+                                    Năm 2026
+                                </span>
                             </div>
 
-                            <!-- Activity Items -->
-                            <div class="activity-feed my-2">
-                                <!-- Activity 1 -->
-                                <div class="activity-item">
-                                    <div class="topbar-avatar-placeholder" style="width: 36px; height: 36px; font-size: 0.8rem; background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
-                                        A
+                            <!-- Dual Bar & Labels -->
+                            <div class="leave-dual-bar">
+                                <div class="leave-bar-used" style="width: 27%;"></div>
+                                <div class="leave-bar-remain" style="width: 73%;"></div>
+                            </div>
+                            <div class="leave-dual-labels">
+                                <span>Đã dùng: <strong>120</strong></span>
+                                <span>Còn lại: <strong>330.5</strong></span>
+                            </div>
+
+                            <!-- Highlight Callout Box -->
+                            <div class="leave-callout-card">
+                                <div>
+                                    <div class="leave-callout-title">Đơn chờ duyệt</div>
+                                    <div class="d-flex align-items-baseline">
+                                        <span class="leave-callout-number">12</span>
+                                        <span class="leave-callout-unit">yêu cầu</span>
                                     </div>
-                                    <div class="activity-content">
-                                        <div class="activity-title-row">
-                                            <span class="activity-title">Nguyễn Văn A</span>
-                                            <span class="activity-time">2 phút trước</span>
+                                </div>
+                                <div class="leave-callout-icon">
+                                    <i class="bi bi-calendar-check"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 mt-3 border-top">
+                            <a href="${pageContext.request.contextPath}/leave" class="text-primary fw-bold text-decoration-none d-flex align-items-center justify-content-between" style="font-size:0.83rem;">
+                                <span>Xem chi tiết nghỉ phép</span>
+                                <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Col 3: Việc cần xử lý gấp -->
+                <div class="col-lg-4">
+                    <div class="app-card d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="app-card-header">
+                                <div>
+                                    <div class="app-card-title text-danger">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                        Việc cần xử lý gấp
+                                    </div>
+                                    <p class="app-card-subtitle">Các tác vụ nhân sự cần được ban giám đốc và HR duyệt ngay:</p>
+                                </div>
+                                <span class="badge bg-warning-subtle text-warning px-2 py-1 fw-bold" style="font-size: 0.75rem; color:#c2410c !important;">
+                                    Ưu tiên cao
+                                </span>
+                            </div>
+
+                            <!-- Urgent Tasks List -->
+                            <div class="urgent-task-list">
+                                <!-- Item 1 -->
+                                <div class="urgent-task-item">
+                                    <div class="urgent-task-left">
+                                        <span class="urgent-num-badge orange">6</span>
+                                        <div class="urgent-task-info">
+                                            <span class="urgent-task-title">Hợp đồng sắp hết hạn</span>
+                                            <span class="urgent-task-sub">Trong 30 ngày tới</span>
                                         </div>
-                                        <div class="activity-desc">Đã được tiếp nhận vào hệ thống MIXIMOI</div>
-                                        <div class="activity-tags">
-                                            <span class="activity-tag">Phòng IT</span>
-                                            <span class="activity-tag">Backend Dev</span>
+                                    </div>
+                                    <a href="${pageContext.request.contextPath}/contracts" class="urgent-action-btn">
+                                        Xem danh sách <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </div>
+
+                                <!-- Item 2 -->
+                                <div class="urgent-task-item">
+                                    <div class="urgent-task-left">
+                                        <span class="urgent-num-badge blue">12</span>
+                                        <div class="urgent-task-info">
+                                            <span class="urgent-task-title">Đơn nghỉ phép cần duyệt</span>
+                                            <span class="urgent-task-sub">4 đơn nghỉ phép gấp hôm nay</span>
                                         </div>
+                                    </div>
+                                    <a href="${pageContext.request.contextPath}/leave" class="urgent-action-btn">
+                                        Duyệt ngay <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </div>
+
+                                <!-- Item 3 -->
+                                <div class="urgent-task-item">
+                                    <div class="urgent-task-left">
+                                        <span class="urgent-num-badge purple">3</span>
+                                        <div class="urgent-task-info">
+                                            <span class="urgent-task-title">Hồ sơ nhân viên chưa hoàn tất</span>
+                                            <span class="urgent-task-sub">Thiếu công chứng, MST, BHXH</span>
+                                        </div>
+                                    </div>
+                                    <a href="${pageContext.request.contextPath}/employees" class="urgent-action-btn">
+                                        Kiểm tra <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </div>
+
+                                <!-- Item 4 -->
+                                <div class="urgent-task-item">
+                                    <div class="urgent-task-left">
+                                        <span class="urgent-num-badge orange">2</span>
+                                        <div class="urgent-task-info">
+                                            <span class="urgent-task-title">Yêu cầu tuyển dụng chờ xử lý</span>
+                                            <span class="urgent-task-sub">Từ team Kỹ thuật & Sales</span>
+                                        </div>
+                                    </div>
+                                    <a href="${pageContext.request.contextPath}/recruitment" class="urgent-action-btn">
+                                        Xem yêu cầu <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </div>
+
+                                <!-- Item 5 -->
+                                <div class="urgent-task-item">
+                                    <div class="urgent-task-left">
+                                        <span class="urgent-num-badge red">1</span>
+                                        <div class="urgent-task-info">
+                                            <span class="urgent-task-title">Chưa cập nhật thông tin</span>
+                                            <span class="urgent-task-sub">Cần bổ sung STK & BHXH</span>
+                                        </div>
+                                    </div>
+                                    <a href="${pageContext.request.contextPath}/employees" class="urgent-action-btn">
+                                        Kiểm tra <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Two Columns: Quỹ lương & chi phí nhân sự & Tình hình tuyển dụng -->
+            <div class="row g-3 mb-4">
+                <!-- Left: Quỹ lương & chi phí nhân sự (7 Columns) -->
+                <div class="col-lg-7">
+                    <div class="app-card d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="app-card-header">
+                                <div>
+                                    <div class="app-card-title">
+                                        <i class="bi bi-wallet2 text-primary me-1"></i>
+                                        Quỹ lương & chi phí nhân sự
+                                    </div>
+                                    <p class="app-card-subtitle">Chi tiết phân bổ ngân sách tiền lương kỳ Tháng 09/2026</p>
+                                </div>
+                                <span class="badge bg-primary-subtle text-primary px-3 py-2 fw-bold" style="font-size:0.95rem;">
+                                    850.000.000 đ
+                                </span>
+                            </div>
+
+                            <!-- 5 Mini Stats Pills -->
+                            <div class="payroll-stats-bar">
+                                <div class="payroll-stat-pill">
+                                    <div class="payroll-stat-label">Tổng quỹ</div>
+                                    <div class="payroll-stat-value text-primary">850 Tr đ</div>
+                                </div>
+                                <div class="payroll-stat-pill">
+                                    <div class="payroll-stat-label">Lương cơ bản</div>
+                                    <div class="payroll-stat-value">650 Tr đ</div>
+                                </div>
+                                <div class="payroll-stat-pill">
+                                    <div class="payroll-stat-label">Phụ cấp</div>
+                                    <div class="payroll-stat-value">75 Tr đ</div>
+                                </div>
+                                <div class="payroll-stat-pill">
+                                    <div class="payroll-stat-label">Thưởng</div>
+                                    <div class="payroll-stat-value">65 Tr đ</div>
+                                </div>
+                                <div class="payroll-stat-pill">
+                                    <div class="payroll-stat-label">Khống chế</div>
+                                    <div class="payroll-stat-value">60 Tr đ</div>
+                                </div>
+                            </div>
+
+                            <!-- Department Progress Bars -->
+                            <div class="dept-payroll-list my-3">
+                                <div class="dept-payroll-item">
+                                    <div class="dept-payroll-info">
+                                        <span class="dept-name">Kinh doanh & Bán hàng</span>
+                                        <span class="dept-amount">260.000.000 đ <span class="text-muted fw-normal">(31%)</span></span>
+                                    </div>
+                                    <div class="dept-progress">
+                                        <div class="dept-progress-bar" style="width: 31%; background-color: #2563eb;"></div>
                                     </div>
                                 </div>
 
-                                <!-- Activity 2 -->
-                                <div class="activity-item">
-                                    <div class="activity-icon-box bg-primary-subtle text-primary">
-                                        <i class="bi bi-person-lines-fill"></i>
+                                <div class="dept-payroll-item">
+                                    <div class="dept-payroll-info">
+                                        <span class="dept-name">Công nghệ & R&D</span>
+                                        <span class="dept-amount">240.000.000 đ <span class="text-muted fw-normal">(28%)</span></span>
                                     </div>
-                                    <div class="activity-content">
-                                        <div class="activity-title-row">
-                                            <span class="activity-title">Trần Thị B</span>
-                                            <span class="activity-time">10 phút trước</span>
-                                        </div>
-                                        <div class="activity-desc">Cập nhật thành công số CCCD và thông tin tài khoản ngân hàng VCB</div>
+                                    <div class="dept-progress">
+                                        <div class="dept-progress-bar" style="width: 28%; background-color: #2563eb;"></div>
                                     </div>
                                 </div>
 
-                                <!-- Activity 3 -->
-                                <div class="activity-item">
-                                    <div class="activity-icon-box bg-info-subtle text-info">
-                                        <i class="bi bi-cash-stack"></i>
+                                <div class="dept-payroll-item">
+                                    <div class="dept-payroll-info">
+                                        <span class="dept-name">Marketing & Truyền thông</span>
+                                        <span class="dept-amount">150.000.000 đ <span class="text-muted fw-normal">(18%)</span></span>
                                     </div>
-                                    <div class="activity-content">
-                                        <div class="activity-title-row">
-                                            <span class="activity-title">Hệ thống Payroll</span>
-                                            <span class="activity-time">30 phút trước</span>
-                                        </div>
-                                        <div class="activity-desc">Bảng lương T09/2026 đã được tạo và tự động tính bảo hiểm</div>
+                                    <div class="dept-progress">
+                                        <div class="dept-progress-bar" style="width: 18%; background-color: #3b82f6;"></div>
                                     </div>
                                 </div>
 
-                                <!-- Activity 4 -->
-                                <div class="activity-item">
-                                    <div class="activity-icon-box bg-success-subtle text-success">
-                                        <i class="bi bi-check2-circle"></i>
+                                <div class="dept-payroll-item">
+                                    <div class="dept-payroll-info">
+                                        <span class="dept-name">Tài chính - Kế toán</span>
+                                        <span class="dept-amount">110.000.000 đ <span class="text-muted fw-normal">(13%)</span></span>
                                     </div>
-                                    <div class="activity-content">
-                                        <div class="activity-title-row">
-                                            <span class="activity-title">Đơn nghỉ phép #NP-2041</span>
-                                            <span class="activity-time">1 giờ trước</span>
-                                        </div>
-                                        <div class="activity-desc">Lê Hoàng Nam (Sales) được phê duyệt bởi HR Manager (2 ngày)</div>
+                                    <div class="dept-progress">
+                                        <div class="dept-progress-bar" style="width: 13%; background-color: #60a5fa;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="dept-payroll-item">
+                                    <div class="dept-payroll-info">
+                                        <span class="dept-name">Hành chính - Nhân sự</span>
+                                        <span class="dept-amount">90.000.000 đ <span class="text-muted fw-normal">(10%)</span></span>
+                                    </div>
+                                    <div class="dept-progress">
+                                        <div class="dept-progress-bar" style="width: 10%; background-color: #93c5fd;"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- View all activity button -->
-                        <a href="#" class="btn-action-light w-100 justify-content-center mt-3">
-                            <span>Xem tất cả lịch sử hoạt động</span>
-                        </a>
+                        <!-- Footer -->
+                        <div class="pt-3 border-top d-flex justify-content-between align-items-center" style="font-size:0.83rem;">
+                            <span class="text-muted d-flex align-items-center gap-1">
+                                <i class="bi bi-shield-check text-success fs-6"></i>
+                                Đã bao gồm thuế TNCN và các khoản trích theo lương
+                            </span>
+                            <a href="${pageContext.request.contextPath}/payroll" class="text-primary fw-bold text-decoration-none d-flex align-items-center gap-1">
+                                Chi tiết bảng lương <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Tình hình tuyển dụng (5 Columns) -->
+                <div class="col-lg-5">
+                    <div class="app-card d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="app-card-header">
+                                <div>
+                                    <div class="app-card-title">
+                                        <i class="bi bi-person-plus text-primary me-1"></i>
+                                        Tình hình tuyển dụng
+                                    </div>
+                                    <p class="app-card-subtitle">Phễu tuyển dụng nhân sự và tỷ lệ chuyển đổi</p>
+                                </div>
+                                <span class="badge bg-primary-subtle text-primary px-2 py-1 fw-bold" style="font-size: 0.75rem;">
+                                    Q3 / 2026
+                                </span>
+                            </div>
+
+                            <!-- 4 Pipeline Metrics -->
+                            <div class="recruitment-metric-grid">
+                                <div class="recruitment-metric-box">
+                                    <div class="recruitment-metric-val text-primary">12</div>
+                                    <div class="recruitment-metric-label">Vị trí mở</div>
+                                </div>
+                                <div class="recruitment-metric-box">
+                                    <div class="recruitment-metric-val text-info">88</div>
+                                    <div class="recruitment-metric-label">Ứng viên nộp</div>
+                                </div>
+                                <div class="recruitment-metric-box">
+                                    <div class="recruitment-metric-val text-warning" style="color:#d97706 !important;">24</div>
+                                    <div class="recruitment-metric-label">Phỏng vấn</div>
+                                </div>
+                                <div class="recruitment-metric-box">
+                                    <div class="recruitment-metric-val text-success">08</div>
+                                    <div class="recruitment-metric-label">Đã nhận việc</div>
+                                </div>
+                            </div>
+
+                            <!-- Funnel Stages -->
+                            <div class="funnel-list my-3">
+                                <div class="funnel-row">
+                                    <span class="funnel-stage-name">Ứng viên mới</span>
+                                    <div class="funnel-bar-container">
+                                        <div class="funnel-bar-fill" style="width: 100%; background-color: #6366f1;">88 hồ sơ</div>
+                                    </div>
+                                </div>
+                                <div class="funnel-row">
+                                    <span class="funnel-stage-name">Đã sàng lọc</span>
+                                    <div class="funnel-bar-container">
+                                        <div class="funnel-bar-fill" style="width: 61%; background-color: #3b82f6;">54 hồ sơ</div>
+                                    </div>
+                                </div>
+                                <div class="funnel-row">
+                                    <span class="funnel-stage-name">Phỏng vấn</span>
+                                    <div class="funnel-bar-container">
+                                        <div class="funnel-bar-fill" style="width: 27%; background-color: #f59e0b;">24 ứng viên</div>
+                                    </div>
+                                </div>
+                                <div class="funnel-row">
+                                    <span class="funnel-stage-name">Đề xuất tuyển</span>
+                                    <div class="funnel-bar-container">
+                                        <div class="funnel-bar-fill" style="width: 11%; background-color: #06b6d4;">10</div>
+                                    </div>
+                                </div>
+                                <div class="funnel-row">
+                                    <span class="funnel-stage-name">Đã tuyển thành công</span>
+                                    <div class="funnel-bar-container">
+                                        <div class="funnel-bar-fill" style="width: 9%; background-color: #10b981;">8</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="pt-3 border-top d-flex justify-content-between align-items-center" style="font-size:0.83rem;">
+                            <a href="${pageContext.request.contextPath}/recruitment" class="text-primary fw-bold text-decoration-none d-flex align-items-center gap-1">
+                                Xem tuyển dụng <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. Two Columns: Hiệu suất theo phòng ban (KPI) & Phân tích cơ cấu nhân sự -->
+            <div class="row g-3 mb-4">
+                <!-- Left: Hiệu suất theo phòng ban (KPI) (6 Columns) -->
+                <div class="col-lg-6">
+                    <div class="app-card d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="app-card-header">
+                                <div>
+                                    <div class="app-card-title">
+                                        <i class="bi bi-speedometer2 text-success me-1"></i>
+                                        Hiệu suất theo phòng ban (KPI)
+                                    </div>
+                                    <p class="app-card-subtitle">Tỷ lệ hoàn thành mục tiêu công việc trong tháng hiện tại</p>
+                                </div>
+                                <span class="badge bg-success-subtle text-success px-2 py-1 fw-bold" style="font-size: 0.75rem;">
+                                    Đánh giá T09
+                                </span>
+                            </div>
+
+                            <!-- KPI List -->
+                            <div class="kpi-dept-list my-3">
+                                <div class="kpi-dept-item">
+                                    <div class="kpi-dept-header">
+                                        <span class="kpi-dept-name">Kinh doanh & Bán hàng</span>
+                                        <div>
+                                            <span class="kpi-eval-badge good">+100% Tốt</span>
+                                            <strong class="ms-2">90%</strong>
+                                        </div>
+                                    </div>
+                                    <div class="kpi-progress-bar-bg">
+                                        <div class="kpi-progress-fill green" style="width: 90%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="kpi-dept-item">
+                                    <div class="kpi-dept-header">
+                                        <span class="kpi-dept-name">Công nghệ & R&D</span>
+                                        <div>
+                                            <span class="kpi-eval-badge good">+100% Tốt</span>
+                                            <strong class="ms-2">95%</strong>
+                                        </div>
+                                    </div>
+                                    <div class="kpi-progress-bar-bg">
+                                        <div class="kpi-progress-fill green" style="width: 95%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="kpi-dept-item">
+                                    <div class="kpi-dept-header">
+                                        <span class="kpi-dept-name">Marketing & Truyền thông</span>
+                                        <div>
+                                            <span class="kpi-eval-badge warning">78/100% Cần cải thiện</span>
+                                            <strong class="ms-2">68%</strong>
+                                        </div>
+                                    </div>
+                                    <div class="kpi-progress-bar-bg">
+                                        <div class="kpi-progress-fill orange" style="width: 68%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="kpi-dept-item">
+                                    <div class="kpi-dept-header">
+                                        <span class="kpi-dept-name">Tài chính - Kế toán</span>
+                                        <div>
+                                            <span class="kpi-eval-badge good">+100% Tốt</span>
+                                            <strong class="ms-2">94%</strong>
+                                        </div>
+                                    </div>
+                                    <div class="kpi-progress-bar-bg">
+                                        <div class="kpi-progress-fill green" style="width: 94%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="kpi-dept-item">
+                                    <div class="kpi-dept-header">
+                                        <span class="kpi-dept-name">Hành chính - Nhân sự</span>
+                                        <div>
+                                            <span class="kpi-eval-badge good">+100% Tốt</span>
+                                            <strong class="ms-2">96%</strong>
+                                        </div>
+                                    </div>
+                                    <div class="kpi-progress-bar-bg">
+                                        <div class="kpi-progress-fill green" style="width: 96%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="pt-3 border-top">
+                            <a href="${pageContext.request.contextPath}/reports" class="text-primary fw-bold text-decoration-none d-flex align-items-center gap-1" style="font-size:0.83rem;">
+                                Xem báo cáo hiệu suất <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Phân tích cơ cấu nhân sự (6 Columns) -->
+                <div class="col-lg-6">
+                    <div class="app-card d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="app-card-header">
+                                <div>
+                                    <div class="app-card-title">
+                                        <i class="bi bi-pie-chart text-primary me-1"></i>
+                                        Phân tích cơ cấu nhân sự
+                                    </div>
+                                    <p class="app-card-subtitle">Phân bổ theo tuổi và cơ cấu nhân sự chi tiết toàn hệ thống</p>
+                                </div>
+
+                                <!-- Right Filter Tabs -->
+                                <div class="card-filter-pills">
+                                    <button type="button" class="filter-pill active">Độ tuổi</button>
+                                    <button type="button" class="filter-pill">Giới tính</button>
+                                    <button type="button" class="filter-pill">Thâm niên</button>
+                                </div>
+                            </div>
+
+                            <!-- Age Distribution Bars -->
+                            <div class="age-dist-list my-3">
+                                <div class="age-dist-item">
+                                    <div class="age-dist-header">
+                                        <span class="age-dist-label">18 – 25 tuổi</span>
+                                        <span class="age-dist-val">18% <span class="text-muted fw-normal">(44 nhân sự)</span></span>
+                                    </div>
+                                    <div class="age-dist-bar-bg">
+                                        <div class="age-dist-bar-fill" style="width: 18%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="age-dist-item">
+                                    <div class="age-dist-header">
+                                        <span class="age-dist-label fw-bold text-primary">25 – 35 tuổi</span>
+                                        <span class="age-dist-val text-primary">52% <span class="text-muted fw-normal">(128 nhân sự)</span></span>
+                                    </div>
+                                    <div class="age-dist-bar-bg">
+                                        <div class="age-dist-bar-fill highlight" style="width: 52%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="age-dist-item">
+                                    <div class="age-dist-header">
+                                        <span class="age-dist-label">35 – 45 tuổi (Lực lượng nòng cốt)</span>
+                                        <span class="age-dist-val">18% <span class="text-muted fw-normal">(44 nhân sự)</span></span>
+                                    </div>
+                                    <div class="age-dist-bar-bg">
+                                        <div class="age-dist-bar-fill" style="width: 18%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="age-dist-item">
+                                    <div class="age-dist-header">
+                                        <span class="age-dist-label">45 – 55 tuổi</span>
+                                        <span class="age-dist-val">12% <span class="text-muted fw-normal">(30 nhân sự)</span></span>
+                                    </div>
+                                    <div class="age-dist-bar-bg">
+                                        <div class="age-dist-bar-fill" style="width: 12%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="age-dist-item">
+                                    <div class="age-dist-header">
+                                        <span class="age-dist-label">Trên 55 tuổi</span>
+                                        <span class="age-dist-val">5% <span class="text-muted fw-normal">(11 nhân sự)</span></span>
+                                    </div>
+                                    <div class="age-dist-bar-bg">
+                                        <div class="age-dist-bar-fill" style="width: 5%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2 Demographic Subcards -->
+                        <div class="demographic-subcards">
+                            <div class="demo-subcard">
+                                <div class="demo-subcard-title">Tỷ lệ giới tính</div>
+                                <div class="demo-subcard-val text-primary">
+                                    <i class="bi bi-gender-male"></i> Nam: 55% &nbsp;|&nbsp; <i class="bi bi-gender-female text-danger"></i> Nữ: 45%
+                                </div>
+                            </div>
+                            <div class="demo-subcard">
+                                <div class="demo-subcard-title">Thâm niên trung bình</div>
+                                <div class="demo-subcard-val text-success">
+                                    2.8 năm <span class="text-muted fw-normal">(38% từ 1-3 năm)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. Full Width: Hoạt động gần đây -->
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="app-card">
+                        <div class="app-card-header">
+                            <div>
+                                <div class="app-card-title">
+                                    <i class="bi bi-clock-history text-primary me-1"></i>
+                                    Hoạt động gần đây
+                                </div>
+                                <p class="app-card-subtitle">Nhật ký tác vụ thời gian thực trên hệ thống MIXIMOI</p>
+                            </div>
+                            <button class="btn btn-sm btn-light border btn-activity-refresh" title="Làm mới nhật ký">
+                                <i class="bi bi-arrow-clockwise fs-6 text-muted"></i>
+                            </button>
+                        </div>
+
+                        <!-- Activity Items List -->
+                        <div class="activity-feed-full my-2">
+                            <!-- Item 1 -->
+                            <div class="activity-item-clean">
+                                <div class="activity-left-side">
+                                    <div class="activity-icon-round" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white;">
+                                        <i class="bi bi-person-fill"></i>
+                                    </div>
+                                    <div class="activity-desc-wrapper">
+                                        <div class="activity-main-line">
+                                            <strong>Nguyễn Văn An</strong> (IT Specialist) đã tiếp nhận và làm hồ sơ nhân viên mới cho <strong>Lê Quốc Tín</strong>
+                                        </div>
+                                        <div class="activity-badge-row">
+                                            <span class="activity-pill-tag">Phòng IT</span>
+                                            <span class="activity-pill-tag">Backend Engineer</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="activity-time-stamp">3 phút trước</span>
+                            </div>
+
+                            <!-- Item 2 -->
+                            <div class="activity-item-clean">
+                                <div class="activity-left-side">
+                                    <div class="activity-icon-round" style="background: #eff6ff; color: #2563eb;">
+                                        <i class="bi bi-person-vcard"></i>
+                                    </div>
+                                    <div class="activity-desc-wrapper">
+                                        <div class="activity-main-line">
+                                            <strong>Trần Thị B</strong> (Kế toán) đã cập nhật thông tin cá nhân số CCCD gắn chip và tài khoản ngân hàng VCB.
+                                        </div>
+                                        <div class="activity-badge-row">
+                                            <span class="badge bg-success-subtle text-success py-1 px-2">Đã xác minh</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="activity-time-stamp">15 phút trước</span>
+                            </div>
+
+                            <!-- Item 3 -->
+                            <div class="activity-item-clean">
+                                <div class="activity-left-side">
+                                    <div class="activity-icon-round" style="background: #ecfdf5; color: #10b981;">
+                                        <i class="bi bi-calendar2-check"></i>
+                                    </div>
+                                    <div class="activity-desc-wrapper">
+                                        <div class="activity-main-line">
+                                            <strong>Lê Văn C</strong> (Trưởng nhóm Kinh doanh) được phê duyệt đơn nghỉ phép 2 ngày bởi Giám đốc Chi nhánh.
+                                        </div>
+                                        <div class="activity-badge-row">
+                                            <span class="text-muted" style="font-size: 0.72rem;">Đơn: #NP-2026-88</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="activity-time-stamp">45 phút trước</span>
+                            </div>
+
+                            <!-- Item 4 -->
+                            <div class="activity-item-clean">
+                                <div class="activity-left-side">
+                                    <div class="activity-icon-round" style="background: #f5f3ff; color: #8b5cf6;">
+                                        <i class="bi bi-briefcase-fill"></i>
+                                    </div>
+                                    <div class="activity-desc-wrapper">
+                                        <div class="activity-main-line">
+                                            <strong>Phòng IT</strong> đã tạo yêu cầu tuyển dụng mới: <strong>Senior DevOps Engineer (02 nhân sự)</strong>.
+                                        </div>
+                                        <div class="activity-badge-row">
+                                            <span class="activity-pill-tag">IT Operations</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="activity-time-stamp">2 giờ trước</span>
+                            </div>
+
+                            <!-- Item 5 -->
+                            <div class="activity-item-clean">
+                                <div class="activity-left-side">
+                                    <div class="activity-icon-round" style="background: #fffbeb; color: #f59e0b;">
+                                        <i class="bi bi-file-earmark-text-fill"></i>
+                                    </div>
+                                    <div class="activity-desc-wrapper">
+                                        <div class="activity-main-line">
+                                            <strong>Admin</strong> đã gia hạn thành công và ký điện tử hợp đồng lao động mới mã <strong>HĐLĐ-2026-102</strong>.
+                                        </div>
+                                        <div class="activity-badge-row">
+                                            <span class="badge bg-warning-subtle text-warning py-1 px-2" style="color: #c2410c !important;">Thời hạn 3 năm</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="activity-time-stamp">3 giờ trước</span>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="pt-3 border-top text-center">
+                            <a href="#" class="text-primary fw-bold text-decoration-none d-inline-flex align-items-center gap-1" style="font-size: 0.83rem;">
+                                Xem toàn bộ hoạt động <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -451,7 +1159,7 @@
 <!-- Shared JavaScript dependencies -->
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
 
-<!-- Specific Dashboard Charts Script -->
+<!-- Specific Dashboard Charts & Interactions Script -->
 <script src="${pageContext.request.contextPath}/assets/js/dashboard.js"></script>
 
 </body>
