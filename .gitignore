@@ -1,0 +1,51 @@
+# Target build directory (Maven)
+target/
+**/target/
+*.class
+
+# Package Files #
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Log files
+*.log
+*.dumpstream
+hs_err_pid*
+replay_pid*
+
+# Maven specific
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE & Editor files
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+nbproject/private/
+build/
+dist/
+nbbuild/
+nbdist/
+.nb-mvn-cache/
+.kilocode/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
