@@ -30,6 +30,7 @@ com\miximoi\hrm\controller\DisciplineServlet.class
 com\miximoi\hrm\util\DBConnection.class
 com\miximoi\hrm\model\Department.class
 com\miximoi\hrm\model\Overtime.class
+com\miximoi\hrm\filter\AuthFilter.class
 com\miximoi\hrm\util\ValidationUtil.class
 com\miximoi\hrm\controller\PayrollServlet.class
 com\miximoi\hrm\controller\SalaryConfigServlet.class

@@ -73,6 +73,84 @@ public class User {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
+    public String getRoleDisplayName() {
+        if (role == null) return "Người dùng";
+        switch (role.toUpperCase()) {
+            case "ADMIN": return "Administrator";
+            case "HR": return "HR Specialist";
+            case "ACCOUNTANT": return "Kế toán viên";
+            case "MANAGER": return "Quản lý / Trưởng phòng";
+            case "EMPLOYEE": return "Nhân viên";
+            default: return role;
+        }
+    }
+
+    // Role checks
+    public boolean isAdmin() {
+        return role != null && "ADMIN".equalsIgnoreCase(role);
+    }
+
+    public boolean isHr() {
+        return role != null && "HR".equalsIgnoreCase(role);
+    }
+
+    public boolean isAccountant() {
+        return role != null && "ACCOUNTANT".equalsIgnoreCase(role);
+    }
+
+    public boolean isManager() {
+        return role != null && "MANAGER".equalsIgnoreCase(role);
+    }
+
+    public boolean isEmployee() {
+        return role != null && "EMPLOYEE".equalsIgnoreCase(role);
+    }
+
+    public boolean hasAnyRole(String... roles) {
+        if (this.role == null) return false;
+        for (String r : roles) {
+            if (this.role.equalsIgnoreCase(r)) return true;
+        }
+        return false;
+    }
+
+    // Chức năng được phép truy cập theo role
+    public boolean canAccessOrganization() {
+        return isAdmin() || isHr() || isManager();
+    }
+
+    public boolean canAccessEmployees() {
+        return isAdmin() || isHr() || isManager();
+    }
+
+    public boolean canManageEmployees() {
+        return isAdmin() || isHr();
+    }
+
+    public boolean canAccessAttendanceManagement() {
+        return isAdmin() || isHr() || isAccountant() || isManager();
+    }
+
+    public boolean canAccessPayroll() {
+        return isAdmin() || isAccountant();
+    }
+
+    public boolean canAccessRecruitment() {
+        return isAdmin() || isHr();
+    }
+
+    public boolean canAccessPerformance() {
+        return isAdmin() || isManager();
+    }
+
+    public boolean canAccessReports() {
+        return isAdmin() || isAccountant() || isManager();
+    }
+
+    public boolean canAccessSystem() {
+        return isAdmin();
+    }
+
     @Override
     public String toString() {
         return "User{id=" + id + ", username='" + username + "', role='" + role + "'}";

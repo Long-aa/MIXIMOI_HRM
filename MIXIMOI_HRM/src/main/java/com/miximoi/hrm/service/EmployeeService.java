@@ -21,12 +21,24 @@ public class EmployeeService {
         return employeeDAO.findById(id);
     }
 
+    public List<Employee> search(String keyword, Integer departmentId, Integer positionId, String status) {
+        return employeeDAO.search(keyword, departmentId, positionId, status);
+    }
+
     public List<Employee> search(String keyword, Integer departmentId, String status) {
-        return employeeDAO.search(keyword, departmentId, status);
+        return employeeDAO.search(keyword, departmentId, null, status);
+    }
+
+    public int countTotal() {
+        return employeeDAO.countTotal();
     }
 
     public int countActive() {
         return employeeDAO.countActive();
+    }
+
+    public int countByStatus(String status) {
+        return employeeDAO.countByStatus(status);
     }
 
     /**

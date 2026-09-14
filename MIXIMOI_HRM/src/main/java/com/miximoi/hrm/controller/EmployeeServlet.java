@@ -68,13 +68,23 @@ public class EmployeeServlet extends HttpServlet {
             default: {
                 String keyword    = request.getParameter("keyword");
                 String deptStr    = request.getParameter("departmentId");
+                String posStr     = request.getParameter("positionId");
                 String status     = request.getParameter("status");
                 Integer deptId    = (deptStr != null && !deptStr.isEmpty()) ? Integer.parseInt(deptStr) : null;
-                request.setAttribute("employees",    employeeService.search(keyword, deptId, status));
+                Integer posId     = (posStr != null && !posStr.isEmpty()) ? Integer.parseInt(posStr) : null;
+
+                request.setAttribute("employees",    employeeService.search(keyword, deptId, posId, status));
                 request.setAttribute("departments",  departmentDAO.findAll());
+                request.setAttribute("positions",    positionDAO.findAll());
                 request.setAttribute("keyword",      keyword);
                 request.setAttribute("departmentId", deptId);
+                request.setAttribute("positionId",   posId);
                 request.setAttribute("status",       status);
+                // KPI Stats
+                request.setAttribute("statsTotal",    employeeService.countTotal());
+                request.setAttribute("statsActive",   employeeService.countByStatus("ACTIVE"));
+                request.setAttribute("statsOnLeave",  employeeService.countByStatus("ON_LEAVE"));
+                request.setAttribute("statsInactive", employeeService.countByStatus("INACTIVE"));
                 request.getRequestDispatcher("/WEB-INF/views/employee/employee-list.jsp")
                        .forward(request, response);
             }

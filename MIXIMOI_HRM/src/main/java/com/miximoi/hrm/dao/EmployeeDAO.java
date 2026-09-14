@@ -52,15 +52,18 @@ public class EmployeeDAO {
         return null;
     }
 
-    /** Tìm kiếm nhân viên theo từ khóa (tên hoặc mã) */
-    public List<Employee> search(String keyword, Integer departmentId, String status) {
+    /** Tìm kiếm nhân viên theo từ khóa (tên hoặc mã), phòng ban, chức vụ, trạng thái */
+    public List<Employee> search(String keyword, Integer departmentId, Integer positionId, String status) {
         List<Employee> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(BASE_SELECT + "WHERE 1=1 ");
         if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append("AND (LOWER(e.full_name) LIKE ? OR LOWER(e.employee_code) LIKE ?) ");
+            sql.append("AND (LOWER(e.full_name) LIKE ? OR LOWER(e.employee_code) LIKE ? OR LOWER(e.email) LIKE ? OR e.phone LIKE ?) ");
         }
         if (departmentId != null && departmentId > 0) {
             sql.append("AND e.department_id = ? ");
+        }
+        if (positionId != null && positionId > 0) {
+            sql.append("AND e.position_id = ? ");
         }
         if (status != null && !status.trim().isEmpty()) {
             sql.append("AND e.status = ? ");
@@ -74,8 +77,11 @@ public class EmployeeDAO {
                 String like = "%" + keyword.trim().toLowerCase() + "%";
                 ps.setString(idx++, like);
                 ps.setString(idx++, like);
+                ps.setString(idx++, like);
+                ps.setString(idx++, "%" + keyword.trim() + "%");
             }
             if (departmentId != null && departmentId > 0) ps.setInt(idx++, departmentId);
+            if (positionId != null && positionId > 0) ps.setInt(idx++, positionId);
             if (status != null && !status.trim().isEmpty()) ps.setString(idx, status);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -85,6 +91,10 @@ public class EmployeeDAO {
             System.err.println("EmployeeDAO.search lỗi: " + e.getMessage());
         }
         return list;
+    }
+
+    public List<Employee> search(String keyword, Integer departmentId, String status) {
+        return search(keyword, departmentId, null, status);
     }
 
     /** Thêm nhân viên mới */
@@ -152,17 +162,37 @@ public class EmployeeDAO {
         return false;
     }
 
-    /** Đếm tổng nhân viên đang làm */
-    public int countActive() {
-        String sql = "SELECT COUNT(*) FROM employees WHERE status = 'ACTIVE'";
+    /** Đếm tổng số tất cả nhân viên */
+    public int countTotal() {
+        String sql = "SELECT COUNT(*) FROM employees";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             if (rs.next()) return rs.getInt(1);
         } catch (SQLException e) {
-            System.err.println("EmployeeDAO.countActive lỗi: " + e.getMessage());
+            System.err.println("EmployeeDAO.countTotal lỗi: " + e.getMessage());
         }
         return 0;
+    }
+
+    /** Đếm tổng nhân viên theo trạng thái */
+    public int countByStatus(String status) {
+        String sql = "SELECT COUNT(*) FROM employees WHERE status = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("EmployeeDAO.countByStatus lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /** Đếm tổng nhân viên đang làm */
+    public int countActive() {
+        return countByStatus("ACTIVE");
     }
 
     // ===== Helper =====
