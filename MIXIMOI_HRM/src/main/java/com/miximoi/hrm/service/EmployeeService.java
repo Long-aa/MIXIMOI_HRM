@@ -41,6 +41,10 @@ public class EmployeeService {
         return employeeDAO.countByStatus(status);
     }
 
+    public String getNextEmployeeCode() {
+        return employeeDAO.getNextEmployeeCode();
+    }
+
     /**
      * Thêm nhân viên mới với validate nghiệp vụ.
      *

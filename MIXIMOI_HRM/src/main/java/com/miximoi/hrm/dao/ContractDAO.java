@@ -18,6 +18,26 @@ public class ContractDAO {
       + "c.created_at, c.updated_at "
       + "FROM contracts c JOIN employees e ON c.employee_id = e.id ";
 
+    /** Sinh mã hợp đồng tiếp theo tự động (dạng HD012) */
+    public String getNextContractCode() {
+        String sql = "SELECT contract_code FROM contracts WHERE contract_code ~ '^HD[0-9]+$'";
+        int max = 0;
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String code = rs.getString(1);
+                try {
+                    int num = Integer.parseInt(code.substring(2));
+                    if (num > max) max = num;
+                } catch (NumberFormatException ignored) {}
+            }
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.getNextContractCode lỗi: " + e.getMessage());
+        }
+        return String.format("HD%03d", max + 1);
+    }
+
     public List<Contract> findAll() {
         List<Contract> list = new ArrayList<>();
         String sql = BASE_SELECT + "ORDER BY c.start_date DESC";

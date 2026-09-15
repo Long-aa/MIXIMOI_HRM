@@ -97,13 +97,33 @@ public class EmployeeDAO {
         return search(keyword, departmentId, null, status);
     }
 
+    /** Sinh mã nhân viên tiếp theo tự động (dạng NV013) */
+    public String getNextEmployeeCode() {
+        String sql = "SELECT employee_code FROM employees WHERE employee_code ~ '^NV[0-9]+$'";
+        int max = 0;
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String code = rs.getString(1);
+                try {
+                    int num = Integer.parseInt(code.substring(2));
+                    if (num > max) max = num;
+                } catch (NumberFormatException ignored) {}
+            }
+        } catch (SQLException e) {
+            System.err.println("EmployeeDAO.getNextEmployeeCode lỗi: " + e.getMessage());
+        }
+        return String.format("NV%03d", max + 1);
+    }
+
     /** Thêm nhân viên mới */
     public boolean insert(Employee emp) {
         String sql = "INSERT INTO employees (employee_code, full_name, date_of_birth, gender, "
                    + "phone, email, address, department_id, position_id, employee_type_id, "
                    + "start_date, status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, emp.getEmployeeCode());
             ps.setString(2, emp.getFullName());
             ps.setDate(3, emp.getDateOfBirth() != null ? Date.valueOf(emp.getDateOfBirth()) : null);
@@ -111,12 +131,23 @@ public class EmployeeDAO {
             ps.setString(5, emp.getPhone());
             ps.setString(6, emp.getEmail());
             ps.setString(7, emp.getAddress());
-            ps.setInt(8, emp.getDepartmentId());
-            ps.setInt(9, emp.getPositionId());
-            ps.setInt(10, emp.getEmployeeTypeId());
-            ps.setDate(11, emp.getStartDate() != null ? Date.valueOf(emp.getStartDate()) : null);
-            ps.setString(12, emp.getStatus() != null ? emp.getStatus() : "ACTIVE");
-            return ps.executeUpdate() > 0;
+            if (emp.getDepartmentId() > 0) ps.setInt(8, emp.getDepartmentId());
+            else ps.setNull(8, Types.INTEGER);
+            if (emp.getPositionId() > 0) ps.setInt(9, emp.getPositionId());
+            else ps.setNull(9, Types.INTEGER);
+            if (emp.getEmployeeTypeId() > 0) ps.setInt(10, emp.getEmployeeTypeId());
+            else ps.setInt(10, 1);
+            ps.setDate(11, emp.getStartDate() != null ? Date.valueOf(emp.getStartDate()) : Date.valueOf(java.time.LocalDate.now()));
+            ps.setString(12, emp.getStatus() != null && !emp.getStatus().isEmpty() ? emp.getStatus() : "ACTIVE");
+            int affected = ps.executeUpdate();
+            if (affected > 0) {
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        emp.setId(rs.getInt(1));
+                    }
+                }
+                return true;
+            }
         } catch (SQLException e) {
             System.err.println("EmployeeDAO.insert lỗi: " + e.getMessage());
         }

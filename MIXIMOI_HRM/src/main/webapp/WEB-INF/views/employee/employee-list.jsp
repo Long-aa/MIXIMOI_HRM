@@ -289,12 +289,12 @@
                     </p>
                 </div>
                 <div class="action-bar">
-                    <a href="#" class="btn-action-outline">
-                        <i class="bi bi-file-earmark-excel"></i> Xuất Excel
+                    <a href="${pageContext.request.contextPath}/employees?action=export${not empty keyword ? '&keyword=' : ''}${keyword}${not empty departmentId ? '&departmentId=' : ''}${departmentId}${not empty positionId ? '&positionId=' : ''}${positionId}${not empty status ? '&status=' : ''}${status}" class="btn-action-outline" title="Xuất danh sách nhân viên ra file Excel/CSV">
+                        <i class="bi bi-file-earmark-excel text-success"></i> Xuất Excel
                     </a>
-                    <a href="#" class="btn-action-outline">
-                        <i class="bi bi-upload"></i> Nhập từ file
-                    </a>
+                    <button type="button" class="btn-action-outline" data-bs-toggle="modal" data-bs-target="#importModal" title="Nhập danh sách nhân viên từ file CSV">
+                        <i class="bi bi-upload text-primary"></i> Nhập từ file
+                    </button>
                     <c:if test="${sessionScope.currentUser.canManageEmployees()}">
                         <a href="${pageContext.request.contextPath}/employees?action=new" class="btn-add-emp">
                             <i class="bi bi-person-plus-fill"></i> Thêm nhân viên
@@ -311,7 +311,20 @@
                         <c:when test="${param.success eq 'added'}">Thêm nhân viên mới thành công!</c:when>
                         <c:when test="${param.success eq 'updated'}">Cập nhật thông tin nhân viên thành công!</c:when>
                         <c:when test="${param.success eq 'deleted'}">Đã vô hiệu hóa nhân viên thành công.</c:when>
+                        <c:when test="${param.success eq 'imported'}">
+                            Nhập dữ liệu thành công! Đã thêm <strong>${not empty param.count ? param.count : 0}</strong> nhân sự vào hệ thống.
+                            <c:if test="${not empty param.errors and param.errors gt 0}">
+                                <span class="text-danger ms-2">(${param.errors} dòng bị bỏ qua do dữ liệu không hợp lệ)</span>
+                            </c:if>
+                        </c:when>
                     </c:choose>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </c:if>
+            <c:if test="${not empty param.importError}">
+                <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3" role="alert" style="border-radius:10px; font-size:0.875rem;">
+                    <i class="bi bi-exclamation-circle-fill me-2 text-danger"></i>
+                    ${not empty sessionScope.importErrorMessage ? sessionScope.importErrorMessage : 'Có lỗi xảy ra khi xử lý file dữ liệu.'}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             </c:if>
@@ -578,6 +591,80 @@
     </div>
 </div>
 
+<!-- Modal Nhập từ file CSV -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px; overflow:hidden;">
+            <div class="modal-header border-0 pb-0" style="background:#f8fafc; padding:1.25rem 1.5rem;">
+                <div>
+                    <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-cloud-arrow-up-fill text-primary" style="font-size:1.2rem;"></i>
+                        Nhập danh sách nhân viên từ file
+                    </h6>
+                    <p class="text-muted mb-0" style="font-size:0.8rem;">
+                        Tải lên file danh sách nhân sự định dạng CSV / Excel UTF-8 để nhập hàng loạt vào hệ thống.
+                    </p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form method="post" action="${pageContext.request.contextPath}/employees?action=import" enctype="multipart/form-data" id="importForm">
+                <div class="modal-body px-4 py-3">
+                    <!-- Instruction & Download Template Card -->
+                    <div class="p-3 mb-3 rounded-3 border d-flex flex-wrap align-items-center justify-content-between gap-2" style="background:#f0fdf4; border-color:#bbf7d0 !important;">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-info-circle-fill text-success" style="font-size:1.1rem;"></i>
+                            <div style="font-size:0.82rem; color:#166534;">
+                                Chưa có file theo mẫu chuẩn? Hãy tải file biểu mẫu CSV UTF-8 để điền thông tin.
+                            </div>
+                        </div>
+                        <a href="${pageContext.request.contextPath}/employees?action=template" class="btn btn-sm btn-success px-3" style="border-radius:8px; font-weight:600;">
+                            <i class="bi bi-download me-1"></i> Tải file mẫu CSV
+                        </a>
+                    </div>
+
+                    <!-- File Drop Area -->
+                    <div class="rounded-3 p-4 text-center mb-3" id="dropArea" style="border:2px dashed #cbd5e1; background:#f8fafc; cursor:pointer; transition:all 0.2s;">
+                        <input type="file" name="file" id="fileInput" accept=".csv, .txt" class="d-none" required>
+                        <div class="mb-2">
+                            <i class="bi bi-filetype-csv text-primary" style="font-size:2.4rem;"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1" id="fileLabelTitle">Nhấn để chọn file hoặc kéo thả vào đây</h6>
+                        <p class="text-muted mb-0" style="font-size:0.8rem;" id="fileLabelDesc">Hỗ trợ file định dạng CSV, TXT (UTF-8, dung lượng tối đa 10MB)</p>
+                    </div>
+
+                    <!-- Live Preview Box -->
+                    <div id="previewContainer" class="d-none">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="fw-bold text-dark" style="font-size:0.83rem;">
+                                <i class="bi bi-table me-1 text-primary"></i> Xem trước dữ liệu (<span id="previewCount">0</span> dòng)
+                            </span>
+                            <button type="button" class="btn btn-link btn-sm text-danger text-decoration-none p-0" id="btnRemoveFile" style="font-size:0.8rem;">
+                                <i class="bi bi-x-circle me-1"></i> Chọn file khác
+                            </button>
+                        </div>
+                        <div class="table-responsive border rounded-3" style="max-height:200px; font-size:0.78rem;">
+                            <table class="table table-sm table-hover mb-0" id="previewTable">
+                                <thead class="table-light">
+                                    <tr id="previewThead"></tr>
+                                </thead>
+                                <tbody id="previewTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 px-4 pb-4 gap-2">
+                    <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4" id="btnSubmitImport" disabled style="border-radius:9px; font-weight:600;">
+                        <i class="bi bi-cloud-arrow-up me-1"></i> Bắt đầu nhập dữ liệu
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
 
 <script>
@@ -593,6 +680,127 @@
         document.getElementById('deleteEmpName').textContent = name;
         new bootstrap.Modal(document.getElementById('deleteModal')).show();
     }
+
+    // Import Modal: drag/drop & live preview
+    (function() {
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const btnSubmitImport = document.getElementById('btnSubmitImport');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewCount = document.getElementById('previewCount');
+        const previewThead = document.getElementById('previewThead');
+        const previewTbody = document.getElementById('previewTbody');
+        const btnRemoveFile = document.getElementById('btnRemoveFile');
+        const fileLabelTitle = document.getElementById('fileLabelTitle');
+        const fileLabelDesc = document.getElementById('fileLabelDesc');
+
+        if (!dropArea || !fileInput) return;
+
+        dropArea.addEventListener('click', () => fileInput.click());
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.style.borderColor = '#2563eb';
+                dropArea.style.background = '#eff6ff';
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.style.borderColor = '#cbd5e1';
+                dropArea.style.background = '#f8fafc';
+            }, false);
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelected(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                handleFileSelected(this.files[0]);
+            }
+        });
+
+        if (btnRemoveFile) {
+            btnRemoveFile.addEventListener('click', () => {
+                fileInput.value = '';
+                previewContainer.classList.add('d-none');
+                btnSubmitImport.disabled = true;
+                fileLabelTitle.textContent = 'Nhấn để chọn file hoặc kéo thả vào đây';
+                fileLabelDesc.textContent = 'Hỗ trợ file định dạng CSV, TXT (UTF-8, dung lượng tối đa 10MB)';
+            });
+        }
+
+        function parseLine(line, delim) {
+            let result = [];
+            let cur = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                let c = line[i];
+                if (c === '"') {
+                    inQuotes = !inQuotes;
+                } else if (c === delim && !inQuotes) {
+                    result.push(cur.trim());
+                    cur = '';
+                } else {
+                    cur += c;
+                }
+            }
+            result.push(cur.trim());
+            return result;
+        }
+
+        function handleFileSelected(file) {
+            if (!file) return;
+            fileLabelTitle.textContent = file.name;
+            fileLabelDesc.textContent = (file.size / 1024).toFixed(1) + ' KB';
+            btnSubmitImport.disabled = false;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+                if (lines.length > 0) {
+                    const delim = lines[0].includes(';') && !lines[0].includes(',') ? ';' : ',';
+                    const headerCols = parseLine(lines[0], delim);
+                    
+                    previewThead.innerHTML = '';
+                    headerCols.forEach(col => {
+                        const th = document.createElement('th');
+                        th.textContent = col.replace(/"/g, '');
+                        previewThead.appendChild(th);
+                    });
+
+                    previewTbody.innerHTML = '';
+                    const sampleLines = lines.slice(1, 6);
+                    sampleLines.forEach(line => {
+                        const rowCols = parseLine(line, delim);
+                        const tr = document.createElement('tr');
+                        rowCols.forEach(col => {
+                            const td = document.createElement('td');
+                            td.textContent = col.replace(/"/g, '');
+                            tr.appendChild(td);
+                        });
+                        previewTbody.appendChild(tr);
+                    });
+
+                    previewCount.textContent = (lines.length - 1);
+                    previewContainer.classList.remove('d-none');
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+    })();
 </script>
 </body>
 </html>

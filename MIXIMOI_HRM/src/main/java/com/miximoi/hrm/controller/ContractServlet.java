@@ -60,7 +60,12 @@ public class ContractServlet extends HttpServlet {
                 c.setStatus(request.getParameter("status"));
                 c.setNotes(request.getParameter("notes"));
                 contractDAO.insert(c);
-                response.sendRedirect(request.getContextPath() + "/contracts?success=added");
+                String from = request.getParameter("from");
+                if ("employeeDetail".equals(from)) {
+                    response.sendRedirect(request.getContextPath() + "/employees?action=detail&id=" + c.getEmployeeId() + "&success=contract_added#tabContract");
+                } else {
+                    response.sendRedirect(request.getContextPath() + "/contracts?success=added");
+                }
                 break;
             }
             case "delete": {
