@@ -23,10 +23,10 @@ public class AuthFilter implements Filter {
 
         String path = request.getRequestURI().substring(request.getContextPath().length());
 
-        // Bỏ qua các tài nguyên tĩnh và trang đăng nhập
+        // Bỏ qua các tài nguyên tĩnh, trang đăng nhập và chuyển đổi role
         if (path.startsWith("/assets/") || path.startsWith("/css/") || path.startsWith("/js/")
                 || path.startsWith("/images/") || path.equals("/login") || path.equals("/logout")
-                || path.equals("/") || path.equals("/index.jsp")) {
+                || path.startsWith("/switch-role") || path.equals("/") || path.equals("/index.jsp")) {
             chain.doFilter(req, res);
             return;
         }

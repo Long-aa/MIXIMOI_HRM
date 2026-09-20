@@ -179,10 +179,14 @@ public class EmployeeServlet extends HttpServlet {
                     request.getRequestDispatcher("/WEB-INF/views/employee/employee-form.jsp")
                            .forward(request, response);
                 } else {
-                    // Tự động lưu thông tin Hợp đồng nếu có
+                    // Tự động sinh Hợp đồng lao động nếu có bật tùy chọn
+                    String autoCreate = request.getParameter("autoCreateContract");
+                    boolean shouldCreateContract = autoCreate == null || "true".equalsIgnoreCase(autoCreate) || "on".equalsIgnoreCase(autoCreate);
                     String contractCode = request.getParameter("contractCode");
                     String baseSalaryStr = request.getParameter("baseSalary");
-                    if (contractCode != null && !contractCode.trim().isEmpty() && emp.getId() > 0) {
+                    int createdContractId = 0;
+
+                    if (shouldCreateContract && contractCode != null && !contractCode.trim().isEmpty() && emp.getId() > 0) {
                         try {
                             Contract c = new Contract();
                             c.setContractCode(contractCode.trim());
@@ -191,9 +195,13 @@ public class EmployeeServlet extends HttpServlet {
                             c.setContractType(cType != null && !cType.isEmpty() ? cType : "INDEFINITE");
                             String signDateStr = request.getParameter("contractSignDate");
                             if (signDateStr != null && !signDateStr.isEmpty()) {
-                                c.setStartDate(LocalDate.parse(signDateStr));
+                                LocalDate sd = LocalDate.parse(signDateStr);
+                                c.setStartDate(sd);
+                                c.setSignedDate(sd);
                             } else {
-                                c.setStartDate(emp.getStartDate() != null ? emp.getStartDate() : LocalDate.now());
+                                LocalDate sd = emp.getStartDate() != null ? emp.getStartDate() : LocalDate.now();
+                                c.setStartDate(sd);
+                                c.setSignedDate(sd);
                             }
                             String endDateStr = request.getParameter("contractEndDate");
                             if (endDateStr != null && !endDateStr.isEmpty()) {
@@ -202,14 +210,48 @@ public class EmployeeServlet extends HttpServlet {
                             if (baseSalaryStr != null && !baseSalaryStr.trim().isEmpty()) {
                                 String cleanSalary = baseSalaryStr.replace(".", "").replace(",", "").trim();
                                 c.setBaseSalary(new BigDecimal(cleanSalary));
+                            } else {
+                                c.setBaseSalary(new BigDecimal("28500000"));
                             }
+
+                            // Pháp lý Bộ luật Lao động 2019
+                            c.setSignerName("Nguyễn Văn An");
+                            c.setSignerTitle("Tổng Giám Đốc");
+                            c.setWorkLocation("Trụ sở Công ty Cổ phần Tập đoàn MIXIMOI (Landmark 81, TP.HCM / MIXIMOI Tower Hà Nội)");
+                            c.setJobDescription("Thực hiện các nhiệm vụ chuyên môn theo sự phân công của Ban Lãnh đạo và Trưởng bộ phận.");
+
+                            String probationStr = request.getParameter("probationDuration");
+                            if (probationStr != null && !probationStr.isEmpty()) {
+                                try { c.setProbationMonths(Integer.parseInt(probationStr)); } catch (NumberFormatException ignored) {}
+                            }
+                            String rateStr = request.getParameter("probationSalaryRate");
+                            if (rateStr != null && !rateStr.isEmpty()) {
+                                try { c.setProbationSalaryPct(new BigDecimal(rateStr)); } catch (Exception ignored) {}
+                            }
+                            c.setAllowanceAmount(new BigDecimal("2500000")); // Phụ cấp chuẩn ăn trưa, xăng xe, điện thoại
+
+                            String idNum = request.getParameter("idNumber");
+                            if (idNum != null && !idNum.isEmpty()) c.setIdentityNumber(idNum.trim());
+                            String idDate = request.getParameter("idIssueDate");
+                            if (idDate != null && !idDate.isEmpty()) {
+                                try { c.setIdentityDate(LocalDate.parse(idDate)); } catch (Exception ignored) {}
+                            }
+                            String idPlace = request.getParameter("idIssuePlace");
+                            if (idPlace != null && !idPlace.isEmpty()) c.setIdentityPlace(idPlace.trim());
+
                             c.setStatus("ACTIVE");
-                            contractDAO.insert(c);
+                            boolean contractSaved = contractDAO.insert(c);
+                            if (contractSaved) {
+                                Contract savedC = contractDAO.findById(c.getId());
+                                if (savedC != null) createdContractId = savedC.getId();
+                            }
                         } catch (Exception ex) {
                             System.err.println("EmployeeServlet: Không thể lưu Hợp đồng tự động: " + ex.getMessage());
                         }
                     }
-                    response.sendRedirect(request.getContextPath() + "/employees?success=added");
+                    String redirectUrl = request.getContextPath() + "/employees?success=added"
+                            + (createdContractId > 0 ? ("&contractId=" + createdContractId) : "");
+                    response.sendRedirect(redirectUrl);
                 }
                 break;
             }

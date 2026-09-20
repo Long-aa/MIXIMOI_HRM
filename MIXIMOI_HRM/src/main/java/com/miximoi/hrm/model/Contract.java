@@ -14,6 +14,7 @@ public class Contract {
     private int employeeId;
     private String employeeCode;    // Dùng cho hiển thị
     private String employeeName;    // Dùng cho hiển thị
+    private String departmentName;  // Dùng cho hiển thị
     private String contractType;    // FIXED_TERM | INDEFINITE | SEASONAL | COLLABORATOR
     private LocalDate startDate;
     private LocalDate endDate;
@@ -23,7 +24,29 @@ public class Contract {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    // Legal contract fields (Labor Code 2019)
+    private String signerName;
+    private String signerTitle;
+    private String workLocation;
+    private String jobDescription;
+    private Integer probationMonths;
+    private BigDecimal probationSalaryPct;
+    private BigDecimal allowanceAmount;
+    private LocalDate signedDate;
+    private String identityNumber;
+    private LocalDate identityDate;
+    private String identityPlace;
+    private String contractFileUrl;
+
     public Contract() {}
+
+    public Long getDaysRemaining() {
+        if (endDate == null) return null;
+        return java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), endDate);
+    }
+
+    public String getDepartmentName() { return departmentName; }
+    public void setDepartmentName(String departmentName) { this.departmentName = departmentName; }
 
     // ===== Getters & Setters =====
 
@@ -65,6 +88,42 @@ public class Contract {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getSignerName() { return signerName; }
+    public void setSignerName(String signerName) { this.signerName = signerName; }
+
+    public String getSignerTitle() { return signerTitle; }
+    public void setSignerTitle(String signerTitle) { this.signerTitle = signerTitle; }
+
+    public String getWorkLocation() { return workLocation; }
+    public void setWorkLocation(String workLocation) { this.workLocation = workLocation; }
+
+    public String getJobDescription() { return jobDescription; }
+    public void setJobDescription(String jobDescription) { this.jobDescription = jobDescription; }
+
+    public Integer getProbationMonths() { return probationMonths; }
+    public void setProbationMonths(Integer probationMonths) { this.probationMonths = probationMonths; }
+
+    public BigDecimal getProbationSalaryPct() { return probationSalaryPct; }
+    public void setProbationSalaryPct(BigDecimal probationSalaryPct) { this.probationSalaryPct = probationSalaryPct; }
+
+    public BigDecimal getAllowanceAmount() { return allowanceAmount; }
+    public void setAllowanceAmount(BigDecimal allowanceAmount) { this.allowanceAmount = allowanceAmount; }
+
+    public LocalDate getSignedDate() { return signedDate; }
+    public void setSignedDate(LocalDate signedDate) { this.signedDate = signedDate; }
+
+    public String getIdentityNumber() { return identityNumber; }
+    public void setIdentityNumber(String identityNumber) { this.identityNumber = identityNumber; }
+
+    public LocalDate getIdentityDate() { return identityDate; }
+    public void setIdentityDate(LocalDate identityDate) { this.identityDate = identityDate; }
+
+    public String getIdentityPlace() { return identityPlace; }
+    public void setIdentityPlace(String identityPlace) { this.identityPlace = identityPlace; }
+
+    public String getContractFileUrl() { return contractFileUrl; }
+    public void setContractFileUrl(String contractFileUrl) { this.contractFileUrl = contractFileUrl; }
 
     @Override
     public String toString() {

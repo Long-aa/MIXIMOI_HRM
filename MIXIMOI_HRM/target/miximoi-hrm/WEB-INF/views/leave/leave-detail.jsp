@@ -5,6 +5,7 @@
 <head>
     <title>Chi tiết đơn nghỉ phép #${leaveRequest.leaveCode} — MIXIMOI HRM & PAYROLL</title>
     <%@ include file="/WEB-INF/views/common/head.jsp" %>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/leave.css">
 </head>
 <body>
 
@@ -278,11 +279,6 @@
 <!-- Shared JavaScript dependencies -->
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
 
-<script>
-    function openRejectModal() {
-        new bootstrap.Modal(document.getElementById('rejectModal')).show();
-    }
-</script>
-
+<script src="${pageContext.request.contextPath}/assets/js/leave.js"></script>
 </body>
 </html>

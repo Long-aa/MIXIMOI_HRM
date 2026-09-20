@@ -15,11 +15,13 @@ public class DepartmentDAO {
     /** Lấy danh sách tất cả phòng ban kèm số lượng nhân viên */
     public List<Department> findAll() {
         List<Department> list = new ArrayList<>();
-        String sql = "SELECT d.id, d.name, d.description, "
-                   + "COUNT(e.id) AS employee_count "
+        String sql = "SELECT d.id, d.name, d.code, d.description, d.manager_id, m.full_name AS manager_name, "
+                   + "d.status, d.created_at, COUNT(e.id) AS employee_count "
                    + "FROM departments d "
+                   + "LEFT JOIN employees m ON d.manager_id = m.id "
                    + "LEFT JOIN employees e ON e.department_id = d.id AND e.status = 'ACTIVE' "
-                   + "GROUP BY d.id, d.name, d.description ORDER BY d.name";
+                   + "GROUP BY d.id, d.name, d.code, d.description, d.manager_id, m.full_name, d.status, d.created_at "
+                   + "ORDER BY d.id";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -32,7 +34,13 @@ public class DepartmentDAO {
 
     /** Tìm phòng ban theo ID */
     public Department findById(int id) {
-        String sql = "SELECT id, name, description FROM departments WHERE id = ?";
+        String sql = "SELECT d.id, d.name, d.code, d.description, d.manager_id, m.full_name AS manager_name, "
+                   + "d.status, d.created_at, COUNT(e.id) AS employee_count "
+                   + "FROM departments d "
+                   + "LEFT JOIN employees m ON d.manager_id = m.id "
+                   + "LEFT JOIN employees e ON e.department_id = d.id AND e.status = 'ACTIVE' "
+                   + "WHERE d.id = ? "
+                   + "GROUP BY d.id, d.name, d.code, d.description, d.manager_id, m.full_name, d.status, d.created_at";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -47,11 +55,18 @@ public class DepartmentDAO {
 
     /** Thêm phòng ban mới */
     public boolean insert(Department dept) {
-        String sql = "INSERT INTO departments (name, description) VALUES (?, ?)";
+        String sql = "INSERT INTO departments (name, code, description, manager_id, status) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, dept.getName());
-            ps.setString(2, dept.getDescription());
+            ps.setString(2, dept.getCode());
+            ps.setString(3, dept.getDescription());
+            if (dept.getManagerId() != null && dept.getManagerId() > 0) {
+                ps.setInt(4, dept.getManagerId());
+            } else {
+                ps.setNull(4, Types.INTEGER);
+            }
+            ps.setString(5, dept.getStatus() != null ? dept.getStatus() : "ACTIVE");
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("DepartmentDAO.insert lỗi: " + e.getMessage());
@@ -61,12 +76,19 @@ public class DepartmentDAO {
 
     /** Cập nhật phòng ban */
     public boolean update(Department dept) {
-        String sql = "UPDATE departments SET name = ?, description = ? WHERE id = ?";
+        String sql = "UPDATE departments SET name = ?, code = ?, description = ?, manager_id = ?, status = ? WHERE id = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, dept.getName());
-            ps.setString(2, dept.getDescription());
-            ps.setInt(3, dept.getId());
+            ps.setString(2, dept.getCode());
+            ps.setString(3, dept.getDescription());
+            if (dept.getManagerId() != null && dept.getManagerId() > 0) {
+                ps.setInt(4, dept.getManagerId());
+            } else {
+                ps.setNull(4, Types.INTEGER);
+            }
+            ps.setString(5, dept.getStatus() != null ? dept.getStatus() : "ACTIVE");
+            ps.setInt(6, dept.getId());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("DepartmentDAO.update lỗi: " + e.getMessage());
@@ -92,7 +114,18 @@ public class DepartmentDAO {
         Department d = new Department();
         d.setId(rs.getInt("id"));
         d.setName(rs.getString("name"));
+        try { d.setCode(rs.getString("code")); } catch (SQLException ignored) {}
         d.setDescription(rs.getString("description"));
+        try {
+            int mId = rs.getInt("manager_id");
+            if (!rs.wasNull()) d.setManagerId(mId);
+        } catch (SQLException ignored) {}
+        try { d.setManagerName(rs.getString("manager_name")); } catch (SQLException ignored) {}
+        try { d.setStatus(rs.getString("status")); } catch (SQLException ignored) {}
+        try {
+            Timestamp ts = rs.getTimestamp("created_at");
+            if (ts != null) d.setCreatedAt(ts);
+        } catch (SQLException ignored) {}
         try { d.setEmployeeCount(rs.getInt("employee_count")); } catch (SQLException ignored) {}
         return d;
     }

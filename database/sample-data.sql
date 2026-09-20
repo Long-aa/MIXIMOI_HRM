@@ -25,13 +25,13 @@ INSERT INTO employee_types (name, description) VALUES
 -- =============================================================
 -- 3. PHÒNG BAN
 -- =============================================================
-INSERT INTO departments (name, description) VALUES
-    ('Ban Giám đốc',   'Lãnh đạo và điều hành công ty'),
-    ('Phòng Nhân sự',  'Quản lý nhân sự và tuyển dụng'),
-    ('Phòng Kế toán',  'Quản lý tài chính và kế toán'),
-    ('Phòng Kinh doanh','Phát triển kinh doanh và bán hàng'),
-    ('Phòng Marketing', 'Tiếp thị và quảng bá thương hiệu'),
-    ('Phòng Kỹ thuật',  'Phát triển phần mềm và hệ thống');
+INSERT INTO departments (name, code, description, status) VALUES
+    ('Ban Giám đốc',    'BGD', 'Lãnh đạo và điều hành công ty',        'ACTIVE'),
+    ('Phòng Nhân sự',   'HR',  'Quản lý nhân sự và tuyển dụng',         'ACTIVE'),
+    ('Phòng Kế toán',   'KT',  'Quản lý tài chính và kế toán',          'ACTIVE'),
+    ('Phòng Kinh doanh','KD',  'Phát triển kinh doanh và bán hàng',      'ACTIVE'),
+    ('Phòng Marketing', 'MKT', 'Tiếp thị và quảng bá thương hiệu',      'ACTIVE'),
+    ('Phòng Kỹ thuật',  'TECH','Phát triển phần mềm và hệ thống',       'ACTIVE');
 
 -- =============================================================
 -- 4. CHỨC VỤ
@@ -121,3 +121,34 @@ INSERT INTO leave_requests (leave_code, employee_id, leave_type, start_date, end
     ('LP001', 4, 'ANNUAL',   '2026-09-10', '2026-09-11', 2, 'Nghỉ phép năm',       'PENDING'),
     ('LP002', 5, 'SICK',     '2026-09-05', '2026-09-06', 2, 'Ốm — có đơn bác sĩ', 'APPROVED'),
     ('LP003', 6, 'PERSONAL', '2026-09-15', '2026-09-15', 1, 'Việc gia đình',       'PENDING');
+
+-- =============================================================
+-- 11. CẬP NHẬT TRƯỞNG PHÒNG BAN (MANAGER_ID)
+-- =============================================================
+UPDATE departments SET manager_id = 1 WHERE code = 'BGD';
+UPDATE departments SET manager_id = 2 WHERE code = 'HR';
+UPDATE departments SET manager_id = 3 WHERE code = 'KT';
+UPDATE departments SET manager_id = 5 WHERE code = 'KD';
+UPDATE departments SET manager_id = 4 WHERE code = 'TECH';
+
+-- =============================================================
+-- 12. THIẾT BỊ CHẤM CÔNG SINH TRẮC HỌC (VÂN TAY & FACEID)
+-- =============================================================
+INSERT INTO biometric_devices (device_code, name, type, location, ip_address, status, department_id, notes) VALUES
+    ('FID-T1', 'Máy FaceID Cửa Chính Tầng 1', 'FACE_ID',     'Sảnh chính Tòa nhà Landmark 81', '192.168.1.201', 'ONLINE', 1, 'Hỗ trợ nhận diện AI camera góc rộng'),
+    ('FID-T6', 'Máy FaceID Cửa Tầng 6 Khối Kỹ Thuật', 'FACE_ID', 'Cửa ra vào P. Kỹ thuật Tầng 6', '192.168.1.202', 'ONLINE', 6, 'Tích hợp mở khóa cửa tự động'),
+    ('FP-T2',  'Máy Quét Vân Tay Sảnh Tầng 2', 'FINGERPRINT', 'Khu vực Lễ tân Tầng 2',        '192.168.1.203', 'ONLINE', 2, 'Cảm biến vân tay quang học độ nhạy cao'),
+    ('FP-T3',  'Máy Quét Vân Tay Tầng 3 (Kế toán)', 'FINGERPRINT', 'Cửa P. Tài chính Tầng 3',  '192.168.1.204', 'ONLINE', 3, 'Bảo mật kép');
+
+-- =============================================================
+-- 13. DỮ LIỆU SINH TRẮC HỌC NHÂN VIÊN MẪU
+-- =============================================================
+INSERT INTO employee_biometrics (employee_id, fingerprint_enrolled, fingerprint_device_id, face_enrolled, face_device_id, employee_card_id, active) VALUES
+    (1, TRUE, 3, TRUE, 1, 'CARD-001', TRUE),
+    (2, TRUE, 3, TRUE, 1, 'CARD-002', TRUE),
+    (3, TRUE, 4, TRUE, 1, 'CARD-003', TRUE),
+    (4, TRUE, 3, TRUE, 2, 'CARD-004', TRUE),
+    (5, TRUE, 3, TRUE, 1, 'CARD-005', TRUE),
+    (6, TRUE, 3, TRUE, 1, 'CARD-006', TRUE),
+    (7, TRUE, 3, TRUE, 2, 'CARD-007', TRUE);
+

@@ -100,12 +100,24 @@
                     </a>
                 </c:when>
 
-                <%-- Với Nhân viên bình thường (EMPLOYEE): Chỉ xem chấm công và gửi nghỉ phép của mình --%>
+                <%-- Với Nhân viên bình thường (EMPLOYEE): Xem thông tin cá nhân, chấm công, bảng công, tăng ca, nghỉ phép --%>
                 <c:otherwise>
                     <a href="${pageContext.request.contextPath}/attendance"
                        class="sidebar-nav-link ${activeMenu eq 'attendance' ? 'active' : ''}">
                         <i class="bi bi-fingerprint"></i>
                         <span>Chấm công của tôi</span>
+                    </a>
+
+                    <a href="${pageContext.request.contextPath}/timesheet"
+                       class="sidebar-nav-link ${activeMenu eq 'timesheet' or pageContext.request.servletPath eq '/timesheet' ? 'active' : ''}">
+                        <i class="bi bi-calendar3"></i>
+                        <span>Bảng công của tôi</span>
+                    </a>
+
+                    <a href="${pageContext.request.contextPath}/overtime"
+                       class="sidebar-nav-link ${activeMenu eq 'overtime' or pageContext.request.servletPath eq '/overtime' ? 'active' : ''}">
+                        <i class="bi bi-stopwatch"></i>
+                        <span>Tăng ca của tôi</span>
                     </a>
 
                     <a href="${pageContext.request.contextPath}/leave"

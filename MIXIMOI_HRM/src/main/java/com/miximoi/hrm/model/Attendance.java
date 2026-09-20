@@ -13,15 +13,62 @@ public class Attendance {
     private int employeeId;
     private String employeeCode;  // Dùng cho hiển thị
     private String employeeName;  // Dùng cho hiển thị
+    private String departmentName;// Dùng cho hiển thị
+    private String positionName;  // Dùng cho hiển thị
     private LocalDate workDate;
     private LocalTime checkIn;
     private LocalTime checkOut;
     private double totalHours;
-    private String status;        // ON_TIME | LATE | EARLY_LEAVE | ABSENT | OVERTIME
+    private String status;        // ON_TIME | LATE | EARLY_LEAVE | ABSENT | OVERTIME | WFH | COMPLETE
     private String notes;
+    private String method = "FaceID";
     private LocalDateTime createdAt;
 
     public Attendance() {}
+
+    public String getDepartmentName() { return departmentName; }
+    public void setDepartmentName(String departmentName) { this.departmentName = departmentName; }
+
+    public String getPositionName() { return positionName; }
+    public void setPositionName(String positionName) { this.positionName = positionName; }
+
+    public String getMethod() { return method; }
+    public void setMethod(String method) { this.method = method; }
+
+    public String getShiftTime() { return "08:30 - 17:30"; }
+    public String getShiftName() { return "Ca Hành chính"; }
+
+    public int getMinutesLate() {
+        if (checkIn == null) return 0;
+        LocalTime standardIn = LocalTime.of(8, 30);
+        if (checkIn.isAfter(standardIn)) {
+            return (int) java.time.Duration.between(standardIn, checkIn).toMinutes();
+        }
+        return 0;
+    }
+
+    public int getMinutesEarly() {
+        if (checkOut == null) return 0;
+        LocalTime standardOut = LocalTime.of(17, 30);
+        if (checkOut.isBefore(standardOut)) {
+            return (int) java.time.Duration.between(checkOut, standardOut).toMinutes();
+        }
+        return 0;
+    }
+
+    public String getDeviation() {
+        if ("LATE".equalsIgnoreCase(status)) return "+" + getMinutesLate() + "m";
+        if ("EARLY_LEAVE".equalsIgnoreCase(status)) return "-" + getMinutesEarly() + "m";
+        return "Chuẩn";
+    }
+
+    public boolean isCanExplain() {
+        return "LATE".equalsIgnoreCase(status) || "EARLY_LEAVE".equalsIgnoreCase(status) || "ABSENT".equalsIgnoreCase(status);
+    }
+
+    public boolean isHasExplain() {
+        return notes != null && !notes.trim().isEmpty();
+    }
 
     // ===== Getters & Setters =====
 

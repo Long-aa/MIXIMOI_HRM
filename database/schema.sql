@@ -132,15 +132,23 @@ CREATE TABLE IF NOT EXISTS work_shifts (
 -- =============================================================
 
 CREATE TABLE IF NOT EXISTS attendance (
-    id          SERIAL PRIMARY KEY,
-    employee_id INTEGER       NOT NULL REFERENCES employees(id),
-    work_date   DATE          NOT NULL,
-    check_in    TIME,
-    check_out   TIME,
-    total_hours NUMERIC(4,1)  NOT NULL DEFAULT 0,
-    status      VARCHAR(20)   NOT NULL DEFAULT 'ON_TIME',  -- ON_TIME | LATE | EARLY_LEAVE | ABSENT | OVERTIME
-    notes       TEXT,
-    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id                  SERIAL PRIMARY KEY,
+    employee_id         INTEGER       NOT NULL REFERENCES employees(id),
+    work_date           DATE          NOT NULL,
+    check_in            TIME,
+    check_out           TIME,
+    total_hours         NUMERIC(4,1)  NOT NULL DEFAULT 0,
+    status              VARCHAR(20)   NOT NULL DEFAULT 'ON_TIME',  -- ON_TIME | LATE | EARLY_LEAVE | ABSENT | OVERTIME | WORKING | COMPLETE
+    notes               TEXT,
+    -- ===== CHẤM CÔNG SINH TRẮC HỌC (VÂN TAY / FACE ID / GPS) =====
+    method              VARCHAR(50)   DEFAULT 'MANUAL',   -- FACE_ID | FINGERPRINT | GPS | MANUAL | QR_CODE
+    device_id           VARCHAR(50),                       -- Mã máy chấm công
+    device_name         VARCHAR(150),                      -- Tên/vị trí máy chấm công
+    check_out_method    VARCHAR(50),                       -- Phương thức check-out
+    face_image_url      VARCHAR(255),                      -- URL ảnh khuôn mặt chụp khi chấm công
+    confidence_score    NUMERIC(5,2),                      -- Độ chính xác nhận dạng (0-100%)
+    -- ==============================
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (employee_id, work_date)
 );
 
@@ -305,3 +313,88 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE INDEX IF NOT EXISTS idx_audit_user   ON audit_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_module ON audit_logs(module);
 CREATE INDEX IF NOT EXISTS idx_audit_time   ON audit_logs(created_at);
+
+-- =============================================================
+-- 18. THIẾT BỊ CHẤM CÔNG SINH TRẮC HỌC
+--     (Máy Vân Tay + Máy FaceID)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS biometric_devices (
+    id           SERIAL PRIMARY KEY,
+    device_code  VARCHAR(50)  NOT NULL UNIQUE,    -- Mã máy: CC-01, FID-01, FP-01...
+    name         VARCHAR(150) NOT NULL,             -- Tên máy: Máy chấm công FaceID tầng 1
+    type         VARCHAR(30)  NOT NULL,             -- FACE_ID | FINGERPRINT | DUAL (cả hai)
+    location     VARCHAR(200),                      -- Vị trí lắp đặt (cửa chính, tầng 2...)
+    ip_address   VARCHAR(50),                       -- IP thiết bị trong mạng nội bộ
+    mac_address  VARCHAR(50),                       -- MAC address
+    firmware     VARCHAR(50),                       -- Phiên bản firmware
+    status       VARCHAR(20) NOT NULL DEFAULT 'ONLINE', -- ONLINE | OFFLINE | MAINTENANCE
+    department_id INTEGER REFERENCES departments(id),   -- Thiết bị phụ trách phòng ban nào
+    notes        TEXT,
+    created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_biometric_device_status ON biometric_devices(status);
+CREATE INDEX IF NOT EXISTS idx_biometric_device_type   ON biometric_devices(type);
+
+-- =============================================================
+-- 19. DỮ LIỆU SINH TRẮC HỌC NHÂN VIÊN
+--     (Template Vân Tay & Ảnh khuôn mặt đăng ký FaceID)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS employee_biometrics (
+    id                  SERIAL PRIMARY KEY,
+    employee_id         INTEGER NOT NULL REFERENCES employees(id) UNIQUE,
+    -- Vân tay (Fingerprint)
+    fingerprint_template_1  TEXT,       -- Template vân tay ngón 1 (mã hóa Base64)
+    fingerprint_template_2  TEXT,       -- Template vân tay ngón 2 (dự phòng)
+    fingerprint_enrolled    BOOLEAN NOT NULL DEFAULT FALSE,
+    fingerprint_device_id   INTEGER REFERENCES biometric_devices(id),
+    fingerprint_enrolled_at TIMESTAMP,
+    -- Nhận diện khuôn mặt (FaceID)
+    face_image_url          VARCHAR(255),   -- Ảnh khuôn mặt gốc đăng ký
+    face_embedding_ref      TEXT,           -- Reference embedding / feature vector (mã hóa)
+    face_enrolled           BOOLEAN NOT NULL DEFAULT FALSE,
+    face_device_id          INTEGER REFERENCES biometric_devices(id),
+    face_enrolled_at        TIMESTAMP,
+    -- Thông tin chung
+    employee_card_id        VARCHAR(50),    -- Mã thẻ chấm công (nếu dùng thẻ từ thay thế)
+    active                  BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at              TIMESTAMP
+);
+
+-- =============================================================
+-- 20. BỔ SUNG CÁC CỘT CÒN THIẾU (ALTER TABLE)
+-- =============================================================
+
+-- Phòng ban: thêm mã phòng ban, trưởng phòng, trạng thái
+ALTER TABLE departments
+    ADD COLUMN IF NOT EXISTS code        VARCHAR(20),
+    ADD COLUMN IF NOT EXISTS manager_id  INTEGER REFERENCES employees(id),
+    ADD COLUMN IF NOT EXISTS status      VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',   -- ACTIVE | RESTRUCTURING | INACTIVE
+    ADD COLUMN IF NOT EXISTS updated_at  TIMESTAMP;
+
+-- Chỉnh sửa code phòng ban phải UNIQUE
+CREATE UNIQUE INDEX IF NOT EXISTS idx_departments_code ON departments(code) WHERE code IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_departments_status      ON departments(status);
+
+-- Hợp đồng lao động: bổ sung các trường chuẩn pháp lý (Bộ Luật Lao Động 2019)
+ALTER TABLE contracts
+    ADD COLUMN IF NOT EXISTS signer_name          VARCHAR(200),   -- Người ký (đại diện công ty)
+    ADD COLUMN IF NOT EXISTS signer_title         VARCHAR(100),   -- Chức danh người ký
+    ADD COLUMN IF NOT EXISTS work_location        VARCHAR(300),   -- Địa điểm làm việc
+    ADD COLUMN IF NOT EXISTS job_description      TEXT,           -- Mô tả công việc & nhiệm vụ chính
+    ADD COLUMN IF NOT EXISTS probation_months     INTEGER DEFAULT 0,  -- Số tháng thử việc (0 nếu không có)
+    ADD COLUMN IF NOT EXISTS probation_salary_pct NUMERIC(5,2) DEFAULT 85.0, -- % lương trong thời gian thử việc
+    ADD COLUMN IF NOT EXISTS allowance_amount     NUMERIC(15,0) DEFAULT 0,   -- Tổng phụ cấp kèm theo HĐ
+    ADD COLUMN IF NOT EXISTS signed_date          DATE,           -- Ngày ký hợp đồng thực tế
+    ADD COLUMN IF NOT EXISTS identity_number      VARCHAR(20),    -- CCCD/CMND của NLĐ (lưu trong HĐ)
+    ADD COLUMN IF NOT EXISTS identity_date        DATE,           -- Ngày cấp CCCD
+    ADD COLUMN IF NOT EXISTS identity_place       VARCHAR(200),   -- Nơi cấp CCCD
+    ADD COLUMN IF NOT EXISTS contract_file_url    VARCHAR(500);   -- Đường dẫn file HĐ (PDF scan)
+
+-- Attendance: thêm index cho method
+CREATE INDEX IF NOT EXISTS idx_attendance_method    ON attendance(method);
+CREATE INDEX IF NOT EXISTS idx_attendance_device    ON attendance(device_id);

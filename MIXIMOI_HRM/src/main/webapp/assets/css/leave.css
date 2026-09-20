@@ -1,0 +1,280 @@
+/* ==========================================================================
+   MIXIMOI HRM — LEAVE MANAGEMENT STYLES (leave.css)
+   ========================================================================== */
+
+/* ===== LEAVE MANAGEMENT PAGE SPECIFIC STYLES ===== */
+
+        .leave-header-bar {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            flex-wrap: wrap; gap: 1.25rem; margin-bottom: 1.35rem;
+        }
+        .leave-title {
+            font-size: 1.55rem; font-weight: 800; color: #0f172a; margin-bottom: 4px;
+            letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px;
+        }
+        .fy-badge {
+            background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;
+            border-radius: 6px; padding: 2px 7px; font-size: 0.72rem; font-weight: 700;
+        }
+        .leave-subtitle { font-size: 0.86rem; color: #64748b; margin: 0; }
+
+        /* Header Actions */
+        .leave-actions-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .fy-select-btn {
+            height: 38px; border: 1.5px solid #e2e8f0; background: #fff; color: #1e293b;
+            border-radius: 9px; padding: 0 0.9rem; font-size: 0.84rem; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+        }
+        .btn-leave-outline {
+            height: 38px; border: 1.5px solid #e2e8f0; background: #fff; color: #475569;
+            border-radius: 9px; padding: 0 1rem; font-size: 0.84rem; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: all 0.15s;
+        }
+        .btn-leave-outline:hover { background: #f8fafc; border-color: #cbd5e1; color: #1e293b; }
+        .btn-leave-primary {
+            height: 38px; background: #2563eb; color: #fff; border: 1px solid #2563eb;
+            border-radius: 9px; padding: 0 1.2rem; font-size: 0.84rem; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 7px; cursor: pointer; text-decoration: none;
+            box-shadow: 0 2px 6px rgba(37,99,235,0.25); transition: all 0.15s;
+        }
+        .btn-leave-primary:hover { background: #1d4ed8; color: #fff; transform: translateY(-1px); }
+
+        /* 4 KPI Cards */
+        .leave-kpi-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 1rem; margin-bottom: 1.35rem;
+        }
+        .leave-kpi-card {
+            background: #fff; border-radius: 14px; border: 1.5px solid #f1f5f9;
+            padding: 1.15rem 1.25rem; box-shadow: 0 2px 10px rgba(15,23,42,0.03);
+            display: flex; flex-direction: column; justify-content: space-between; min-height: 135px;
+            position: relative; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .leave-kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15,23,42,0.06); }
+        .lkpi-shape {
+            position: absolute; right: 12px; top: 12px; width: 38px; height: 38px;
+            border-radius: 10px; background: #eff6ff; opacity: 0.6;
+        }
+        .lkpi-label { font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; }
+        .lkpi-val-row { display: flex; align-items: baseline; gap: 6px; margin-top: 0.5rem; margin-bottom: 0.4rem; }
+        .lkpi-val { font-size: 1.7rem; font-weight: 800; color: #0f172a; line-height: 1; }
+        .lkpi-sub { font-size: 0.78rem; color: #64748b; display: flex; align-items: center; gap: 6px; }
+
+        /* Middle Section Grid (2 Cards) */
+        .leave-middle-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.35rem;
+        }
+        .middle-card {
+            background: #fff; border-radius: 14px; border: 1.5px solid #f1f5f9;
+            padding: 1.25rem; box-shadow: 0 2px 10px rgba(15,23,42,0.03);
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .mcard-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.85rem; }
+        .mcard-title { font-size: 0.98rem; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
+        .mcard-sub { font-size: 0.78rem; color: #64748b; margin: 0; }
+        .mcard-tag {
+            background: #f1f5f9; color: #475569; border-radius: 6px; padding: 3px 8px;
+            font-size: 0.75rem; font-weight: 700;
+        }
+
+        /* Segmented Progress Bar */
+        .segmented-bar {
+            width: 100%; height: 9px; border-radius: 999px; overflow: hidden;
+            display: flex; background: #e2e8f0; margin-bottom: 1.15rem;
+        }
+        .seg-1 { background: #2563eb; width: 72%; } /* Phép thường niên */
+        .seg-2 { background: #60a5fa; width: 14%; } /* Nghỉ ốm */
+        .seg-3 { background: #334155; width: 8%; }  /* Việc riêng */
+        .seg-4 { background: #93c5fd; width: 4%; }  /* Thai sản */
+        .seg-5 { background: #cbd5e1; width: 2%; }  /* Không lương */
+
+        /* Category Legend Grid */
+        .cat-legend-grid {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem 0.5rem;
+            font-size: 0.78rem; color: #334155;
+        }
+        .cat-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .cat-dot.c1 { background: #2563eb; }
+        .cat-dot.c2 { background: #60a5fa; }
+        .cat-dot.c3 { background: #334155; }
+        .cat-dot.c4 { background: #93c5fd; }
+        .cat-dot.c5 { background: #cbd5e1; }
+        .cat-dot.c6 { background: #059669; }
+
+        /* Weekly schedule items */
+        .week-item-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.65rem 0.75rem; border-radius: 9px; margin-bottom: 0.5rem;
+            background: #f8fafc; border: 1px solid #f1f5f9;
+        }
+        .week-item-row.today {
+            background: #eff6ff; border-color: #bfdbfe;
+        }
+        .wdate-box {
+            width: 38px; height: 38px; border-radius: 8px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; font-weight: 800; line-height: 1.1;
+            background: #2563eb; color: #fff; margin-right: 10px; flex-shrink: 0;
+        }
+        .wdate-box.today { background: #1e3a8a; }
+        .wdate-box.light { background: #93c5fd; color: #1e293b; }
+        .wdate-day { font-size: 0.65rem; text-transform: uppercase; }
+        .wdate-num { font-size: 0.9rem; }
+        .week-content { flex: 1; }
+        .week-title { font-size: 0.83rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
+        .week-sub   { font-size: 0.74rem; color: #64748b; }
+        .week-badge {
+            background: #e2e8f0; color: #334155; font-size: 0.72rem; font-weight: 700;
+            border-radius: 999px; padding: 2px 8px; white-space: nowrap;
+        }
+        .week-badge.today { background: #2563eb; color: #fff; }
+
+        /* Personal Leave Balance Banner (Tra cứu cá nhân nhanh) */
+        .balance-lookup-card {
+            background: #fff; border: 1.5px solid #bfdbfe; border-radius: 14px;
+            padding: 1.15rem 1.35rem; margin-bottom: 1.35rem;
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+            box-shadow: 0 2px 8px rgba(37,99,235,0.04);
+        }
+        .lookup-left { display: flex; align-items: center; gap: 12px; }
+        .lookup-icon-box {
+            width: 42px; height: 42px; border-radius: 10px; background: #eff6ff;
+            color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;
+        }
+        .lookup-label { font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        .lookup-title { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin: 0; }
+        
+        .lookup-metrics-row { display: flex; align-items: center; gap: 1.75rem; flex-wrap: wrap; }
+        .lmetric-item { display: flex; flex-direction: column; }
+        .lmetric-label { font-size: 0.74rem; color: #64748b; }
+        .lmetric-val { font-size: 0.94rem; font-weight: 800; color: #0f172a; }
+        .lmetric-val.avail { font-size: 1.45rem; color: #2563eb; font-weight: 900; line-height: 1; }
+
+        /* Tabs Navigation */
+        .leave-nav-tabs {
+            display: flex; align-items: center; gap: 1.5rem; border-bottom: 1.5px solid #e2e8f0;
+            margin-bottom: 1.25rem;
+        }
+        .leave-tab-link {
+            padding: 0.75rem 0; font-size: 0.88rem; font-weight: 700; color: #64748b;
+            text-decoration: none; position: relative; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .leave-tab-link.active {
+            color: #2563eb;
+        }
+        .leave-tab-link.active::after {
+            content: ''; position: absolute; bottom: -1.5px; left: 0; right: 0;
+            height: 2.5px; background: #2563eb; border-radius: 2px;
+        }
+        .tab-badge-pill {
+            background: #eff6ff; color: #2563eb; border-radius: 999px; font-size: 0.7rem;
+            font-weight: 700; padding: 1px 7px;
+        }
+
+        /* Filter Row */
+        .leave-filter-row {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 1.25rem;
+        }
+        .filter-search-wrap { position: relative; flex: 1; min-width: 250px; }
+        .filter-search-wrap .bi-search {
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            color: #94a3b8; font-size: 0.85rem;
+        }
+        .filter-search-inp {
+            width: 100%; height: 38px; border-radius: 9px; border: 1.5px solid #e2e8f0;
+            padding-left: 35px; font-size: 0.84rem; background: #fff;
+        }
+        .filter-search-inp:focus { outline: none; border-color: #2563eb; }
+        .lselect {
+            height: 38px; border-radius: 9px; border: 1.5px solid #e2e8f0; font-size: 0.84rem;
+            background: #fff; min-width: 140px;
+        }
+
+        /* Leave Table Card */
+        .leave-table-card {
+            background: #fff; border-radius: 14px; border: 1.5px solid #f1f5f9;
+            overflow: hidden; box-shadow: 0 2px 10px rgba(15,23,42,0.03); margin-bottom: 1.5rem;
+        }
+        .leave-table { width: 100%; border-collapse: collapse; }
+        .leave-table thead { background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
+        .leave-table thead th {
+            padding: 0.75rem 0.85rem; font-size: 0.72rem; font-weight: 700;
+            text-transform: uppercase; color: #64748b; letter-spacing: 0.4px;
+        }
+        .leave-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.12s; }
+        .leave-table tbody tr:hover { background: #f8fafc; }
+        .leave-table td { padding: 0.85rem 0.85rem; vertical-align: middle; font-size: 0.83rem; }
+
+        /* Employee Profile Cell */
+        .lemp-wrap { display: flex; align-items: center; gap: 9px; }
+        .lemp-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #1e293b, #3b82f6);
+            color: #fff; font-weight: 700; font-size: 0.85rem;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .lemp-name { font-weight: 700; color: #0f172a; font-size: 0.85rem; line-height: 1.2; }
+        .lemp-dept { font-size: 0.73rem; color: #64748b; }
+
+        /* Leave Type Badges */
+        .badge-ltype {
+            display: inline-block; padding: 4px 8px; border-radius: 6px;
+            font-size: 0.73rem; font-weight: 600; line-height: 1.3; text-align: center;
+        }
+        .badge-leave-annual  { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+        .badge-leave-sick    { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+        .badge-leave-unpaid  { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+        .badge-leave-wedding { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
+
+        /* Dates & Handover */
+        .ldate-main { font-weight: 700; color: #1e293b; font-size: 0.82rem; }
+        .ldate-sub  { font-size: 0.72rem; color: #94a3b8; }
+        .lreason-txt { color: #334155; font-size: 0.82rem; max-width: 200px; }
+        .lhandover-txt { font-size: 0.78rem; color: #1e293b; font-weight: 600; }
+        .lhandover-sub { font-size: 0.72rem; color: #64748b; }
+
+        /* Approver Step Badge */
+        .step-tp-hr {
+            display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem;
+            font-weight: 700; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0;
+            border-radius: 6px; padding: 2px 7px;
+        }
+
+        /* Action Buttons */
+        .laction-btn-group { display: flex; align-items: center; gap: 3px; }
+        .laction-btn {
+            width: 28px; height: 28px; border-radius: 6px; border: 1px solid #e2e8f0;
+            background: #fff; color: #64748b; display: inline-flex; align-items: center; justify-content: center;
+            font-size: 0.8rem; cursor: pointer; transition: all 0.15s; text-decoration: none;
+        }
+        .laction-btn:hover { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+        .laction-btn.ok:hover { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
+        .laction-btn.no:hover { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+
+        /* Table Footer */
+        .ltable-footer {
+            padding: 0.75rem 1.25rem; border-top: 1.5px solid #f1f5f9;
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 0.82rem; color: #64748b; flex-wrap: wrap; gap: 0.75rem;
+        }
+
+        /* Bottom Policy Banner */
+        .bottom-policy-card {
+            background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 14px;
+            padding: 1rem 1.35rem; display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;
+        }
+        .policy-left { display: flex; align-items: center; gap: 12px; }
+        .policy-icon-box {
+            width: 38px; height: 38px; border-radius: 9px; background: #2563eb;
+            color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+        }
+        .policy-title { font-size: 0.88rem; font-weight: 800; color: #0f172a; margin-bottom: 1px; }
+        .policy-desc  { font-size: 0.77rem; color: #475569; margin: 0; }
+
+        @media (max-width: 1200px) {
+            .leave-middle-grid { grid-template-columns: 1fr; }
+            .leave-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .leave-kpi-grid { grid-template-columns: 1fr; }
+        }

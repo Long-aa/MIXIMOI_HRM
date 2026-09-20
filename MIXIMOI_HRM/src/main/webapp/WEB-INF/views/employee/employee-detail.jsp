@@ -7,105 +7,7 @@
     <title>Hồ sơ: ${employee.fullName} — MIXIMOI HRM & PAYROLL</title>
     <meta name="description" content="Hồ sơ nhân sự ${employee.fullName} - Mã ${employee.employeeCode}">
     <%@ include file="/WEB-INF/views/common/head.jsp" %>
-    <style>
-        .profile-hero {
-            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%);
-            border-radius: 18px; padding: 2rem 2rem 0; margin-bottom: 0;
-            position: relative; overflow: hidden;
-        }
-        .profile-hero::before {
-            content: ""; position: absolute; top: -40%; right: -10%; width: 380px; height: 380px;
-            background: radial-gradient(circle, rgba(255,255,255,0.1), transparent 70%);
-            border-radius: 50%;
-        }
-        .profile-avatar-xl {
-            width: 88px; height: 88px; border-radius: 50%;
-            background: linear-gradient(135deg, #60a5fa, #93c5fd);
-            color: #fff; font-size: 2.2rem; font-weight: 800;
-            display: flex; align-items: center; justify-content: center;
-            border: 4px solid rgba(255,255,255,0.4);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-        }
-        .profile-hero-body {
-            display: flex; align-items: flex-end; gap: 1.5rem;
-            justify-content: space-between; flex-wrap: wrap;
-        }
-        .profile-hero-name { color: #fff; font-size: 1.6rem; font-weight: 800; margin: 0; line-height: 1.1; }
-        .profile-hero-code {
-            background: rgba(255,255,255,0.18); color: #e0e7ff;
-            border-radius: 6px; padding: 2px 10px; font-size: 0.82rem;
-            font-weight: 700; font-family: monospace; border: 1px solid rgba(255,255,255,0.25);
-        }
-        .profile-hero-role { color: #bfdbfe; font-size: 0.9rem; margin-top: 4px; }
-        .profile-hero-tabs {
-            display: flex; gap: 6px; margin-top: 1.5rem;
-        }
-        .profile-tab {
-            padding: 10px 22px; border-radius: 10px 10px 0 0;
-            font-size: 0.86rem; font-weight: 600; color: rgba(255,255,255,0.72);
-            cursor: pointer; transition: all 0.2s ease; border: none; background: transparent;
-            text-decoration: none; display: inline-flex; align-items: center; outline: none;
-        }
-        .profile-tab.active {
-            background: #fff; color: #1e3a8a; font-weight: 700;
-            box-shadow: 0 -4px 14px rgba(0,0,0,0.06);
-        }
-        .profile-tab:hover:not(.active) {
-            background: rgba(255,255,255,0.14); color: #fff;
-        }
-
-        .profile-tab-pane {
-            display: none;
-            opacity: 0;
-            transform: translateY(6px);
-            transition: opacity 0.22s ease, transform 0.22s ease;
-        }
-        .profile-tab-pane.active {
-            display: block;
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Info row */
-        .info-card {
-            background: #fff; border-radius: 14px; border: 1.5px solid #f1f5f9;
-            box-shadow: 0 2px 10px rgba(15,23,42,0.04); overflow: hidden; margin-bottom: 1rem;
-        }
-        .info-card-header {
-            background: #f8fafc; padding: 0.85rem 1.25rem;
-            border-bottom: 1px solid #f1f5f9;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .info-card-header-title {
-            display: flex; align-items: center; gap: 10px;
-        }
-        .info-card-header i { color: #2563eb; font-size: 1.05rem; }
-        .info-card-title { font-weight: 700; font-size: 0.9rem; color: #1e293b; }
-        .info-card-body { padding: 1.1rem 1.25rem; }
-        .info-row {
-            display: flex; align-items: flex-start; gap: 0.5rem;
-            padding: 0.55rem 0; border-bottom: 1px solid #f8fafc; font-size: 0.875rem;
-        }
-        .info-row:last-child { border-bottom: none; padding-bottom: 0; }
-        .info-label { flex: 0 0 170px; color: #64748b; font-size: 0.82rem; }
-        .info-value { flex: 1; color: #1e293b; font-weight: 500; }
-
-        /* Status pills */
-        .sp-active   { display:inline-flex; align-items:center; gap:5px; background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; border-radius:999px; padding:4px 14px; font-size:0.82rem; font-weight:700; }
-        .sp-onleave  { display:inline-flex; align-items:center; gap:5px; background:#fffbeb; color:#d97706; border:1px solid #fde68a; border-radius:999px; padding:4px 14px; font-size:0.82rem; font-weight:700; }
-        .sp-inactive { display:inline-flex; align-items:center; gap:5px; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:999px; padding:4px 14px; font-size:0.82rem; font-weight:700; }
-
-        .badge-dept {
-            background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;
-            border-radius: 7px; padding: 2px 10px; font-size: 0.8rem; font-weight: 600;
-        }
-
-        /* Contract Type Badges */
-        .badge-contract-indefinite { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 0.76rem; padding: 3px 10px; border-radius: 6px; font-weight: 600; }
-        .badge-contract-fixed      { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; font-size: 0.76rem; padding: 3px 10px; border-radius: 6px; font-weight: 600; }
-        .badge-contract-probation  { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; font-size: 0.76rem; padding: 3px 10px; border-radius: 6px; font-weight: 600; }
-        .badge-contract-seasonal   { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; font-size: 0.76rem; padding: 3px 10px; border-radius: 6px; font-weight: 600; }
-    </style>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/employee-detail.css">
 </head>
 <body>
 <div class="app-container">
@@ -517,7 +419,10 @@
                                                             ${not empty c.notes ? c.notes : '—'}
                                                         </td>
                                                         <td class="text-end pe-4">
-                                                            <a href="${pageContext.request.contextPath}/contracts" class="btn btn-light btn-sm border px-2 py-1" style="border-radius:7px; font-size:0.78rem;" title="Xem tại danh sách Hợp đồng">
+                                                            <a href="${pageContext.request.contextPath}/contracts?action=print&id=${c.id}" class="btn btn-primary btn-sm px-2 py-1 me-1 text-white" style="border-radius:7px; font-size:0.78rem; background:#2563eb;" title="Xem và in văn bản Hợp đồng A4" target="_blank">
+                                                                <i class="bi bi-printer me-1"></i> In HĐ
+                                                            </a>
+                                                            <a href="${pageContext.request.contextPath}/contracts?keyword=${c.contractCode}" class="btn btn-light btn-sm border px-2 py-1" style="border-radius:7px; font-size:0.78rem;" title="Xem tại danh sách Hợp đồng">
                                                                 <i class="bi bi-box-arrow-up-right me-1"></i> Quản lý
                                                             </a>
                                                         </td>
@@ -638,53 +543,6 @@
 </div>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
-<script>
-    function confirmDeactivate() {
-        new bootstrap.Modal(document.getElementById('deactivateModal')).show();
-    }
-
-    // Tab switching functionality
-    function switchTab(tabId) {
-        // Toggle tab buttons
-        document.querySelectorAll('.profile-tab').forEach(btn => {
-            if (btn.getAttribute('data-tab') === tabId) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-
-        // Toggle panes
-        document.querySelectorAll('.profile-tab-pane').forEach(pane => {
-            if (pane.id === tabId) {
-                pane.style.display = 'block';
-                setTimeout(() => pane.classList.add('active'), 10);
-            } else {
-                pane.classList.remove('active');
-                pane.style.display = 'none';
-            }
-        });
-
-        if (history.replaceState) {
-            history.replaceState(null, null, '#' + tabId);
-        }
-    }
-
-    document.querySelectorAll('.profile-tab').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const tabId = this.getAttribute('data-tab');
-            switchTab(tabId);
-        });
-    });
-
-    // Check hash on load
-    window.addEventListener('DOMContentLoaded', () => {
-        const hash = window.location.hash ? window.location.hash.substring(1) : '';
-        if (hash && document.getElementById(hash)) {
-            switchTab(hash);
-        }
-    });
-</script>
+<script src="${pageContext.request.contextPath}/assets/js/employee-detail.js"></script>
 </body>
 </html>

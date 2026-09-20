@@ -5,6 +5,7 @@
 <head>
     <title>Tạo đơn xin nghỉ phép — MIXIMOI HRM & PAYROLL</title>
     <%@ include file="/WEB-INF/views/common/head.jsp" %>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/leave.css">
 </head>
 <body>
 
@@ -140,23 +141,6 @@
 <!-- Shared JavaScript dependencies -->
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        window.initLeaveDurationCalculator('#leaveStartDate', '#leaveEndDate', '#estimatedDays');
-
-        // Bootstrap form validation
-        const forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    });
-</script>
-
+<script src="${pageContext.request.contextPath}/assets/js/leave.js"></script>
 </body>
 </html>

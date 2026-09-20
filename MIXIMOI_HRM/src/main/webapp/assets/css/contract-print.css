@@ -1,0 +1,59 @@
+/* ==========================================================================
+   MIXIMOI HRM — CONTRACT PRINT STYLES (contract-print.css)
+   ========================================================================== */
+
+@media print {
+    body { background: #fff !important; margin: 0; padding: 0; }
+    .no-print { display: none !important; }
+    .print-container { box-shadow: none !important; border: none !important; padding: 0 !important; width: 100% !important; }
+    @page { size: A4; margin: 20mm 15mm 20mm 15mm; }
+}
+
+body {
+    background: #f1f5f9;
+    font-family: 'Times New Roman', Times, serif;
+    color: #111;
+    line-height: 1.6;
+}
+
+.print-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    background: #fff;
+    padding: 3.5rem 3.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid #e2e8f0;
+}
+
+.contract-header-top { text-align: center; margin-bottom: 2rem; }
+.contract-country-title { font-size: 1.05rem; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; }
+.contract-country-sub { font-size: 0.95rem; font-weight: bold; }
+.contract-line { width: 160px; height: 1.5px; background: #000; margin: 6px auto 1.5rem; }
+.contract-main-title { font-size: 1.5rem; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
+.contract-code-display { font-size: 0.95rem; font-style: italic; margin-bottom: 1.5rem; }
+.contract-intro { text-indent: 1.5rem; margin-bottom: 1rem; text-align: justify; font-size: 1rem; }
+.contract-party-title { font-weight: bold; text-transform: uppercase; font-size: 1.02rem; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+.party-info-row { display: flex; margin-bottom: 0.35rem; font-size: 0.98rem; }
+.party-label { width: 220px; flex-shrink: 0; }
+.party-val { flex-grow: 1; font-weight: 500; }
+.article-title { font-weight: bold; font-size: 1.05rem; margin-top: 1.25rem; margin-bottom: 0.5rem; text-transform: uppercase; }
+.article-content { text-align: justify; font-size: 0.98rem; margin-bottom: 0.5rem; }
+.signature-grid { display: grid; grid-template-columns: 1fr 1fr; margin-top: 3rem; text-align: center; page-break-inside: avoid; }
+.sig-role { font-weight: bold; text-transform: uppercase; font-size: 1rem; }
+.sig-sub { font-size: 0.88rem; font-style: italic; color: #555; margin-bottom: 4.5rem; }
+.sig-name { font-weight: bold; font-size: 1.05rem; }
+
+.floating-action-bar {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    background: #fff;
+    padding: 10px 16px;
+    border-radius: 50px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    display: flex;
+    gap: 10px;
+    border: 1px solid #cbd5e1;
+}

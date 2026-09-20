@@ -7,7 +7,12 @@ public class Department {
 
     private int id;
     private String name;
+    private String code;
     private String description;
+    private Integer managerId;
+    private String managerName;
+    private String status = "ACTIVE";
+    private java.util.Date createdAt;
     private int employeeCount; // Dùng cho thống kê
 
     public Department() {}
@@ -24,14 +29,29 @@ public class Department {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
+
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public Integer getManagerId() { return managerId; }
+    public void setManagerId(Integer managerId) { this.managerId = managerId; }
+
+    public String getManagerName() { return managerName; }
+    public void setManagerName(String managerName) { this.managerName = managerName; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public java.util.Date getCreatedAt() { return createdAt; }
+    public void setCreatedAt(java.util.Date createdAt) { this.createdAt = createdAt; }
 
     public int getEmployeeCount() { return employeeCount; }
     public void setEmployeeCount(int employeeCount) { this.employeeCount = employeeCount; }
 
     @Override
     public String toString() {
-        return "Department{id=" + id + ", name='" + name + "'}";
+        return "Department{id=" + id + ", name='" + name + "', code='" + code + "'}";
     }
 }

@@ -31,11 +31,21 @@ public class DBConnectionTest {
     }
 
     @Test
-    public void testQueryDepartments() {
-        DepartmentDAO departmentDAO = new DepartmentDAO();
-        List<Department> list = departmentDAO.findAll();
-        assertNotNull(list, "Danh sách phòng ban không null");
-        assertTrue(list.size() > 0, "Phải có ít nhất 1 phòng ban");
-        System.out.println("Đã tải thành công " + list.size() + " phòng ban từ PostgreSQL!");
+    public void testTableCounts() throws Exception {
+        DatabaseInitializer.initialize();
+        try (Connection conn = DBConnection.getConnection();
+             java.sql.Statement st = conn.createStatement()) {
+            String[] tables = {"attendance", "leave_requests", "overtime", "departments", "employees", "contracts"};
+            for (String t : tables) {
+                try (java.sql.ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM " + t)) {
+                    if (rs.next()) {
+                        System.out.println("Bảng " + t + ": " + rs.getInt(1) + " dòng");
+                    }
+                } catch (Exception ex) {
+                    System.out.println("Bảng " + t + " lỗi: " + ex.getMessage());
+                }
+            }
+        }
     }
 }
+

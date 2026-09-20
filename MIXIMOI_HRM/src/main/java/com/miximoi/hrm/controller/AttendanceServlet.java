@@ -1,9 +1,12 @@
 package com.miximoi.hrm.controller;
 
+import com.miximoi.hrm.dao.AttendanceDAO;
+import com.miximoi.hrm.dao.DepartmentDAO;
 import com.miximoi.hrm.dao.EmployeeDAO;
 import com.miximoi.hrm.model.Attendance;
+import com.miximoi.hrm.model.Employee;
+import com.miximoi.hrm.model.TimesheetSummary;
 import com.miximoi.hrm.model.User;
-import com.miximoi.hrm.service.AttendanceService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -12,52 +15,134 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Servlet quản lý chấm công.
  * URL: /attendance
  */
-@WebServlet({"/attendance", "/timesheet", "/overtime"})
+@WebServlet({"/attendance"})
 public class AttendanceServlet extends HttpServlet {
 
-    private final AttendanceService attendanceService = new AttendanceService();
-    private final EmployeeDAO employeeDAO = new EmployeeDAO();
+    private final AttendanceDAO   attendanceDAO   = new AttendanceDAO();
+    private final EmployeeDAO     employeeDAO     = new EmployeeDAO();
+    private final DepartmentDAO   departmentDAO   = new DepartmentDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
+        request.setCharacterEncoding("UTF-8");
 
-        String path = request.getServletPath();
-        if ("/timesheet".equals(path)) {
-            request.setAttribute("activeMenu", "timesheet");
-        } else if ("/overtime".equals(path)) {
-            request.setAttribute("activeMenu", "overtime");
-        } else {
-            request.setAttribute("activeMenu", "attendance");
+        String action = request.getParameter("action");
+        if ("export".equalsIgnoreCase(action)) {
+            exportAttendanceToCsv(request, response);
+            return;
         }
 
-        LocalDate now = LocalDate.now();
+        request.setAttribute("activeMenu", "attendance");
+
+        LocalDate today = LocalDate.now();
         String mStr = request.getParameter("month");
         String yStr = request.getParameter("year");
-        int month = (mStr != null && !mStr.isEmpty()) ? Integer.parseInt(mStr) : now.getMonthValue();
-        int year = (yStr != null && !yStr.isEmpty()) ? Integer.parseInt(yStr) : now.getYear();
+        int month = (mStr != null && !mStr.trim().isEmpty()) ? Integer.parseInt(mStr.trim()) : today.getMonthValue();
+        int year  = (yStr != null && !yStr.trim().isEmpty()) ? Integer.parseInt(yStr.trim()) : today.getYear();
+
+        String keyword      = request.getParameter("keyword");
+        String deptStr      = request.getParameter("departmentId");
+        String status       = request.getParameter("status");
+        String tab          = request.getParameter("tab");
+        Integer departmentId = (deptStr != null && !deptStr.trim().isEmpty()) ? Integer.parseInt(deptStr.trim()) : null;
 
         User user = (User) request.getSession().getAttribute("currentUser");
+
         List<Attendance> attendances;
-        if ("EMPLOYEE".equals(user.getRole())) {
-            attendances = attendanceService.getByEmployeeAndMonth(user.getEmployeeId(), month, year);
+        if (user.isEmployee() && !user.isAdmin() && !user.isHr() && !user.isManager() && !user.isAccountant()) {
+            // Employee role: show their personal monthly attendance
+            attendances = attendanceDAO.findByEmployeeAndMonth(user.getEmployeeId(), month, year);
+
+            // Personal today status
+            Attendance todayAtt = attendanceDAO.findByEmployeeAndDate(user.getEmployeeId(), today);
+            if (todayAtt != null) {
+                request.setAttribute("todayCheckIn", todayAtt.getCheckIn() != null ? todayAtt.getCheckIn().toString() : null);
+                request.setAttribute("todayCheckOut", todayAtt.getCheckOut() != null ? todayAtt.getCheckOut().toString() : null);
+                request.setAttribute("todayHours", todayAtt.getTotalHours() > 0 ? (todayAtt.getTotalHours() + "h") : "0h 00m");
+            }
+            request.setAttribute("workDaysThisMonth", attendances != null ? attendances.size() : 0);
+
+        } else if (user.isAccountant() && !user.isAdmin()) {
+            // Accountant role: view monthly timesheet summary
+            List<TimesheetSummary> summary = attendanceDAO.getTimesheetSummary(month, year);
+            request.setAttribute("timesheetSummary", summary);
+            attendances = attendanceDAO.search(keyword, departmentId, status, null, month, year);
+
+        } else if (user.isManager() && !user.isAdmin() && !user.isHr()) {
+            // Manager role: view department's attendance
+            Integer managerDeptId = null;
+            if (user.getEmployeeId() > 0) {
+                Employee mgrEmp = employeeDAO.findById(user.getEmployeeId());
+                if (mgrEmp != null) managerDeptId = mgrEmp.getDepartmentId();
+            }
+            if (managerDeptId != null && managerDeptId > 0) {
+                departmentId = managerDeptId;
+            }
+            attendances = attendanceDAO.search(keyword, departmentId, status, null, month, year);
+
+            Map<String, Integer> todayStats = attendanceDAO.getTodayStats(today);
+            request.setAttribute("deptTotalToday", todayStats.get("totalEmployeesToday"));
+            request.setAttribute("deptCheckedIn", todayStats.get("checkedInCount"));
+            request.setAttribute("deptLateCount", todayStats.get("lateEarlyCount"));
+            request.setAttribute("pendingApprovals", 3);
+
         } else {
-            attendances = attendanceService.getByMonth(month, year);
+            // Admin & HR: full management — Tự động seed nếu hôm nay chưa có dữ liệu
+            attendanceDAO.autoSeedTodayData(today);
+            LocalDate queryDate = "daily".equalsIgnoreCase(tab) ? today : null;
+            attendances = attendanceDAO.search(keyword, departmentId, status, queryDate, month, year);
+
+            Map<String, Integer> todayStats = attendanceDAO.getTodayStats(today);
+            int totalEmp = todayStats.getOrDefault("totalEmployeesToday", 0);
+            int checkedIn = todayStats.getOrDefault("checkedInCount", 0);
+            int lateEarly = todayStats.getOrDefault("lateEarlyCount", 0);
+            int absent = todayStats.getOrDefault("absentCount", 0);
+            int wfh = todayStats.getOrDefault("wfhCount", 0);
+            request.setAttribute("totalEmployeesToday", totalEmp);
+            request.setAttribute("checkedInCount", checkedIn);
+            request.setAttribute("lateEarlyCount", lateEarly);
+            request.setAttribute("absentCount", absent);
+            request.setAttribute("wfhCount", wfh);
+            request.setAttribute("activeCaShift", 3);
+            request.setAttribute("lateEarlyDiff", 2);
+            request.setAttribute("absentApproved", Math.max(0, absent - 1));
+            request.setAttribute("absentUnapproved", absent > 0 ? 1 : 0);
+            request.setAttribute("deviceOnline", true);
+            request.setAttribute("deviceCount", 4);
+            request.setAttribute("anomalyCount", lateEarly + absent);
+
+            List<TimesheetSummary> summary = attendanceDAO.getTimesheetSummary(month, year);
+            request.setAttribute("timesheetSummary", summary);
         }
 
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        request.setAttribute("todayDisplay", today.format(dtf));
         request.setAttribute("attendances", attendances);
+        request.setAttribute("totalAttendances", attendances != null ? attendances.size() : 0);
         request.setAttribute("employees", employeeDAO.findAll());
+        request.setAttribute("departments", departmentDAO.findAll());
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
+        request.setAttribute("keyword", keyword);
+        request.setAttribute("departmentId", departmentId);
+        request.setAttribute("status", status);
+        request.setAttribute("activeTab", (tab != null && !tab.isEmpty()) ? tab : "daily");
+        request.setAttribute("currentPage", 1);
+        request.setAttribute("totalPages", 1);
+
         request.getRequestDispatcher("/WEB-INF/views/attendance/attendance-list.jsp")
                .forward(request, response);
     }
@@ -71,26 +156,131 @@ public class AttendanceServlet extends HttpServlet {
         if (action == null) action = "";
 
         User user = (User) request.getSession().getAttribute("currentUser");
-        int empId = user.getEmployeeId() > 0 ? user.getEmployeeId() : 1;
-        String empParam = request.getParameter("employeeId");
-        if (empParam != null && !empParam.isEmpty()) {
-            empId = Integer.parseInt(empParam);
-        }
 
         switch (action) {
             case "checkin": {
-                attendanceService.checkIn(empId, LocalDate.now(), LocalTime.now());
-                response.sendRedirect(request.getContextPath() + "/attendance?success=checkin");
+                int empId = user.getEmployeeId() > 0 ? user.getEmployeeId() : 1;
+                // Hỗ trợ chấm công bằng FaceID, vân tay (Fingerprint), GPS
+                String method = request.getParameter("method");
+                if (method == null || method.isEmpty()) method = "FaceID";
+                attendanceDAO.checkInWithMethod(empId, LocalDate.now(), LocalTime.now(), method);
+                response.sendRedirect(request.getContextPath() + "/attendance?success=checkin&method=" + method);
                 break;
             }
             case "checkout": {
-                attendanceService.checkOut(empId, LocalDate.now(), LocalTime.now());
+                int empId = user.getEmployeeId() > 0 ? user.getEmployeeId() : 1;
+                attendanceDAO.checkOut(empId, LocalDate.now(), LocalTime.now());
                 response.sendRedirect(request.getContextPath() + "/attendance?success=checkout");
+                break;
+            }
+            case "manual": {
+                // Admin / HR manual entry or adjustment
+                String empStr = request.getParameter("employeeId");
+                int empId = (empStr != null && !empStr.trim().isEmpty()) ? Integer.parseInt(empStr.trim()) : user.getEmployeeId();
+                String dateStr = request.getParameter("workDate");
+                LocalDate workDate = (dateStr != null && !dateStr.trim().isEmpty()) ? LocalDate.parse(dateStr.trim()) : LocalDate.now();
+
+                String inStr = request.getParameter("checkIn");
+                LocalTime checkIn = (inStr != null && !inStr.trim().isEmpty()) ? LocalTime.parse(inStr.trim()) : null;
+
+                String outStr = request.getParameter("checkOut");
+                LocalTime checkOut = (outStr != null && !outStr.trim().isEmpty()) ? LocalTime.parse(outStr.trim()) : null;
+
+                String st = request.getParameter("status");
+                String notes = request.getParameter("notes");
+
+                attendanceDAO.upsertManual(empId, workDate, checkIn, checkOut, st, notes);
+                response.sendRedirect(request.getContextPath() + "/attendance?success=manual_saved");
+                break;
+            }
+            case "update": {
+                // Admin / HR update record by ID
+                int id = Integer.parseInt(request.getParameter("id"));
+                String inStr = request.getParameter("checkIn");
+                LocalTime checkIn = (inStr != null && !inStr.trim().isEmpty()) ? LocalTime.parse(inStr.trim()) : null;
+
+                String outStr = request.getParameter("checkOut");
+                LocalTime checkOut = (outStr != null && !outStr.trim().isEmpty()) ? LocalTime.parse(outStr.trim()) : null;
+
+                String st = request.getParameter("status");
+                String notes = request.getParameter("notes");
+
+                attendanceDAO.update(id, checkIn, checkOut, st, notes);
+                response.sendRedirect(request.getContextPath() + "/attendance?success=updated");
+                break;
+            }
+            case "approveExplain": {
+                int id = Integer.parseInt(request.getParameter("id"));
+                attendanceDAO.approveExplain(id);
+                response.sendRedirect(request.getContextPath() + "/attendance?success=approved");
+                break;
+            }
+            case "explain": {
+                int id = Integer.parseInt(request.getParameter("attendanceId"));
+                String notes = request.getParameter("notes");
+                Attendance a = attendanceDAO.findById(id);
+                if (a != null) {
+                    attendanceDAO.update(id, a.getCheckIn(), a.getCheckOut(), a.getStatus(), notes);
+                }
+                response.sendRedirect(request.getContextPath() + "/attendance?success=explained");
+                break;
+            }
+            case "delete": {
+                int id = Integer.parseInt(request.getParameter("id"));
+                attendanceDAO.delete(id);
+                response.sendRedirect(request.getContextPath() + "/attendance?success=deleted");
                 break;
             }
             default:
                 response.sendRedirect(request.getContextPath() + "/attendance");
         }
+    }
+
+    private void exportAttendanceToCsv(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String keyword      = request.getParameter("keyword");
+        String deptStr      = request.getParameter("departmentId");
+        String status       = request.getParameter("status");
+        String mStr         = request.getParameter("month");
+        String yStr         = request.getParameter("year");
+
+        Integer departmentId = (deptStr != null && !deptStr.trim().isEmpty()) ? Integer.parseInt(deptStr.trim()) : null;
+        Integer month        = (mStr != null && !mStr.trim().isEmpty()) ? Integer.parseInt(mStr.trim()) : LocalDate.now().getMonthValue();
+        Integer year         = (yStr != null && !yStr.trim().isEmpty()) ? Integer.parseInt(yStr.trim()) : LocalDate.now().getYear();
+
+        List<Attendance> list = attendanceDAO.search(keyword, departmentId, status, null, month, year);
+
+        response.setContentType("text/csv; charset=UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=\"cham_cong_T" + month + "_" + year + ".csv\"");
+
+        PrintWriter writer = response.getWriter();
+        writer.write('\uFEFF'); // UTF-8 BOM
+        writer.println("STT,Mã Nhân Viên,Họ Và Tên,Phòng Ban,Chức Vụ,Ngày Chấm Công,Giờ Vào,Giờ Ra,Tổng Giờ,Trạng Thái,Ghi Chú");
+
+        int stt = 1;
+        for (Attendance a : list) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(stt++).append(",");
+            sb.append(escapeCsv(a.getEmployeeCode())).append(",");
+            sb.append(escapeCsv(a.getEmployeeName())).append(",");
+            sb.append(escapeCsv(a.getDepartmentName() != null ? a.getDepartmentName() : "")).append(",");
+            sb.append(escapeCsv(a.getPositionName() != null ? a.getPositionName() : "")).append(",");
+            sb.append(a.getWorkDate() != null ? a.getWorkDate().toString() : "").append(",");
+            sb.append(a.getCheckIn() != null ? a.getCheckIn().toString() : "").append(",");
+            sb.append(a.getCheckOut() != null ? a.getCheckOut().toString() : "").append(",");
+            sb.append(a.getTotalHours()).append(",");
+            sb.append(escapeCsv(a.getStatus())).append(",");
+            sb.append(escapeCsv(a.getNotes() != null ? a.getNotes() : ""));
+            writer.println(sb.toString());
+        }
+        writer.flush();
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 
     private boolean checkAuth(HttpServletRequest request, HttpServletResponse response)
