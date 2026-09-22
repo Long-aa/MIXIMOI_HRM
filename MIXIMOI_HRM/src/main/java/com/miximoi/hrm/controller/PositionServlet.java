@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Servlet quản lý chức vụ & Cấp bậc.
@@ -79,31 +80,43 @@ public class PositionServlet extends HttpServlet {
                 break;
             }
             default: {
-                List<Position> list = positionDAO.findAll();
-                if (list == null || list.isEmpty()) {
-                    list = getSamplePositions();
-                } else if (list.size() < 28) {
+                List<Position> allList = positionDAO.findAll();
+                if (allList == null || allList.isEmpty()) {
+                    allList = getSamplePositions();
+                } else if (allList.size() < 28) {
                     // Enrich existing DB list with standard positions if needed
                     List<Position> samples = getSamplePositions();
                     for (Position sp : samples) {
                         boolean exists = false;
-                        for (Position dbp : list) {
+                        for (Position dbp : allList) {
                             if (dbp.getName() != null && dbp.getName().equalsIgnoreCase(sp.getName())) {
                                 exists = true;
                                 break;
                             }
                         }
-                        if (!exists && list.size() < 28) {
-                            list.add(sp);
+                        if (!exists && allList.size() < 28) {
+                            allList.add(sp);
                         }
                     }
                 }
 
-                // Compute KPI statistics
-                int totalPositions = list.size();
+                // Keyword search
+                String keyword = request.getParameter("keyword");
+                if (keyword != null && !keyword.trim().isEmpty()) {
+                    String kw = keyword.trim().toLowerCase();
+                    allList = allList.stream()
+                            .filter(p -> (p.getName() != null && p.getName().toLowerCase().contains(kw))
+                                      || (p.getCode() != null && p.getCode().toLowerCase().contains(kw))
+                                      || (p.getLevel() != null && p.getLevel().toLowerCase().contains(kw))
+                                      || (p.getDepartmentName() != null && p.getDepartmentName().toLowerCase().contains(kw)))
+                            .collect(Collectors.toList());
+                }
+
+                // Compute KPI statistics (from full list)
+                int totalPositions = allList.size();
                 int leadershipCount = 0;
                 long totalMinSalary = 0;
-                for (Position p : list) {
+                for (Position p : allList) {
                     int lvlNum = p.getLevelNumber();
                     if (lvlNum >= 4) {
                         leadershipCount += p.getEmployeeCount();
@@ -113,10 +126,29 @@ public class PositionServlet extends HttpServlet {
                 if (leadershipCount == 0) leadershipCount = 16;
                 long avgSalary = totalPositions > 0 ? (totalMinSalary / totalPositions) : 16800000L;
 
-                request.setAttribute("positions", list);
+                // Phân trang 10/trang
+                int pageSize = 10;
+                int totalRecords = allList.size();
+                int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
+
+                int page = 1;
+                try { page = Integer.parseInt(request.getParameter("page")); } catch (Exception ignored) {}
+                if (page < 1) page = 1;
+                if (page > totalPages && totalPages > 0) page = totalPages;
+
+                int fromIdx = (page - 1) * pageSize;
+                int toIdx   = Math.min(fromIdx + pageSize, totalRecords);
+                List<Position> pageList = (totalRecords > 0) ? allList.subList(fromIdx, toIdx) : allList;
+
+                request.setAttribute("positions", pageList);
                 request.setAttribute("totalPositions", totalPositions);
+                request.setAttribute("totalRecords", totalRecords);
                 request.setAttribute("leadershipCount", leadershipCount);
                 request.setAttribute("avgSalary", avgSalary);
+                request.setAttribute("currentPage", page);
+                request.setAttribute("totalPages", totalPages);
+                request.setAttribute("pageSize", pageSize);
+                request.setAttribute("keyword", keyword);
                 request.getRequestDispatcher("/WEB-INF/views/position/position-list.jsp")
                        .forward(request, response);
             }

@@ -538,6 +538,67 @@ public class AttendanceDAO {
         return update(att.getId(), att.getCheckIn(), att.getCheckOut(), att.getStatus(), att.getNotes());
     }
 
+    public int bulkDelete(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) return 0;
+        StringBuilder sql = new StringBuilder("DELETE FROM attendance WHERE id IN (");
+        for (int i = 0; i < ids.size(); i++) {
+            sql.append(i == 0 ? "?" : ",?");
+        }
+        sql.append(")");
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < ids.size(); i++) {
+                ps.setInt(i + 1, ids.get(i));
+            }
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("AttendanceDAO.bulkDelete lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public int bulkMarkStatus(List<Integer> ids, String status) {
+        if (ids == null || ids.isEmpty()) return 0;
+        StringBuilder sql = new StringBuilder("UPDATE attendance SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id IN (");
+        for (int i = 0; i < ids.size(); i++) {
+            sql.append(i == 0 ? "?" : ",?");
+        }
+        sql.append(")");
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            ps.setString(1, status);
+            for (int i = 0; i < ids.size(); i++) {
+                ps.setInt(i + 2, ids.get(i));
+            }
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("AttendanceDAO.bulkMarkStatus lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public List<Attendance> findByIds(List<Integer> ids) {
+        List<Attendance> list = new ArrayList<>();
+        if (ids == null || ids.isEmpty()) return list;
+        StringBuilder sql = new StringBuilder(BASE_SELECT + "WHERE a.id IN (");
+        for (int i = 0; i < ids.size(); i++) {
+            sql.append(i == 0 ? "?" : ",?");
+        }
+        sql.append(") ORDER BY a.work_date DESC");
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < ids.size(); i++) {
+                ps.setInt(i + 1, ids.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("AttendanceDAO.findByIds lỗi: " + e.getMessage());
+        }
+        return list;
+    }
+
     public double countWorkingDays(int employeeId, int month, int year) {
         String sql = "SELECT COUNT(*) FROM attendance WHERE employee_id = ? " +
                      "AND EXTRACT(MONTH FROM work_date) = ? AND EXTRACT(YEAR FROM work_date) = ? " +

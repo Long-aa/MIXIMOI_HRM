@@ -101,7 +101,36 @@ public class DatabaseInitializer {
             + "fingerprint_device_id INTEGER, fingerprint_enrolled_at TIMESTAMP, face_image_url VARCHAR(255), "
             + "face_embedding_ref TEXT, face_enrolled BOOLEAN NOT NULL DEFAULT FALSE, face_device_id INTEGER, "
             + "face_enrolled_at TIMESTAMP, employee_card_id VARCHAR(50), active BOOLEAN NOT NULL DEFAULT TRUE, "
-            + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP)"
+            + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP)",
+
+            // ===== Bảng employees: bổ sung các trường còn thiếu để đồng bộ với UI =====
+            // Thông tin CCCD/CMND
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS identity_number VARCHAR(20)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS identity_date DATE",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS identity_place VARCHAR(200)",
+            // Địa chỉ tạm trú
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS temp_address VARCHAR(500)",
+            // Quốc tịch / dân tộc
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS nationality VARCHAR(100) DEFAULT 'Việt Nam'",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS ethnicity VARCHAR(100)",
+            // Ảnh đại diện
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)",
+            // Lương cơ bản (đồng bộ với contract/payroll)
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS base_salary NUMERIC(15,0) DEFAULT 0",
+            // Số tài khoản ngân hàng cho payroll
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_account VARCHAR(30)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_name VARCHAR(150)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_branch VARCHAR(200)",
+            // Bảo hiểm xã hội / y tế
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS insurance_number VARCHAR(20)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS tax_code VARCHAR(20)",
+            // Thông tin người thân liên hệ khẩn cấp
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS emergency_contact_name VARCHAR(150)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS emergency_contact_phone VARCHAR(20)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS emergency_contact_relation VARCHAR(50)",
+            // Ngày kết thúc/thôi việc
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS end_date DATE",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS termination_reason TEXT"
         };
 
         for (String sql : alterSqls) {

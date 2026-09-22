@@ -136,7 +136,7 @@
 
             <!-- Search & Filter -->
             <div class="filter-card">
-                <form method="get" action="${pageContext.request.contextPath}/employees">
+                <form method="get" action="${pageContext.request.contextPath}/employees" id="empFilterForm">
                     <div class="row g-2 align-items-center">
                         <div class="col-md-4">
                             <div class="filter-search-wrap">
@@ -182,6 +182,29 @@
                 </form>
             </div>
 
+            <!-- Bulk Action Toolbar -->
+            <div id="bulkToolbar" class="d-none align-items-center gap-2 mb-2 px-1 py-2"
+                 style="background:linear-gradient(90deg,#eff6ff,#f0fdf4);border-radius:10px;border:1px solid #bfdbfe;flex-wrap:wrap;">
+                <span style="font-size:0.83rem;color:#1e40af;font-weight:700;">
+                    <i class="bi bi-check2-square me-1"></i>
+                    Đã chọn <strong id="bulkCount">0</strong> nhân viên
+                </span>
+                <div class="d-flex gap-2 ms-auto">
+                    <button type="button" class="btn btn-sm btn-danger px-3" onclick="bulkDelete()"
+                            style="border-radius:8px;font-weight:600;font-size:0.8rem;">
+                        <i class="bi bi-trash me-1"></i> Vô hiệu hóa hàng loạt
+                    </button>
+                    <button type="button" class="btn btn-sm btn-success px-3" onclick="bulkExport()"
+                            style="border-radius:8px;font-weight:600;font-size:0.8rem;">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Xuất danh sách chọn
+                    </button>
+                    <button type="button" class="btn btn-sm btn-light px-3" onclick="document.querySelectorAll('.row-check').forEach(c=>c.checked=false);if(document.getElementById('checkAll'))document.getElementById('checkAll').checked=false;updateBulkToolbar();"
+                            style="border-radius:8px;font-size:0.8rem;">
+                        <i class="bi bi-x-lg me-1"></i> Bỏ chọn
+                    </button>
+                </div>
+            </div>
+
             <!-- Employee Table -->
             <div class="emp-table-card">
                 <div class="table-responsive">
@@ -219,8 +242,11 @@
                                             </td>
                                             <td>
                                                 <div class="emp-avatar-cell">
-                                                    <div class="emp-avatar ${emp.gender eq 'FEMALE' ? 'avatar-f' : 'avatar-m'}">
+                                                    <div class="emp-avatar ${emp.gender eq 'FEMALE' ? 'avatar-f' : 'avatar-m'}" style="overflow:hidden; display:flex; align-items:center; justify-content:center;">
                                                         <c:choose>
+                                                            <c:when test="${not empty emp.avatarUrl}">
+                                                                <img src="${emp.avatarUrl}" alt="<c:out value='${emp.fullName}'/>" style="width:100%; height:100%; object-fit:cover;">
+                                                            </c:when>
                                                             <c:when test="${not empty emp.fullName}">
                                                                 ${fn:toUpperCase(fn:substring(fn:trim(emp.fullName), 0, 1))}
                                                             </c:when>
@@ -295,17 +321,36 @@
                 <!-- Table Footer / Pagination -->
                 <c:if test="${not empty employees}">
                     <div class="table-footer-bar">
-                        <div style="color:#64748b;">
-                            Hiển thị <strong style="color:#1e293b;">${fn:length(employees)}</strong> nhân sự
-                            <c:if test="${not empty keyword or not empty departmentId or not empty status}">
-                                (đang lọc)
+                        <div style="color:#64748b; font-size:0.84rem;">
+                            Hiển thị <strong style="color:#1e293b;">${(currentPage - 1) * pageSize + 1} - ${currentPage * pageSize > totalEmployees ? totalEmployees : currentPage * pageSize}</strong>
+                            trên tổng số <strong style="color:#1e293b;">${totalEmployees}</strong> nhân sự
+                            <c:if test="${not empty keyword or not empty departmentId or not empty positionId or not empty status}">
+                                <span class="badge bg-light text-secondary ms-1 border">Đang lọc</span>
                             </c:if>
                         </div>
                         <div class="pagination-row">
-                            <a href="#" class="page-btn"><i class="bi bi-chevron-left" style="font-size:0.7rem;"></i></a>
-                            <a href="#" class="page-btn active">1</a>
-                            <a href="#" class="page-btn" style="color:#94a3b8; cursor:not-allowed;">···</a>
-                            <a href="#" class="page-btn"><i class="bi bi-chevron-right" style="font-size:0.7rem;"></i></a>
+                            <a href="${pageContext.request.contextPath}/employees?page=${currentPage - 1}${not empty keyword ? '&keyword=' : ''}${keyword}${not empty departmentId ? '&departmentId=' : ''}${departmentId}${not empty positionId ? '&positionId=' : ''}${positionId}${not empty status ? '&status=' : ''}${status}"
+                               class="page-btn ${currentPage <= 1 ? 'disabled' : ''}" title="Trang trước">
+                                <i class="bi bi-chevron-left" style="font-size:0.7rem;"></i>
+                            </a>
+                            <c:forEach begin="1" end="${totalPages}" var="pg">
+                                <c:choose>
+                                    <c:when test="${pg == currentPage}">
+                                        <a href="javascript:void(0)" class="page-btn active">${pg}</a>
+                                    </c:when>
+                                    <c:when test="${pg == 1 or pg == totalPages or (pg >= currentPage - 2 and pg <= currentPage + 2)}">
+                                        <a href="${pageContext.request.contextPath}/employees?page=${pg}${not empty keyword ? '&keyword=' : ''}${keyword}${not empty departmentId ? '&departmentId=' : ''}${departmentId}${not empty positionId ? '&positionId=' : ''}${positionId}${not empty status ? '&status=' : ''}${status}"
+                                           class="page-btn">${pg}</a>
+                                    </c:when>
+                                    <c:when test="${pg == currentPage - 3 or pg == currentPage + 3}">
+                                        <span class="page-btn" style="color:#94a3b8; cursor:default; border:none; background:transparent;">···</span>
+                                    </c:when>
+                                </c:choose>
+                            </c:forEach>
+                            <a href="${pageContext.request.contextPath}/employees?page=${currentPage + 1}${not empty keyword ? '&keyword=' : ''}${keyword}${not empty departmentId ? '&departmentId=' : ''}${departmentId}${not empty positionId ? '&positionId=' : ''}${positionId}${not empty status ? '&status=' : ''}${status}"
+                               class="page-btn ${currentPage >= totalPages ? 'disabled' : ''}" title="Trang sau">
+                                <i class="bi bi-chevron-right" style="font-size:0.7rem;"></i>
+                            </a>
                         </div>
                     </div>
                 </c:if>
@@ -420,6 +465,40 @@
 </div>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
+
+<!-- Bulk Delete Confirm Modal -->
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:440px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px; overflow:hidden;">
+            <div class="modal-header border-0" style="background:#fef2f2; padding:1.25rem 1.5rem 0.75rem;">
+                <h6 class="modal-title fw-bold text-danger d-flex align-items-center gap-2">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Xác nhận vô hiệu hóa hàng loạt
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 py-3 text-secondary" style="font-size:0.9rem;">
+                Bạn có chắc muốn vô hiệu hóa <strong id="bulkDeleteCount" class="text-danger">0</strong> nhân viên đã chọn?
+                <div class="mt-2 p-2 rounded" style="background:#f8fafc; font-size:0.8rem; color:#64748b;">
+                    <i class="bi bi-info-circle me-1"></i>Nhân viên sẽ bị đánh dấu <em>Đã nghỉ việc</em>. Dữ liệu lịch sử vẫn được lưu trữ.
+                </div>
+            </div>
+            <div class="modal-footer border-0 px-4 pt-0 pb-4 gap-2">
+                <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">Hủy bỏ</button>
+                <form method="post" action="${pageContext.request.contextPath}/employees" id="bulkDeleteForm" class="d-inline">
+                    <input type="hidden" name="action" value="bulkDelete">
+                    <button type="button" class="btn btn-danger btn-sm px-4" onclick="confirmBulkDelete()">
+                        <i class="bi bi-trash me-1"></i> Xác nhận
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Export Hidden Form -->
+<form method="post" action="${pageContext.request.contextPath}/employees" id="bulkExportForm" class="d-none">
+    <input type="hidden" name="action" value="bulkExport">
+</form>
 
 <script src="${pageContext.request.contextPath}/assets/js/employee-list.js"></script>
 </body>

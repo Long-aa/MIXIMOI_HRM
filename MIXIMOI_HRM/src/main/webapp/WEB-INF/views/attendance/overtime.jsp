@@ -545,7 +545,7 @@
                                                     <div class="ot-emp-meta">
                                                         <span class="ot-tag-badge">${ot.overtimeDate}</span>
                                                         <span class="ot-tag-badge">${ot.startTime} - ${ot.endTime} (<strong>${ot.hours}h</strong>)</span>
-                                                        <span class="ot-tag-badge" style="color:#2563eb;">${ot.getOtTypeDisplay()}</span>
+                                                        <span class="ot-tag-badge" style="color:#2563eb;">${ot.otTypeDisplay}</span>
                                                     </div>
                                                     <c:if test="${not empty ot.reason}">
                                                         <div class="text-muted mt-1" style="font-size:0.75rem; font-style:italic;">
@@ -610,7 +610,7 @@
                                                         <c:when test="${ot.status eq 'APPROVED'}">
                                                             <span class="ot-status-pill approved">Đã phê duyệt</span>
                                                         </c:when>
-                                                        <c:when test="${ot.status eq 'PAID' or ot.isPaid}">
+                                                        <c:when test="${ot.status eq 'PAID' or ot.paid}">
                                                             <span class="ot-status-pill paid">Đã thanh toán</span>
                                                         </c:when>
                                                         <c:otherwise>
@@ -678,19 +678,22 @@
                             </tbody>
                         </table>
 
-                        <!-- Phân trang Table footer -->
+                        <!-- Phân trang Table footer (Server-Side) -->
                         <div class="ts-table-footer">
                             <div>
-                                Hiển thị <strong>1 - 4</strong> trên tổng số <strong>142</strong> yêu cầu tăng ca
+                                Hiển thị <strong>${(currentPage - 1) * pageSize + 1}</strong>
+                                – <strong>${(currentPage - 1) * pageSize + overtimes.size()}</strong>
+                                trên tổng số <strong>${totalRecords}</strong> yêu cầu tăng ca
                             </div>
                             <div class="d-flex align-items-center gap-1">
-                                <button class="btn btn-sm btn-outline-light text-muted border py-1 px-2" disabled>Trước</button>
-                                <button class="btn btn-sm btn-primary py-1 px-2 fw-bold">1</button>
-                                <button class="btn btn-sm btn-outline-light text-dark border py-1 px-2">2</button>
-                                <button class="btn btn-sm btn-outline-light text-dark border py-1 px-2">3</button>
-                                <span class="px-1 text-muted">...</span>
-                                <button class="btn btn-sm btn-outline-light text-dark border py-1 px-2">12</button>
-                                <button class="btn btn-sm btn-outline-light text-dark border py-1 px-2">Sau</button>
+                                <a href="${pageContext.request.contextPath}/overtime?tab=${activeTab}&month=${selectedMonth}&year=${selectedYear}&page=${currentPage - 1}"
+                                   class="btn btn-sm btn-outline-light text-muted border py-1 px-2 ${currentPage <= 1 ? 'disabled' : ''}">Trước</a>
+                                <c:forEach var="p" begin="1" end="${totalPages}">
+                                    <a href="${pageContext.request.contextPath}/overtime?tab=${activeTab}&month=${selectedMonth}&year=${selectedYear}&page=${p}"
+                                       class="btn btn-sm py-1 px-2 fw-bold ${p == currentPage ? 'btn-primary' : 'btn-outline-light text-dark border'}">${p}</a>
+                                </c:forEach>
+                                <a href="${pageContext.request.contextPath}/overtime?tab=${activeTab}&month=${selectedMonth}&year=${selectedYear}&page=${currentPage + 1}"
+                                   class="btn btn-sm btn-outline-light text-dark border py-1 px-2 ${currentPage >= totalPages ? 'disabled' : ''}">Sau</a>
                             </div>
                         </div>
                     </div>
@@ -707,26 +710,26 @@
 
                         <c:forEach var="top" items="${topEmployees}">
                             <div class="rank-item-row">
-                                <span class="rank-num">${top['rank']}</span>
+                                <span class="rank-num">${top.rank}</span>
                                 <div class="rank-content">
                                     <div class="rank-name-row">
-                                        <span class="rank-name">${top['name']}</span>
-                                        <span class="rank-hours">${top['hours']}h <span class="rank-hours-sub">/ 40h max</span></span>
+                                        <span class="rank-name">${top.name}</span>
+                                        <span class="rank-hours">${top.hours}h <span class="rank-hours-sub">/ 40h max</span></span>
                                     </div>
-                                    <div class="rank-dept">${top['dept']}</div>
+                                    <div class="rank-dept">${top.dept}</div>
                                     <div class="rank-bar-bg">
-                                        <div class="rank-bar-fill ${top['isNearLimit'] ? 'near-limit' : ''}" style="width: ${top['percent']}%;"></div>
+                                        <div class="rank-bar-fill ${top.isNearLimit ? 'near-limit' : ''}" style="width: ${top.percent}%;"></div>
                                     </div>
-                                    <c:if test="${top['isNearLimit']}">
+                                    <c:if test="${top.isNearLimit}">
                                         <div class="rank-alert-text">
-                                            <span>Cận hạn mức (${top['percent']}%)</span>
-                                            <span>Còn ${top['remaining']}h</span>
+                                            <span>Cận hạn mức (${top.percent}%)</span>
+                                            <span>Còn ${top.remaining}h</span>
                                         </div>
                                     </c:if>
-                                    <c:if test="${not top['isNearLimit']}">
+                                    <c:if test="${not top.isNearLimit}">
                                         <div class="d-flex justify-content-between text-muted" style="font-size:0.7rem; margin-top:2px;">
-                                            <span>${top['percent']}% mức trần</span>
-                                            <span>Còn ${top['remaining']}h</span>
+                                            <span>${top.percent}% mức trần</span>
+                                            <span>Còn ${top.remaining}h</span>
                                         </div>
                                     </c:if>
                                 </div>

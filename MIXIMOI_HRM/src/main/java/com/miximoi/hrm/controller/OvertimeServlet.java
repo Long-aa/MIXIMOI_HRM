@@ -60,13 +60,28 @@ public class OvertimeServlet extends HttpServlet {
         String keyword = request.getParameter("keyword");
 
         // Lấy danh sách đơn OT theo phân quyền Role
-        List<Overtime> overtimes = overtimeDAO.findByFilters(
+        List<Overtime> allOvertimes = overtimeDAO.findByFilters(
                 currentUser, month, year, tab, departmentId, otType, project, keyword);
+        if (allOvertimes == null) allOvertimes = new java.util.ArrayList<>();
 
         Map<String, Integer> counts = overtimeDAO.getCountsByTab(currentUser, month, year);
         List<Map<String, Object>> topEmployees = overtimeDAO.getTopOvertimeEmployees(month, year);
         List<Employee> employees = employeeDAO.findAll();
         List<Department> departments = departmentDAO.findAll();
+
+        // Phân trang 10/trang
+        int pageSize = 10;
+        int totalRecords = allOvertimes.size();
+        int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
+
+        int page = 1;
+        try { page = Integer.parseInt(request.getParameter("page")); } catch (Exception ignored) {}
+        if (page < 1) page = 1;
+        if (page > totalPages && totalPages > 0) page = totalPages;
+
+        int fromIdx = (page - 1) * pageSize;
+        int toIdx   = Math.min(fromIdx + pageSize, totalRecords);
+        List<Overtime> overtimes = (totalRecords > 0) ? allOvertimes.subList(fromIdx, toIdx) : allOvertimes;
 
         request.setAttribute("overtimes", overtimes);
         request.setAttribute("counts", counts);
@@ -80,6 +95,10 @@ public class OvertimeServlet extends HttpServlet {
         request.setAttribute("selectedOtType", otType);
         request.setAttribute("selectedProject", project);
         request.setAttribute("keyword", keyword);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("totalRecords", totalRecords);
+        request.setAttribute("pageSize", pageSize);
 
         request.getRequestDispatcher("/WEB-INF/views/attendance/overtime.jsp")
                .forward(request, response);

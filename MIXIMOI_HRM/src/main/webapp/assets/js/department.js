@@ -1,4 +1,4 @@
-﻿/**
+/**
  * MIXIMOI HRM - department.js
  * Logic xu ly cho cac trang Quan ly Phong ban:
  *   - department-list.jsp (bo loc, xoa xac nhan, KPI animation, checkboxes)
@@ -27,16 +27,55 @@ function toggleAll(master) {
     updateBulkActions();
 }
 
-/** Cap nhat hien thi thanh action nhom (neu co) */
+/** Lay danh sach ID cac phong ban da chon */
+function getSelectedDeptIds() {
+    return Array.from(document.querySelectorAll('.row-cb:checked')).map(cb => cb.value || cb.closest('tr')?.dataset?.id);
+}
+
+/** Cap nhat hien thi thanh action nhom */
 function updateBulkActions() {
     const checked = document.querySelectorAll('.row-cb:checked').length;
     const bar = document.getElementById('bulkActionBar');
     if (bar) {
         bar.classList.toggle('d-none', checked === 0);
+        if (checked > 0) bar.classList.add('d-flex');
+        else bar.classList.remove('d-flex');
         const countEl = document.getElementById('selectedCount');
         if (countEl) countEl.textContent = checked;
     }
 }
+
+/** Mo modal xoa hang loat phong ban */
+function bulkDeleteDepts() {
+    const ids = getSelectedDeptIds();
+    if (ids.length === 0) return;
+    const countEl = document.getElementById('bulkDeptCount');
+    if (countEl) countEl.textContent = ids.length;
+    new bootstrap.Modal(document.getElementById('bulkDeleteDeptModal')).show();
+}
+
+/** Xac nhan xoa hang loat - submit form */
+function confirmBulkDeleteDepts() {
+    const ids = getSelectedDeptIds();
+    const form = document.getElementById('bulkDeleteDeptForm');
+    form.querySelectorAll('input[name="ids"]').forEach(el => el.remove());
+    ids.forEach(id => {
+        if (!id) return;
+        const inp = document.createElement('input');
+        inp.type = 'hidden'; inp.name = 'ids'; inp.value = id;
+        form.appendChild(inp);
+    });
+    form.submit();
+}
+
+/** Bo chon tat ca phong ban */
+function clearDeptSelection() {
+    document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false);
+    const master = document.getElementById('checkAll');
+    if (master) master.checked = false;
+    updateBulkActions();
+}
+
 
 /** Bo loc bang - tim kiem + trang thai + quy mo */
 function filterDeptTable() {

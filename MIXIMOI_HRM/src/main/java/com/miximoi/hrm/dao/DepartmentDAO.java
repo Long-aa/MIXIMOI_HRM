@@ -109,6 +109,24 @@ public class DepartmentDAO {
         return false;
     }
 
+    /** Xóa hàng loạt phòng ban không có nhân viên */
+    public int deleteBulk(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) return 0;
+        // Chỉ xóa các phòng ban không có nhân viên đang hoạt động
+        StringBuilder sql = new StringBuilder(
+            "DELETE FROM departments WHERE id IN (");
+        for (int i = 0; i < ids.size(); i++) sql.append(i > 0 ? ",?" : "?");
+        sql.append(") AND id NOT IN (SELECT DISTINCT department_id FROM employees WHERE status = 'ACTIVE' AND department_id IS NOT NULL)");
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < ids.size(); i++) ps.setInt(i + 1, ids.get(i));
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("DepartmentDAO.deleteBulk lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
     // ===== Helper =====
     private Department mapRow(ResultSet rs) throws SQLException {
         Department d = new Department();

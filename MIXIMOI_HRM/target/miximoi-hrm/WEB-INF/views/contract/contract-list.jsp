@@ -362,12 +362,26 @@
                     </div>
                     <c:if test="${not empty contracts}">
                         <div class="table-footer-bar">
-                            <span class="text-muted">Hiển thị <strong>${contracts.size()}</strong> trên tổng số <strong>${totalContracts}</strong> hợp đồng</span>
-                            <div class="pagination-row">
-                                <a href="#" class="page-btn"><i class="bi bi-chevron-left" style="font-size:0.7rem;"></i></a>
-                                <a href="#" class="page-btn active">1</a>
-                                <a href="#" class="page-btn"><i class="bi bi-chevron-right" style="font-size:0.7rem;"></i></a>
-                            </div>
+                            <span class="text-muted">
+                                Hiển thị <strong style="color:#1e293b;">${(currentPage - 1) * pageSize + 1} - ${currentPage * pageSize > totalFiltered ? totalFiltered : currentPage * pageSize}</strong>
+                                trên tổng số <strong style="color:#1e293b;">${totalFiltered}</strong> hợp đồng
+                            </span>
+                            <c:if test="${totalPages > 1}">
+                                <div class="pagination-row">
+                                    <a href="${pageContext.request.contextPath}/contracts?page=${currentPage - 1}&keyword=${keyword}&contractType=${contractType}&status=${status}&departmentId=${departmentId}"
+                                       class="page-btn ${currentPage <= 1 ? 'disabled' : ''}">
+                                        <i class="bi bi-chevron-left" style="font-size:0.7rem;"></i>
+                                    </a>
+                                    <c:forEach begin="1" end="${totalPages}" var="pg">
+                                        <a href="${pageContext.request.contextPath}/contracts?page=${pg}&keyword=${keyword}&contractType=${contractType}&status=${status}&departmentId=${departmentId}"
+                                           class="page-btn ${pg == currentPage ? 'active' : ''}">${pg}</a>
+                                    </c:forEach>
+                                    <a href="${pageContext.request.contextPath}/contracts?page=${currentPage + 1}&keyword=${keyword}&contractType=${contractType}&status=${status}&departmentId=${departmentId}"
+                                       class="page-btn ${currentPage >= totalPages ? 'disabled' : ''}">
+                                        <i class="bi bi-chevron-right" style="font-size:0.7rem;"></i>
+                                    </a>
+                                </div>
+                            </c:if>
                         </div>
                     </c:if>
                 </div>
@@ -520,6 +534,29 @@
                     </form>
                 </div>
 
+                <!-- Bulk Action Toolbar -->
+                <div id="bulkToolbar" class="d-none align-items-center gap-2 mb-2 px-1 py-2"
+                     style="background:linear-gradient(90deg,#eff6ff,#f0fdf4);border-radius:10px;border:1px solid #bfdbfe;flex-wrap:wrap;">
+                    <span style="font-size:0.83rem;color:#1e40af;font-weight:700;">
+                        <i class="bi bi-check2-square me-1"></i>
+                        Đã chọn <strong id="bulkCount">0</strong> hợp đồng
+                    </span>
+                    <div class="d-flex gap-2 ms-auto">
+                        <button type="button" class="btn btn-sm btn-danger px-3" onclick="bulkDelete()"
+                                style="border-radius:8px;font-weight:600;font-size:0.8rem;">
+                            <i class="bi bi-trash me-1"></i> Xóa hàng loạt
+                        </button>
+                        <button type="button" class="btn btn-sm btn-success px-3" onclick="bulkExport()"
+                                style="border-radius:8px;font-weight:600;font-size:0.8rem;">
+                            <i class="bi bi-file-earmark-excel me-1"></i> Xuất danh sách chọn
+                        </button>
+                        <button type="button" class="btn btn-sm btn-light px-3" onclick="clearContractSelection()"
+                                style="border-radius:8px;font-size:0.8rem;">
+                            <i class="bi bi-x-lg me-1"></i> Bỏ chọn
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Contracts Table (Full management) -->
                 <div class="contract-table-card">
                     <div class="table-responsive">
@@ -542,7 +579,7 @@
                             <tbody>
                                 <c:choose>
                                     <c:when test="${empty contracts}">
-                                        <tr>
+                                        <tr id="emptyRow">
                                             <td colspan="9" class="text-center text-muted py-5">
                                                 <i class="bi bi-file-earmark-text" style="font-size:2.5rem; display:block; margin-bottom:0.75rem;"></i>
                                                 <div style="font-weight:600; font-size:0.95rem; color:#64748b;">Chưa có hợp đồng nào trong hệ thống</div>
@@ -554,7 +591,12 @@
                                     </c:when>
                                     <c:otherwise>
                                         <c:forEach var="c" items="${contracts}">
-                                            <tr class="${c.status eq 'EXPIRING_SOON' ? 'row-expiring' : c.status eq 'EXPIRED' ? 'row-expired' : ''}">
+                                            <tr class="contract-row ${c.status eq 'EXPIRING_SOON' ? 'row-expiring' : c.status eq 'EXPIRED' ? 'row-expired' : ''}"
+                                                data-keyword="${fn:toLowerCase(c.contractCode)} ${fn:toLowerCase(c.employeeName)} ${fn:toLowerCase(c.employeeCode)}"
+                                                data-type="${c.contractType}"
+                                                data-status="${c.status}"
+                                                data-dept="${not empty c.departmentName ? fn:toLowerCase(c.departmentName) : ''}"
+                                                data-id="${c.id}">
                                                 <td style="padding-left:1.25rem;">
                                                     <input type="checkbox" class="form-check-input row-check" value="${c.id}" style="width:15px;height:15px;">
                                                 </td>
@@ -657,23 +699,25 @@
                     <c:if test="${not empty contracts}">
                         <div class="table-footer-bar">
                             <span class="text-muted">
-                                Hiển thị <strong style="color:#1e293b;">${contracts.size()}</strong>
-                                trên tổng số <strong style="color:#1e293b;">${totalContracts}</strong> hợp đồng lao động
+                                Hiển thị <strong style="color:#1e293b;">${(currentPage - 1) * pageSize + 1} - ${currentPage * pageSize > totalFiltered ? totalFiltered : currentPage * pageSize}</strong>
+                                trên tổng số <strong style="color:#1e293b;">${totalFiltered}</strong> hợp đồng lao động
                             </span>
-                            <div class="pagination-row">
-                                <a href="${pageContext.request.contextPath}/contracts?page=${currentPage - 1}&keyword=${keyword}&contractType=${contractType}&status=${status}&departmentId=${departmentId}"
-                                   class="page-btn ${currentPage <= 1 ? 'disabled' : ''}">
-                                    <i class="bi bi-chevron-left" style="font-size:0.7rem;"></i>
-                                </a>
-                                <c:forEach begin="1" end="${totalPages}" var="pg">
-                                    <a href="${pageContext.request.contextPath}/contracts?page=${pg}&keyword=${keyword}&contractType=${contractType}&status=${status}&departmentId=${departmentId}"
-                                       class="page-btn ${pg == currentPage ? 'active' : ''}">${pg}</a>
-                                </c:forEach>
-                                <a href="${pageContext.request.contextPath}/contracts?page=${currentPage + 1}&keyword=${keyword}&contractType=${contractType}&status=${status}&departmentId=${departmentId}"
-                                   class="page-btn ${currentPage >= totalPages ? 'disabled' : ''}">
-                                    <i class="bi bi-chevron-right" style="font-size:0.7rem;"></i>
-                                </a>
-                            </div>
+                            <c:if test="${totalPages > 1}">
+                                <div class="pagination-row">
+                                    <a href="${pageContext.request.contextPath}/contracts?page=${currentPage - 1}&keyword=${keyword}&contractType=${contractType}&status=${status}&departmentId=${departmentId}"
+                                       class="page-btn ${currentPage <= 1 ? 'disabled' : ''}">
+                                        <i class="bi bi-chevron-left" style="font-size:0.7rem;"></i>
+                                    </a>
+                                    <c:forEach begin="1" end="${totalPages}" var="pg">
+                                        <a href="${pageContext.request.contextPath}/contracts?page=${pg}&keyword=${keyword}&contractType=${contractType}&status=${status}&departmentId=${departmentId}"
+                                           class="page-btn ${pg == currentPage ? 'active' : ''}">${pg}</a>
+                                    </c:forEach>
+                                    <a href="${pageContext.request.contextPath}/contracts?page=${currentPage + 1}&keyword=${keyword}&contractType=${contractType}&status=${status}&departmentId=${departmentId}"
+                                       class="page-btn ${currentPage >= totalPages ? 'disabled' : ''}">
+                                        <i class="bi bi-chevron-right" style="font-size:0.7rem;"></i>
+                                    </a>
+                                </div>
+                            </c:if>
                         </div>
                     </c:if>
                 </div>

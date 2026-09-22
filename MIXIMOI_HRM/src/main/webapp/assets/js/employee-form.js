@@ -750,7 +750,9 @@
             email: document.getElementById("email").value,
             companyEmailPrefix: document.getElementById("companyEmailPrefix").value,
             phone: document.getElementById("phone").value,
-            emergencyContact: document.getElementById("emergencyContact").value,
+            emergencyContactName: document.getElementById("emergencyContactName")?.value || '',
+            emergencyContactPhone: document.getElementById("emergencyContactPhone")?.value || '',
+            emergencyContactRelation: document.getElementById("emergencyContactRelation")?.value || '',
             address: document.getElementById("address").value,
             tempAddress: document.getElementById("tempAddress").value,
             departmentId: document.getElementById("departmentId").value,
@@ -797,7 +799,9 @@
         if (draft.email) document.getElementById("email").value = draft.email;
         if (draft.companyEmailPrefix) document.getElementById("companyEmailPrefix").value = draft.companyEmailPrefix;
         if (draft.phone) document.getElementById("phone").value = draft.phone;
-        if (draft.emergencyContact) document.getElementById("emergencyContact").value = draft.emergencyContact;
+        if (draft.emergencyContactName) { const el = document.getElementById("emergencyContactName"); if (el) el.value = draft.emergencyContactName; }
+        if (draft.emergencyContactPhone) { const el = document.getElementById("emergencyContactPhone"); if (el) el.value = draft.emergencyContactPhone; }
+        if (draft.emergencyContactRelation) { const el = document.getElementById("emergencyContactRelation"); if (el) el.value = draft.emergencyContactRelation; }
         if (draft.address) document.getElementById("address").value = draft.address;
         if (draft.tempAddress) document.getElementById("tempAddress").value = draft.tempAddress;
         if (draft.departmentId) {
@@ -820,6 +824,12 @@
 
     function dismissDraft() {
         document.getElementById("draftAlertBanner").classList.add("d-none");
+    }
+
+    function clearDraft() {
+        localStorage.removeItem("miximoi_employee_draft");
+        dismissDraft();
+        showToast("Đã xóa bản nháp thành công.", "warning");
     }
 
     function startAutoSaveInterval() {

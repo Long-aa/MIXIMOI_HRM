@@ -75,6 +75,22 @@ public class ContractServlet extends HttpServlet {
             contracts = contractDAO.search(keyword, contractType, status, departmentId);
         }
 
+        int totalFiltered = contracts != null ? contracts.size() : 0;
+        int pageSize = 10;
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalFiltered / pageSize));
+        int page = 1;
+        String pageStr = request.getParameter("page");
+        if (pageStr != null && !pageStr.trim().isEmpty()) {
+            try {
+                page = Math.max(1, Math.min(Integer.parseInt(pageStr.trim()), totalPages));
+            } catch (NumberFormatException ignored) {}
+        }
+        int fromIndex = (page - 1) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, totalFiltered);
+        List<Contract> pagedContracts = (contracts != null && fromIndex < totalFiltered)
+                ? contracts.subList(fromIndex, toIndex)
+                : new java.util.ArrayList<>();
+
         // Stats calculation
         int totalContracts   = contractDAO.countTotal();
         int activeCount      = contractDAO.countActive();
@@ -82,7 +98,11 @@ public class ContractServlet extends HttpServlet {
         int fixedCount       = contractDAO.countByType("FIXED_TERM");
         int expiringCount    = contractDAO.countExpiringSoon(30);
 
-        request.setAttribute("contracts",        contracts);
+        request.setAttribute("contracts",        pagedContracts);
+        request.setAttribute("totalFiltered",    totalFiltered);
+        request.setAttribute("currentPage",      page);
+        request.setAttribute("totalPages",       totalPages);
+        request.setAttribute("pageSize",         pageSize);
         request.setAttribute("employees",        employeeDAO.findAll());
         request.setAttribute("departments",      departmentDAO.findAll());
         request.setAttribute("nextContractCode", contractDAO.getNextContractCode());
@@ -169,6 +189,39 @@ public class ContractServlet extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/contracts?success=deleted");
                 break;
             }
+            case "bulkDelete": {
+                String[] idsArr = request.getParameterValues("ids");
+                int count = 0;
+                if (idsArr != null && idsArr.length > 0) {
+                    java.util.List<Integer> ids = new java.util.ArrayList<>();
+                    for (String sid : idsArr) {
+                        try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                    }
+                    count = contractDAO.bulkDelete(ids);
+                }
+                response.sendRedirect(request.getContextPath() + "/contracts?success=deleted&count=" + count);
+                break;
+            }
+            case "bulkExport": {
+                String[] idsArr = request.getParameterValues("ids");
+                List<Contract> list;
+                if (idsArr != null && idsArr.length > 0) {
+                    java.util.List<Integer> ids = new java.util.ArrayList<>();
+                    for (String sid : idsArr) {
+                        try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                    }
+                    list = contractDAO.findByIds(ids);
+                } else {
+                    String keyword      = request.getParameter("keyword");
+                    String contractType = request.getParameter("contractType");
+                    String status       = request.getParameter("status");
+                    String deptStr      = request.getParameter("departmentId");
+                    Integer departmentId = (deptStr != null && !deptStr.trim().isEmpty()) ? Integer.parseInt(deptStr.trim()) : null;
+                    list = contractDAO.search(keyword, contractType, status, departmentId);
+                }
+                writeContractsCsv(response, list);
+                break;
+            }
             default:
                 response.sendRedirect(request.getContextPath() + "/contracts");
         }
@@ -182,7 +235,10 @@ public class ContractServlet extends HttpServlet {
         Integer departmentId = (deptStr != null && !deptStr.trim().isEmpty()) ? Integer.parseInt(deptStr.trim()) : null;
 
         List<Contract> list = contractDAO.search(keyword, contractType, status, departmentId);
+        writeContractsCsv(response, list);
+    }
 
+    private void writeContractsCsv(HttpServletResponse response, List<Contract> list) throws IOException {
         response.setContentType("text/csv; charset=UTF-8");
         response.setHeader("Content-Disposition", "attachment; filename=\"danh_sach_hop_dong_" + LocalDate.now() + ".csv\"");
 

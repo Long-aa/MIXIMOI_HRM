@@ -878,7 +878,7 @@
             <div class="pos-bulk-bar">
                 <div class="pos-bulk-left">
                     Đã chọn: <strong id="selectedCount">0</strong> • 
-                    <a href="javascript:void(0)" onclick="selectAllPositions()">Chọn tất cả <span id="bulkTotalDisplay">${not empty totalPositions ? totalPositions : 28}</span> dòng</a>
+                    <a href="javascript:void(0)" onclick="selectAllPositions()">Chọn tất cả <span id="bulkTotalDisplay">${not empty totalRecords ? totalRecords : totalPositions}</span> dòng</a>
                 </div>
                 <div class="pos-bulk-actions">
                     <button type="button" class="btn-bulk-action" onclick="bulkEdit()">
@@ -1003,27 +1003,29 @@
                 </div>
             </div>
 
-            <!-- Pagination Row (Matching Mockup exactly) -->
+            <!-- Pagination Row (Server-Side) -->
             <div class="pos-pagination-bar">
                 <div>
-                    Hiển thị 
-                    <select id="pageSizeSelect" class="pos-page-size-select" onchange="changePageSize(this.value)">
-                        <option value="8" selected>8</option>
-                        <option value="16">16</option>
-                        <option value="28">28</option>
-                    </select>
-                    trên tổng số <strong id="posTotalCountDisplay">${not empty totalPositions ? totalPositions : 28}</strong> chức danh
+                    Hiển thị
+                    <strong>${(currentPage - 1) * pageSize + 1}</strong>
+                    –
+                    <strong>${(currentPage - 1) * pageSize + positions.size()}</strong>
+                    trên tổng số <strong id="posTotalCountDisplay">${totalRecords}</strong> chức danh
                 </div>
                 <div>
                     <ul class="pos-pager" id="posPagination">
-                        <li><a href="javascript:void(0)" class="pos-pager-btn disabled" id="firstPageBtn" onclick="goToPage(1)">&vert;&lt;</a></li>
-                        <li><a href="javascript:void(0)" class="pos-pager-btn disabled" id="prevPageBtn" onclick="prevPage()">&lt;</a></li>
-                        <li><a href="javascript:void(0)" class="pos-pager-btn active" onclick="goToPage(1)">1</a></li>
-                        <li><a href="javascript:void(0)" class="pos-pager-btn" onclick="goToPage(2)">2</a></li>
-                        <li><a href="javascript:void(0)" class="pos-pager-btn" onclick="goToPage(3)">3</a></li>
-                        <li><a href="javascript:void(0)" class="pos-pager-btn" onclick="goToPage(4)">4</a></li>
-                        <li><a href="javascript:void(0)" class="pos-pager-btn" id="nextPageBtn" onclick="nextPage()">&gt;</a></li>
-                        <li><a href="javascript:void(0)" class="pos-pager-btn" id="lastPageBtn" onclick="goToPage(4)">&gt;&vert;</a></li>
+                        <li><a href="${pageContext.request.contextPath}/positions?page=1${not empty keyword ? '&keyword='.concat(keyword) : ''}"
+                               class="pos-pager-btn ${currentPage <= 1 ? 'disabled' : ''}">&vert;&lt;</a></li>
+                        <li><a href="${pageContext.request.contextPath}/positions?page=${currentPage - 1}${not empty keyword ? '&keyword='.concat(keyword) : ''}"
+                               class="pos-pager-btn ${currentPage <= 1 ? 'disabled' : ''}">&lt;</a></li>
+                        <c:forEach var="p" begin="1" end="${totalPages}">
+                            <li><a href="${pageContext.request.contextPath}/positions?page=${p}${not empty keyword ? '&keyword='.concat(keyword) : ''}"
+                                   class="pos-pager-btn ${p == currentPage ? 'active' : ''}">${p}</a></li>
+                        </c:forEach>
+                        <li><a href="${pageContext.request.contextPath}/positions?page=${currentPage + 1}${not empty keyword ? '&keyword='.concat(keyword) : ''}"
+                               class="pos-pager-btn ${currentPage >= totalPages ? 'disabled' : ''}">&gt;</a></li>
+                        <li><a href="${pageContext.request.contextPath}/positions?page=${totalPages}${not empty keyword ? '&keyword='.concat(keyword) : ''}"
+                               class="pos-pager-btn ${currentPage >= totalPages ? 'disabled' : ''}">&gt;&vert;</a></li>
                     </ul>
                 </div>
             </div>

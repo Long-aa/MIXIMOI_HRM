@@ -71,10 +71,30 @@ public class LeaveServlet extends HttpServlet {
                 List<LeaveRequest> list = leaveService.getByFilters(
                         currentUser, status, departmentId, leaveType, keyword);
 
+                int totalLeaves = list != null ? list.size() : 0;
+                int pageSize = 10;
+                int totalPages = Math.max(1, (int) Math.ceil((double) totalLeaves / pageSize));
+                int page = 1;
+                String pageStr = request.getParameter("page");
+                if (pageStr != null && !pageStr.trim().isEmpty()) {
+                    try {
+                        page = Math.max(1, Math.min(Integer.parseInt(pageStr.trim()), totalPages));
+                    } catch (NumberFormatException ignored) {}
+                }
+                int fromIndex = (page - 1) * pageSize;
+                int toIndex = Math.min(fromIndex + pageSize, totalLeaves);
+                List<LeaveRequest> pagedLeaves = (list != null && fromIndex < totalLeaves)
+                        ? list.subList(fromIndex, toIndex)
+                        : new java.util.ArrayList<>();
+
                 List<Department> departments = departmentDAO.findAll();
                 List<Employee> employees = employeeDAO.findAll();
 
-                request.setAttribute("leaveRequests", list);
+                request.setAttribute("leaveRequests", pagedLeaves);
+                request.setAttribute("totalLeaves",   totalLeaves);
+                request.setAttribute("currentPage",   page);
+                request.setAttribute("totalPages",    totalPages);
+                request.setAttribute("pageSize",      pageSize);
                 request.setAttribute("departments", departments);
                 request.setAttribute("employees", employees);
                 request.setAttribute("selectedStatus", status);
@@ -180,6 +200,83 @@ public class LeaveServlet extends HttpServlet {
                 }
                 break;
             }
+            case "bulkApprove": {
+                if (currentUser.isManager() || currentUser.isHr() || currentUser.isAdmin()) {
+                    String[] idsArr = request.getParameterValues("ids");
+                    if (idsArr != null && idsArr.length > 0) {
+                        List<Integer> ids = new java.util.ArrayList<>();
+                        for (String sid : idsArr) {
+                            try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                        }
+                        leaveService.bulkApprove(ids, currentUser.getEmployeeId());
+                        // Đồng bộ sang chấm công
+                        for (int id : ids) {
+                            LeaveRequest lr = leaveService.getById(id);
+                            if (lr != null && lr.getStartDate() != null && lr.getEndDate() != null) {
+                                LocalDate d = lr.getStartDate();
+                                while (!d.isAfter(lr.getEndDate())) {
+                                    attendanceDAO.upsertManual(lr.getEmployeeId(), d, null, null, "ON_LEAVE", "Nghỉ phép theo đơn " + lr.getLeaveCode());
+                                    d = d.plusDays(1);
+                                }
+                            }
+                        }
+                    }
+                    response.sendRedirect(request.getContextPath() + "/leave?success=approved");
+                    return;
+                }
+                break;
+            }
+            case "bulkReject": {
+                if (currentUser.isManager() || currentUser.isHr() || currentUser.isAdmin()) {
+                    String[] idsArr = request.getParameterValues("ids");
+                    if (idsArr != null && idsArr.length > 0) {
+                        List<Integer> ids = new java.util.ArrayList<>();
+                        for (String sid : idsArr) {
+                            try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                        }
+                        String reason = request.getParameter("rejectReason");
+                        leaveService.bulkReject(ids, currentUser.getEmployeeId(), reason);
+                    }
+                    response.sendRedirect(request.getContextPath() + "/leave?success=rejected");
+                    return;
+                }
+                break;
+            }
+            case "bulkDelete": {
+                if (currentUser.isAdmin() || currentUser.isHr()) {
+                    String[] idsArr = request.getParameterValues("ids");
+                    if (idsArr != null && idsArr.length > 0) {
+                        List<Integer> ids = new java.util.ArrayList<>();
+                        for (String sid : idsArr) {
+                            try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                        }
+                        leaveService.bulkDelete(ids);
+                    }
+                    response.sendRedirect(request.getContextPath() + "/leave?success=deleted");
+                    return;
+                }
+                break;
+            }
+            case "bulkExport": {
+                String[] idsArr = request.getParameterValues("ids");
+                List<LeaveRequest> list;
+                if (idsArr != null && idsArr.length > 0) {
+                    List<Integer> ids = new java.util.ArrayList<>();
+                    for (String sid : idsArr) {
+                        try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                    }
+                    list = leaveService.findByIds(ids);
+                } else {
+                    String status = request.getParameter("status");
+                    String deptParam = request.getParameter("departmentId");
+                    Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.parseInt(deptParam) : null;
+                    String leaveType = request.getParameter("leaveType");
+                    String keyword = request.getParameter("keyword");
+                    list = leaveService.getByFilters(currentUser, status, departmentId, leaveType, keyword);
+                }
+                writeLeaveCsv(response, list);
+                return;
+            }
             case "export": {
                 exportLeaveRequestsCSV(request, response, currentUser);
                 return;
@@ -199,7 +296,10 @@ public class LeaveServlet extends HttpServlet {
         String keyword = request.getParameter("keyword");
 
         List<LeaveRequest> list = leaveService.getByFilters(currentUser, status, departmentId, leaveType, keyword);
+        writeLeaveCsv(response, list);
+    }
 
+    private void writeLeaveCsv(HttpServletResponse response, List<LeaveRequest> list) throws IOException {
         response.setContentType("text/csv; charset=UTF-8");
         response.setHeader("Content-Disposition", "attachment; filename=\"MIXIMOI_Leave_Requests_" + LocalDate.now() + ".csv\"");
 

@@ -137,13 +137,34 @@ public class EmployeeServlet extends HttpServlet {
                 Integer deptId    = (deptStr != null && !deptStr.isEmpty()) ? Integer.parseInt(deptStr) : null;
                 Integer posId     = (posStr != null && !posStr.isEmpty()) ? Integer.parseInt(posStr) : null;
 
-                request.setAttribute("employees",    employeeService.search(keyword, deptId, posId, status));
-                request.setAttribute("departments",  departmentDAO.findAll());
-                request.setAttribute("positions",    positionDAO.findAll());
-                request.setAttribute("keyword",      keyword);
-                request.setAttribute("departmentId", deptId);
-                request.setAttribute("positionId",   posId);
-                request.setAttribute("status",       status);
+                List<Employee> allEmployees = employeeService.search(keyword, deptId, posId, status);
+                int totalEmployees = allEmployees != null ? allEmployees.size() : 0;
+                int pageSize = 10;
+                int totalPages = Math.max(1, (int) Math.ceil((double) totalEmployees / pageSize));
+                int page = 1;
+                String pageStr = request.getParameter("page");
+                if (pageStr != null && !pageStr.trim().isEmpty()) {
+                    try {
+                        page = Math.max(1, Math.min(Integer.parseInt(pageStr.trim()), totalPages));
+                    } catch (NumberFormatException ignored) {}
+                }
+                int fromIndex = (page - 1) * pageSize;
+                int toIndex = Math.min(fromIndex + pageSize, totalEmployees);
+                List<Employee> pagedEmployees = (allEmployees != null && fromIndex < totalEmployees)
+                        ? allEmployees.subList(fromIndex, toIndex)
+                        : new ArrayList<>();
+
+                request.setAttribute("employees",      pagedEmployees);
+                request.setAttribute("totalEmployees", totalEmployees);
+                request.setAttribute("currentPage",    page);
+                request.setAttribute("totalPages",     totalPages);
+                request.setAttribute("pageSize",       pageSize);
+                request.setAttribute("departments",    departmentDAO.findAll());
+                request.setAttribute("positions",      positionDAO.findAll());
+                request.setAttribute("keyword",        keyword);
+                request.setAttribute("departmentId",   deptId);
+                request.setAttribute("positionId",     posId);
+                request.setAttribute("status",         status);
                 // KPI Stats
                 request.setAttribute("statsTotal",    employeeService.countTotal());
                 request.setAttribute("statsActive",   employeeService.countByStatus("ACTIVE"));
@@ -277,6 +298,40 @@ public class EmployeeServlet extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/employees?success=deleted");
                 break;
             }
+            case "bulkDelete": {
+                String[] idsArr = request.getParameterValues("ids");
+                int count = 0;
+                if (idsArr != null && idsArr.length > 0) {
+                    java.util.List<Integer> ids = new java.util.ArrayList<>();
+                    for (String sid : idsArr) {
+                        try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                    }
+                    count = employeeDAO.deactivateBulk(ids);
+                }
+                response.sendRedirect(request.getContextPath() + "/employees?success=deleted&count=" + count);
+                break;
+            }
+            case "bulkExport": {
+                String[] idsArr = request.getParameterValues("ids");
+                List<Employee> list;
+                if (idsArr != null && idsArr.length > 0) {
+                    java.util.List<Integer> ids = new java.util.ArrayList<>();
+                    for (String sid : idsArr) {
+                        try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                    }
+                    list = employeeDAO.findByIds(ids);
+                } else {
+                    String keyword = request.getParameter("keyword");
+                    String deptStr = request.getParameter("departmentId");
+                    String posStr  = request.getParameter("positionId");
+                    String status  = request.getParameter("status");
+                    Integer deptId = (deptStr != null && !deptStr.isEmpty()) ? Integer.parseInt(deptStr) : null;
+                    Integer posId  = (posStr  != null && !posStr.isEmpty())  ? Integer.parseInt(posStr)  : null;
+                    list = employeeService.search(keyword, deptId, posId, status);
+                }
+                exportListToCsv(response, list);
+                break;
+            }
             default:
                 response.sendRedirect(request.getContextPath() + "/employees");
         }
@@ -291,9 +346,10 @@ public class EmployeeServlet extends HttpServlet {
         String status     = request.getParameter("status");
         Integer deptId    = (deptStr != null && !deptStr.isEmpty()) ? Integer.parseInt(deptStr) : null;
         Integer posId     = (posStr != null && !posStr.isEmpty()) ? Integer.parseInt(posStr) : null;
+        exportListToCsv(response, employeeService.search(keyword, deptId, posId, status));
+    }
 
-        List<Employee> list = employeeService.search(keyword, deptId, posId, status);
-
+    private void exportListToCsv(HttpServletResponse response, List<Employee> list) throws IOException {
         response.setContentType("text/csv; charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
         String fileName = "danh_sach_nhan_vien_" + LocalDate.now() + ".csv";
@@ -608,20 +664,59 @@ public class EmployeeServlet extends HttpServlet {
         emp.setEmail(email);
 
         emp.setAddress(req.getParameter("address"));
+        emp.setTempAddress(req.getParameter("tempAddress"));
+        emp.setNationality(req.getParameter("nationality"));
+        emp.setEthnicity(req.getParameter("ethnicity"));
+        emp.setAvatarUrl(req.getParameter("avatarUrl"));
+
+        // CCCD / Giấy tờ tùy thân
+        emp.setIdentityNumber(req.getParameter("identityNumber"));
+        String idDate = req.getParameter("identityDate");
+        if (idDate != null && !idDate.isEmpty()) {
+            try { emp.setIdentityDate(LocalDate.parse(idDate)); } catch (Exception ignored) {}
+        }
+        emp.setIdentityPlace(req.getParameter("identityPlace"));
+
         String deptId = req.getParameter("departmentId");
         if (deptId != null && !deptId.isEmpty()) emp.setDepartmentId(Integer.parseInt(deptId));
         String posId = req.getParameter("positionId");
         if (posId != null && !posId.isEmpty()) emp.setPositionId(Integer.parseInt(posId));
         String typeId = req.getParameter("employeeTypeId");
         if (typeId != null && !typeId.isEmpty()) emp.setEmployeeTypeId(Integer.parseInt(typeId));
-        else if (emp.getEmployeeTypeId() <= 0) emp.setEmployeeTypeId(1); // default chính thức
+        else if (emp.getEmployeeTypeId() <= 0) emp.setEmployeeTypeId(1);
 
         String sd = req.getParameter("startDate");
         if (sd != null && !sd.isEmpty()) emp.setStartDate(LocalDate.parse(sd));
         else if (emp.getStartDate() == null) emp.setStartDate(LocalDate.now());
 
+        String endDate = req.getParameter("endDate");
+        if (endDate != null && !endDate.isEmpty()) {
+            try { emp.setEndDate(LocalDate.parse(endDate)); } catch (Exception ignored) {}
+        }
+        emp.setTerminationReason(req.getParameter("terminationReason"));
+
         String st = req.getParameter("status");
         emp.setStatus(st != null && !st.isEmpty() ? st : "ACTIVE");
+
+        // Lương & tài chính
+        String salaryStr = req.getParameter("baseSalary");
+        if (salaryStr != null && !salaryStr.trim().isEmpty()) {
+            try {
+                String cleanSalary = salaryStr.replace(".", "").replace(",", "").trim();
+                emp.setBaseSalary(new java.math.BigDecimal(cleanSalary));
+            } catch (Exception ignored) {}
+        }
+        emp.setBankAccount(req.getParameter("bankAccount"));
+        emp.setBankName(req.getParameter("bankName"));
+        emp.setBankBranch(req.getParameter("bankBranch"));
+        emp.setTaxCode(req.getParameter("taxCode"));
+        emp.setInsuranceNumber(req.getParameter("insuranceNumber"));
+
+        // Liên hệ khẩn cấp
+        emp.setEmergencyContactName(req.getParameter("emergencyContactName"));
+        emp.setEmergencyContactPhone(req.getParameter("emergencyContactPhone"));
+        emp.setEmergencyContactRelation(req.getParameter("emergencyContactRelation"));
+
         return emp;
     }
 }

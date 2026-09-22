@@ -529,9 +529,17 @@
                                                 </td>
                                                 <td style="padding-right:1.25rem; text-align:center;">
                                                     <div class="action-btn-group justify-content-center">
-                                                        <button type="button" class="action-btn history" title="Xem lịch sử" onclick="viewHistory('${att.id}')"><i class="bi bi-clock-history"></i></button>
+                                                        <button type="button" class="action-btn history" title="Xem lịch sử"
+                                                                data-id="${att.id}" data-name="<c:out value='${att.employeeName}'/>" data-code="${att.employeeCode}" data-date="${att.workDate}"
+                                                                data-checkin="${att.checkIn}" data-checkout="${att.checkOut}" data-shift="${att.shiftName != null ? att.shiftName : 'Ca Hành chính'}"
+                                                                data-status="${att.status}" data-method="${att.method != null ? att.method : 'Thủ công'}" data-hours="${att.totalHours}"
+                                                                onclick="viewHistory(this)"><i class="bi bi-clock-history"></i></button>
                                                         <button type="button" class="action-btn approve" title="Phê duyệt giải trình" onclick="approveExplain('${att.id}')"><i class="bi bi-check-square"></i></button>
-                                                        <button type="button" class="action-btn edit" title="Điều chỉnh ca" onclick="editShift('${att.id}')"><i class="bi bi-pencil"></i></button>
+                                                        <button type="button" class="action-btn edit" title="Chỉnh sửa"
+                                                                data-id="${att.id}" data-empid="${att.employeeId}" data-date="${att.workDate}"
+                                                                data-checkin="${att.checkIn}" data-checkout="${att.checkOut}" data-status="${att.status}"
+                                                                data-notes="<c:out value='${att.notes}'/>"
+                                                                onclick="editAttendance(this)"><i class="bi bi-pencil"></i></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -543,12 +551,27 @@
                     </div>
                     <c:if test="${not empty attendances}">
                         <div class="table-footer-bar">
-                            <span class="text-muted">Hiển thị <strong>${attendances.size()}</strong> kết quả</span>
-                            <div class="pagination-row">
-                                <a href="#" class="page-btn disabled"><i class="bi bi-chevron-left" style="font-size:0.7rem;"></i></a>
-                                <a href="#" class="page-btn active">1</a>
-                                <a href="#" class="page-btn disabled"><i class="bi bi-chevron-right" style="font-size:0.7rem;"></i></a>
-                            </div>
+                            <span class="text-muted">
+                                Hiển thị <strong style="color:#1e293b;">${(currentPage - 1) * pageSize + 1} - ${currentPage * pageSize > totalAttendances ? totalAttendances : currentPage * pageSize}</strong>
+                                / ${totalAttendances} kết quả
+                            </span>
+                            <c:if test="${totalPages > 1}">
+                                <div class="pagination-row">
+                                    <span class="text-muted me-2" style="font-size:0.78rem;">Kỳ công: Tháng ${selectedMonth}/${selectedYear}</span>
+                                    <a href="${pageContext.request.contextPath}/attendance?page=${currentPage - 1}&keyword=${keyword}&departmentId=${departmentId}&status=${status}&month=${selectedMonth}&year=${selectedYear}"
+                                       class="page-btn ${currentPage <= 1 ? 'disabled' : ''}">
+                                        <i class="bi bi-chevron-left" style="font-size:0.7rem;"></i>
+                                    </a>
+                                    <c:forEach begin="1" end="${totalPages}" var="pg">
+                                        <a href="${pageContext.request.contextPath}/attendance?page=${pg}&keyword=${keyword}&departmentId=${departmentId}&status=${status}&month=${selectedMonth}&year=${selectedYear}"
+                                           class="page-btn ${pg == currentPage ? 'active' : ''}">${pg}</a>
+                                    </c:forEach>
+                                    <a href="${pageContext.request.contextPath}/attendance?page=${currentPage + 1}&keyword=${keyword}&departmentId=${departmentId}&status=${status}&month=${selectedMonth}&year=${selectedYear}"
+                                       class="page-btn ${currentPage >= totalPages ? 'disabled' : ''}">
+                                        <i class="bi bi-chevron-right" style="font-size:0.7rem;"></i>
+                                    </a>
+                                </div>
+                            </c:if>
                         </div>
                     </c:if>
                 </div>
@@ -698,6 +721,33 @@
                     <div class="kycong">Kỳ công: Tháng ${selectedMonth}/${selectedYear}</div>
                 </div>
 
+                <!-- Bulk Action Toolbar -->
+                <div id="bulkToolbar" class="d-none align-items-center gap-2 mb-2 px-2 py-2"
+                     style="background:linear-gradient(90deg,#eff6ff,#f0fdf4);border-radius:10px;border:1px solid #bfdbfe;flex-wrap:wrap;">
+                    <span style="font-size:0.83rem;color:#1e40af;font-weight:700;">
+                        <i class="bi bi-check2-square me-1"></i>
+                        Đã chọn <strong id="bulkCount">0</strong> bản ghi chấm công
+                    </span>
+                    <div class="d-flex gap-2 ms-auto flex-wrap">
+                        <button type="button" class="btn btn-sm btn-success px-3" onclick="bulkMarkOnTime()"
+                                style="border-radius:8px;font-weight:600;font-size:0.8rem;">
+                            <i class="bi bi-check2-all me-1"></i> Xác nhận đúng giờ
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger px-3" onclick="bulkDeleteAtt()"
+                                style="border-radius:8px;font-weight:600;font-size:0.8rem;">
+                            <i class="bi bi-trash me-1"></i> Xóa hàng loạt
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary px-3" onclick="bulkExportAtt()"
+                                style="border-radius:8px;font-weight:600;font-size:0.8rem;">
+                            <i class="bi bi-file-earmark-excel me-1"></i> Xuất danh sách chọn
+                        </button>
+                        <button type="button" class="btn btn-sm btn-light px-3" onclick="clearAttSelection()"
+                                style="border-radius:8px;font-size:0.8rem;">
+                            <i class="bi bi-x-lg me-1"></i> Bỏ chọn
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Attendance Table (Admin/HR: full management) -->
                 <div class="att-table-card">
                     <div class="table-responsive">
@@ -718,7 +768,7 @@
                             <tbody>
                                 <c:choose>
                                     <c:when test="${empty attendances}">
-                                        <tr>
+                                        <tr id="attEmptyRow">
                                             <td colspan="9" class="text-center text-muted py-5">
                                                 <i class="bi bi-clock-history" style="font-size:2.5rem; display:block; margin-bottom:0.75rem;"></i>
                                                 <div style="font-weight:600; font-size:0.95rem; color:#64748b;">Không có dữ liệu chấm công</div>
@@ -730,7 +780,12 @@
                                     </c:when>
                                     <c:otherwise>
                                         <c:forEach var="att" items="${attendances}">
-                                            <tr class="${att.status eq 'LATE' ? 'row-late' : att.status eq 'ABSENT' ? 'row-absent' : att.status eq 'WFH' ? 'row-wfh' : ''}">
+                                            <tr class="att-row ${att.status eq 'LATE' ? 'row-late' : att.status eq 'ABSENT' ? 'row-absent' : att.status eq 'WFH' ? 'row-wfh' : ''}"
+                                                data-keyword="${fn:toLowerCase(att.employeeName)} ${fn:toLowerCase(att.employeeCode)} ${fn:toLowerCase(not empty att.departmentName ? att.departmentName : '')}"
+                                                data-status="${att.status}"
+                                                data-dept="${not empty att.departmentName ? fn:toLowerCase(att.departmentName) : ''}"
+                                                data-shift="${fn:toLowerCase(not empty att.shiftName ? att.shiftName : '')}"
+                                                data-id="${att.id}">
                                                 <td style="padding-left:1.25rem;"><input type="checkbox" class="form-check-input row-check" value="${att.id}" style="width:15px;height:15px;"></td>
                                                 <td>
                                                     <div class="emp-cell">
@@ -787,11 +842,15 @@
                                                 </td>
                                                 <td style="padding-right:1.25rem; text-align:center;">
                                                     <div class="action-btn-group justify-content-center">
-                                                        <button type="button" class="action-btn history" title="Xem lịch sử" onclick="viewHistory('${att.id}')"><i class="bi bi-clock-history"></i></button>
+                                                        <button type="button" class="action-btn history" title="Xem lịch sử"
+                                                                data-id="${att.id}" data-name="<c:out value='${att.employeeName}'/>" data-code="${att.employeeCode}" data-date="${att.workDate}"
+                                                                data-checkin="${att.checkIn}" data-checkout="${att.checkOut}" data-shift="${att.shiftName != null ? att.shiftName : 'Ca Hành chính'}"
+                                                                data-status="${att.status}" data-method="${att.method != null ? att.method : 'Thủ công'}" data-hours="${att.totalHours}"
+                                                                onclick="viewHistory(this)"><i class="bi bi-clock-history"></i></button>
                                                         <button type="button" class="action-btn edit" title="Chỉnh sửa"
                                                                 data-id="${att.id}" data-empid="${att.employeeId}" data-date="${att.workDate}"
                                                                 data-checkin="${att.checkIn}" data-checkout="${att.checkOut}" data-status="${att.status}"
-                                                                data-notes="${fn:escapeXml(att.notes)}"
+                                                                data-notes="<c:out value='${att.notes}'/>"
                                                                 onclick="editAttendance(this)"><i class="bi bi-pencil"></i></button>
                                                         <c:if test="${att.hasExplain}">
                                                             <button type="button" class="action-btn approve" title="Phê duyệt giải trình"
@@ -814,27 +873,30 @@
                     <c:if test="${not empty attendances}">
                         <div class="table-footer-bar">
                             <span class="text-muted">
-                                Hiển thị <strong style="color:#1e293b;">${attendances.size()}</strong> / ${totalAttendances} kết quả
+                                Hiển thị <strong style="color:#1e293b;">${(currentPage - 1) * pageSize + 1} - ${currentPage * pageSize > totalAttendances ? totalAttendances : currentPage * pageSize}</strong>
+                                trên tổng số <strong style="color:#1e293b;">${totalAttendances}</strong> kết quả
                                 <c:if test="${deviceOnline}">
                                     · <i class="bi bi-wifi text-success"></i>
                                     <span style="color:#059669; font-weight:600;">Đồng bộ ${deviceCount} máy ZKTeco — Hoạt động bình thường</span>
                                 </c:if>
                             </span>
-                            <div class="pagination-row">
-                                <span class="text-muted me-2" style="font-size:0.78rem;">Kỳ công: Tháng ${selectedMonth}/${selectedYear}</span>
-                                <a href="${pageContext.request.contextPath}/attendance?tab=${activeTab}&page=${currentPage - 1}&keyword=${keyword}&departmentId=${departmentId}"
-                                   class="page-btn ${currentPage <= 1 ? 'disabled' : ''}">
-                                    <i class="bi bi-chevron-left" style="font-size:0.7rem;"></i>
-                                </a>
-                                <c:forEach begin="1" end="${totalPages}" var="pg">
-                                    <a href="${pageContext.request.contextPath}/attendance?tab=${activeTab}&page=${pg}&keyword=${keyword}&departmentId=${departmentId}"
-                                       class="page-btn ${pg == currentPage ? 'active' : ''}">${pg}</a>
-                                </c:forEach>
-                                <a href="${pageContext.request.contextPath}/attendance?tab=${activeTab}&page=${currentPage + 1}&keyword=${keyword}&departmentId=${departmentId}"
-                                   class="page-btn ${currentPage >= totalPages ? 'disabled' : ''}">
-                                    <i class="bi bi-chevron-right" style="font-size:0.7rem;"></i>
-                                </a>
-                            </div>
+                            <c:if test="${totalPages > 1}">
+                                <div class="pagination-row">
+                                    <span class="text-muted me-2" style="font-size:0.78rem;">Kỳ công: Tháng ${selectedMonth}/${selectedYear}</span>
+                                    <a href="${pageContext.request.contextPath}/attendance?tab=${activeTab}&page=${currentPage - 1}&keyword=${keyword}&departmentId=${departmentId}&status=${status}&month=${selectedMonth}&year=${selectedYear}"
+                                       class="page-btn ${currentPage <= 1 ? 'disabled' : ''}">
+                                        <i class="bi bi-chevron-left" style="font-size:0.7rem;"></i>
+                                    </a>
+                                    <c:forEach begin="1" end="${totalPages}" var="pg">
+                                        <a href="${pageContext.request.contextPath}/attendance?tab=${activeTab}&page=${pg}&keyword=${keyword}&departmentId=${departmentId}&status=${status}&month=${selectedMonth}&year=${selectedYear}"
+                                           class="page-btn ${pg == currentPage ? 'active' : ''}">${pg}</a>
+                                    </c:forEach>
+                                    <a href="${pageContext.request.contextPath}/attendance?tab=${activeTab}&page=${currentPage + 1}&keyword=${keyword}&departmentId=${departmentId}&status=${status}&month=${selectedMonth}&year=${selectedYear}"
+                                       class="page-btn ${currentPage >= totalPages ? 'disabled' : ''}">
+                                        <i class="bi bi-chevron-right" style="font-size:0.7rem;"></i>
+                                    </a>
+                                </div>
+                            </c:if>
                         </div>
                     </c:if>
                 </div>
@@ -1037,6 +1099,65 @@
     </div>
 </div>
 </c:if>
+
+<!-- Modal Xem lịch sử chấm công -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px; overflow:hidden;">
+            <div class="modal-header border-0" style="background:#eff6ff; padding:1.25rem 1.5rem;">
+                <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2 mb-0">
+                    <i class="bi bi-clock-history text-primary"></i>
+                    Lịch sử chi tiết chấm công
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" style="font-size:0.86rem;">
+                <div class="d-flex align-items-center gap-3 p-3 mb-3 rounded-3" style="background:#f8fafc; border:1px solid #e2e8f0;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-primary" style="width:42px;height:42px;background:#dbeafe;">
+                        <i class="bi bi-person-fill fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-dark" id="histEmpName">—</div>
+                        <div class="text-muted" style="font-size:0.78rem;" id="histEmpCode">—</div>
+                    </div>
+                </div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <span class="text-muted">Ngày làm việc:</span>
+                        <div class="fw-bold text-dark" id="histDate">—</div>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted">Ca làm việc:</span>
+                        <div class="fw-bold text-dark" id="histShift">—</div>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted">Giờ vào (Check-in):</span>
+                        <div class="fw-bold text-success" id="histCheckIn">—</div>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted">Giờ ra (Check-out):</span>
+                        <div class="fw-bold text-primary" id="histCheckOut">—</div>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted">Phương thức xác thực:</span>
+                        <div class="fw-semibold text-dark" id="histMethod">—</div>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted">Tổng giờ làm:</span>
+                        <div class="fw-bold text-dark" id="histHours">—</div>
+                    </div>
+                    <div class="col-12 mt-2">
+                        <span class="text-muted">Trạng thái:</span>
+                        <div><span class="badge bg-primary-subtle text-primary border" id="histStatus">—</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4">
+                <button type="button" class="btn btn-light btn-sm px-4" data-bs-dismiss="modal" style="border-radius:8px;">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
 

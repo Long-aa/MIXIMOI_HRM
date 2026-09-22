@@ -42,6 +42,9 @@ public class DepartmentServlet extends HttpServlet {
         if (action == null) action = "list";
 
         switch (action) {
+            case "export":
+                exportDepartmentsToCsv(response);
+                break;
             case "new":
                 // Chỉ Admin và HR được thêm mới
                 if (!user.canManageEmployees()) {
@@ -63,10 +66,33 @@ public class DepartmentServlet extends HttpServlet {
                        .forward(request, response);
                 break;
             }
-            default:
-                request.setAttribute("departments", departmentDAO.findAll());
+            default: {
+                java.util.List<Department> allDepts = departmentDAO.findAll();
+                int totalDepts = allDepts != null ? allDepts.size() : 0;
+                int pageSize = 10;
+                int totalPages = Math.max(1, (int) Math.ceil((double) totalDepts / pageSize));
+                int page = 1;
+                String pageStr = request.getParameter("page");
+                if (pageStr != null && !pageStr.trim().isEmpty()) {
+                    try {
+                        page = Math.max(1, Math.min(Integer.parseInt(pageStr.trim()), totalPages));
+                    } catch (NumberFormatException ignored) {}
+                }
+                int fromIndex = (page - 1) * pageSize;
+                int toIndex = Math.min(fromIndex + pageSize, totalDepts);
+                java.util.List<Department> pagedDepts = (allDepts != null && fromIndex < totalDepts)
+                        ? allDepts.subList(fromIndex, toIndex)
+                        : new java.util.ArrayList<>();
+
+                request.setAttribute("departments", pagedDepts);
+                request.setAttribute("allDepartments", allDepts);
+                request.setAttribute("totalDepartments", totalDepts);
+                request.setAttribute("currentPage", page);
+                request.setAttribute("totalPages", totalPages);
+                request.setAttribute("pageSize", pageSize);
                 request.getRequestDispatcher("/WEB-INF/views/department/department-list.jsp")
                        .forward(request, response);
+            }
         }
     }
 
@@ -127,6 +153,24 @@ public class DepartmentServlet extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/departments?success=deleted");
                 break;
             }
+            case "bulkDelete": {
+                String[] idsArr = request.getParameterValues("ids");
+                int count = 0;
+                if (idsArr != null && idsArr.length > 0) {
+                    java.util.List<Integer> ids = new java.util.ArrayList<>();
+                    for (String sid : idsArr) {
+                        try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                    }
+                    count = departmentDAO.deleteBulk(ids);
+                }
+                if (count > 0) {
+                    response.sendRedirect(request.getContextPath() + "/departments?success=deleted");
+                } else {
+                    response.sendRedirect(request.getContextPath()
+                        + "/departments?error=Không thể xóa phòng ban đã chọn. Có thể phòng ban vẫn còn nhân viên.");
+                }
+                break;
+            }
             default:
                 response.sendRedirect(request.getContextPath() + "/departments");
         }
@@ -144,6 +188,37 @@ public class DepartmentServlet extends HttpServlet {
             return null;
         }
         return (User) session.getAttribute("currentUser");
+    }
+
+    private void exportDepartmentsToCsv(HttpServletResponse response) throws IOException {
+        java.util.List<Department> list = departmentDAO.findAll();
+        response.setContentType("text/csv; charset=UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=\"danh_sach_phong_ban_" + java.time.LocalDate.now() + ".csv\"");
+        java.io.PrintWriter writer = response.getWriter();
+        writer.write('\uFEFF');
+        writer.println("STT,Mã Phòng Ban,Tên Phòng Ban,Mô Tả,Trưởng Đơn Vị,Số Lượng Nhân Viên");
+        int stt = 1;
+        if (list != null) {
+            for (Department d : list) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(stt++).append(",");
+                sb.append(escapeCsv(d.getCode() != null ? d.getCode() : "PB" + d.getId())).append(",");
+                sb.append(escapeCsv(d.getName())).append(",");
+                sb.append(escapeCsv(d.getDescription())).append(",");
+                sb.append(escapeCsv(d.getManagerName() != null ? d.getManagerName() : "Chưa chỉ định")).append(",");
+                sb.append(d.getEmployeeCount());
+                writer.println(sb.toString());
+            }
+        }
+        writer.flush();
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 }
 

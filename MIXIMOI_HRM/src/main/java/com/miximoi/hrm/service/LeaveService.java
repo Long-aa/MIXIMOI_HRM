@@ -72,4 +72,20 @@ public class LeaveService {
     public boolean reject(int id, int rejectedById, String reason) {
         return leaveDAO.reject(id, rejectedById, reason);
     }
+
+    public int bulkApprove(List<Integer> ids, int approvedById) {
+        return leaveDAO.bulkApprove(ids, approvedById);
+    }
+
+    public int bulkReject(List<Integer> ids, int rejectedById, String reason) {
+        return leaveDAO.bulkReject(ids, rejectedById, reason);
+    }
+
+    public int bulkDelete(List<Integer> ids) {
+        return leaveDAO.bulkDelete(ids);
+    }
+
+    public List<LeaveRequest> findByIds(List<Integer> ids) {
+        return leaveDAO.findByIds(ids);
+    }
 }

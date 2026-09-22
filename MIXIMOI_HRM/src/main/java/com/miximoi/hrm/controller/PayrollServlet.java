@@ -37,18 +37,44 @@ public class PayrollServlet extends HttpServlet {
         int year = (yStr != null && !yStr.isEmpty()) ? Integer.parseInt(yStr) : now.getYear();
 
         User user = (User) request.getSession().getAttribute("currentUser");
-        List<Payroll> payrollList;
+        List<Payroll> allPayrolls;
         if ("EMPLOYEE".equals(user.getRole())) {
             Payroll pr = payrollDAO.findByEmployeeAndPeriod(user.getEmployeeId(), month, year);
-            payrollList = pr != null ? List.of(pr) : List.of();
+            allPayrolls = pr != null ? new java.util.ArrayList<>(List.of(pr)) : new java.util.ArrayList<>();
         } else {
-            payrollList = payrollDAO.findByPeriod(month, year);
+            allPayrolls = payrollDAO.findByPeriod(month, year);
+            if (allPayrolls == null) allPayrolls = new java.util.ArrayList<>();
         }
+
+        // Tính tổng lương
+        java.math.BigDecimal totalPayroll = allPayrolls.stream()
+                .filter(p -> p.getNetSalary() != null)
+                .map(Payroll::getNetSalary)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        // Phân trang 10 bản ghi/trang
+        int pageSize = 10;
+        int totalRecords = allPayrolls.size();
+        int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
+
+        int page = 1;
+        try { page = Integer.parseInt(request.getParameter("page")); } catch (Exception ignored) {}
+        if (page < 1) page = 1;
+        if (page > totalPages && totalPages > 0) page = totalPages;
+
+        int fromIdx = (page - 1) * pageSize;
+        int toIdx   = Math.min(fromIdx + pageSize, totalRecords);
+        List<Payroll> payrollList = (totalRecords > 0) ? allPayrolls.subList(fromIdx, toIdx) : allPayrolls;
 
         request.setAttribute("activeMenu", "payroll");
         request.setAttribute("payrollList", payrollList);
+        request.setAttribute("totalPayroll", totalPayroll);
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("totalRecords", totalRecords);
+        request.setAttribute("pageSize", pageSize);
         request.getRequestDispatcher("/WEB-INF/views/payroll/payroll-list.jsp")
                .forward(request, response);
     }

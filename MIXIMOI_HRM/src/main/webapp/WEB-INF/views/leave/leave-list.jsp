@@ -507,25 +507,25 @@
                 <form method="get" action="${pageContext.request.contextPath}/leave" class="d-flex align-items-center gap-2 flex-grow-1 flex-wrap" id="leaveFilterForm">
                     <div class="filter-search-wrap">
                         <i class="bi bi-search"></i>
-                        <input type="text" name="keyword" class="filter-search-inp" placeholder="Tìm theo tên, mã NV, người thay thế..." value="${keyword}">
+                        <input type="text" name="keyword" id="leaveSearchInput" class="filter-search-inp" placeholder="Tìm theo tên, mã NV, phòng ban..." value="${keyword}">
                     </div>
 
-                    <select name="status" class="form-select lselect" onchange="document.getElementById('leaveFilterForm').submit();">
-                        <option value="">Chờ phê duyệt</option>
+                    <select name="status" id="leaveFilterStatus" class="form-select lselect">
+                        <option value="">Tất cả trạng thái</option>
                         <option value="ALL" ${selectedStatus eq 'ALL' ? 'selected' : ''}>Tất cả trạng thái</option>
                         <option value="PENDING" ${selectedStatus eq 'PENDING' ? 'selected' : ''}>Chờ phê duyệt</option>
                         <option value="APPROVED" ${selectedStatus eq 'APPROVED' ? 'selected' : ''}>Đã duyệt</option>
                         <option value="REJECTED" ${selectedStatus eq 'REJECTED' ? 'selected' : ''}>Từ chối</option>
                     </select>
 
-                    <select name="departmentId" class="form-select lselect" onchange="document.getElementById('leaveFilterForm').submit();">
+                    <select name="departmentId" id="leaveFilterDept" class="form-select lselect">
                         <option value="">Phòng ban: Tất cả</option>
                         <c:forEach var="dept" items="${departments}">
                             <option value="${dept.id}" ${selectedDeptId == dept.id ? 'selected' : ''}>${dept.name}</option>
                         </c:forEach>
                     </select>
 
-                    <select name="leaveType" class="form-select lselect" onchange="document.getElementById('leaveFilterForm').submit();">
+                    <select name="leaveType" id="leaveFilterType" class="form-select lselect">
                         <option value="">Loại nghỉ: Tất cả</option>
                         <option value="ANNUAL" ${selectedLeaveType eq 'ANNUAL' ? 'selected' : ''}>Phép năm thường niên</option>
                         <option value="SICK" ${selectedLeaveType eq 'SICK' ? 'selected' : ''}>Nghỉ ốm đau / BHYT</option>
@@ -533,18 +533,56 @@
                         <option value="WEDDING" ${selectedLeaveType eq 'WEDDING' ? 'selected' : ''}>Nghỉ cưới hỏi (Có lương)</option>
                     </select>
 
+                    <button type="submit" class="btn btn-sm btn-primary px-3" style="border-radius:8px;">
+                        <i class="bi bi-funnel-fill me-1"></i> Lọc
+                    </button>
                     <a href="${pageContext.request.contextPath}/leave" class="btn-ts-reset" title="Đặt lại bộ lọc">
-                        <i class="bi bi-funnel"></i>
+                        <i class="bi bi-arrow-counterclockwise"></i>
                     </a>
                 </form>
             </div>
 
+            <!-- Bulk Action Toolbar -->
+            <div id="bulkToolbar" class="d-none align-items-center gap-2 mb-2 px-2 py-2"
+                 style="background:linear-gradient(90deg,#eff6ff,#f0fdf4);border-radius:10px;border:1px solid #bfdbfe;flex-wrap:wrap;">
+                <span style="font-size:0.83rem;color:#1e40af;font-weight:700;">
+                    <i class="bi bi-check2-square me-1"></i>
+                    Đã chọn <strong id="bulkCount">0</strong> đơn nghỉ phép
+                </span>
+                <div class="d-flex gap-2 ms-auto flex-wrap">
+                    <c:if test="${sessionScope.currentUser.manager or sessionScope.currentUser.hr or sessionScope.currentUser.admin}">
+                        <button type="button" class="btn btn-sm btn-success px-3" onclick="bulkApproveLeave()"
+                                style="border-radius:8px;font-weight:600;font-size:0.8rem;">
+                            <i class="bi bi-check-circle me-1"></i> Duyệt hàng loạt
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger px-3" onclick="bulkRejectLeave()"
+                                style="border-radius:8px;font-weight:600;font-size:0.8rem;">
+                            <i class="bi bi-x-circle me-1"></i> Từ chối hàng loạt
+                        </button>
+                    </c:if>
+                    <c:if test="${sessionScope.currentUser.hr or sessionScope.currentUser.admin}">
+                        <button type="button" class="btn btn-sm btn-outline-danger px-3" onclick="bulkDeleteLeave()"
+                                style="border-radius:8px;font-weight:600;font-size:0.8rem;">
+                            <i class="bi bi-trash me-1"></i> Xóa
+                        </button>
+                    </c:if>
+                    <button type="button" class="btn btn-sm btn-primary px-3" onclick="bulkExportLeave()"
+                            style="border-radius:8px;font-weight:600;font-size:0.8rem;">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Xuất danh sách chọn
+                    </button>
+                    <button type="button" class="btn btn-sm btn-light px-3" onclick="clearLeaveSelection()"
+                            style="border-radius:8px;font-size:0.8rem;">
+                        <i class="bi bi-x-lg me-1"></i> Bỏ chọn
+                    </button>
+                </div>
+            </div>
+
             <!-- BẢNG DANH SÁCH ĐƠN NGHỈ PHÉP (Matches Screenshot 2 & 3) -->
             <div class="leave-table-card">
-                <table class="leave-table">
+                <table class="leave-table" id="leaveTable">
                     <thead>
                         <tr>
-                            <th style="width:36px; padding-left:1rem;"><input type="checkbox" class="form-check-input" style="cursor:pointer;"></th>
+                            <th style="width:36px; padding-left:1rem;"><input type="checkbox" id="checkAllLeave" class="form-check-input" style="cursor:pointer;"></th>
                             <th style="width:110px;">Mã đơn</th>
                             <th style="min-width:180px;">Nhân viên</th>
                             <th style="width:130px; text-align:center;">Loại nghỉ phép</th>
@@ -563,7 +601,7 @@
                     <tbody>
                         <c:choose>
                             <c:when test="${empty leaveRequests}">
-                                <tr>
+                                <tr id="leaveEmptyRow">
                                     <td colspan="${sessionScope.currentUser.accountant ? 12 : 11}" class="text-center py-5 text-muted">
                                         <i class="bi bi-calendar-x" style="font-size:2.5rem; display:block; margin-bottom:0.5rem; color:#cbd5e1;"></i>
                                         Không tìm thấy đơn xin nghỉ phép nào phù hợp với bộ lọc
@@ -572,9 +610,14 @@
                             </c:when>
                             <c:otherwise>
                                 <c:forEach var="lr" items="${leaveRequests}">
-                                    <tr>
+                                    <tr class="leave-row"
+                                        data-keyword="${fn:toLowerCase(lr.leaveCode)} ${fn:toLowerCase(lr.employeeName)} ${fn:toLowerCase(lr.employeeCode)} ${fn:toLowerCase(lr.departmentName)}"
+                                        data-status="${lr.status}"
+                                        data-dept="${lr.departmentId}"
+                                        data-type="${lr.leaveType}"
+                                        data-id="${lr.id}">
                                         <!-- Checkbox -->
-                                        <td style="padding-left:1rem;"><input type="checkbox" class="form-check-input"></td>
+                                        <td style="padding-left:1rem;"><input type="checkbox" class="form-check-input row-check-leave" value="${lr.id}"></td>
 
                                         <!-- Mã đơn -->
                                         <td>
@@ -734,19 +777,40 @@
                 </table>
 
                 <!-- Phân trang Table footer -->
-                <div class="ltable-footer">
-                    <div>
-                        Hiển thị <strong>1 - 4</strong> trong tổng số <strong>186</strong> đơn nghỉ phép • Đã chọn 0 mục
+                <div class="ltable-footer d-flex align-items-center justify-content-between flex-wrap gap-2 py-3 px-3">
+                    <div style="color:#64748b; font-size:0.84rem;">
+                        Hiển thị <strong style="color:#1e293b;">${(currentPage - 1) * pageSize + 1} - ${currentPage * pageSize > totalLeaves ? totalLeaves : currentPage * pageSize}</strong>
+                        trong tổng số <strong style="color:#1e293b;">${totalLeaves}</strong> đơn nghỉ phép
+                        <c:if test="${not empty keyword or not empty selectedStatus or not empty selectedDeptId or not empty selectedLeaveType}">
+                            <span class="badge bg-light text-secondary ms-1 border">Đang lọc</span>
+                        </c:if>
                     </div>
-                    <div class="d-flex align-items-center gap-1">
-                        <button class="btn btn-sm btn-outline-light text-muted border py-1 px-2" disabled>&lt;</button>
-                        <button class="btn btn-sm btn-primary py-1 px-2 fw-bold">1</button>
-                        <button class="btn btn-sm btn-outline-light text-dark border py-1 px-2">2</button>
-                        <button class="btn btn-sm btn-outline-light text-dark border py-1 px-2">3</button>
-                        <span class="px-1 text-muted">...</span>
-                        <button class="btn btn-sm btn-outline-light text-dark border py-1 px-2">19</button>
-                        <button class="btn btn-sm btn-outline-light text-dark border py-1 px-2">&gt;</button>
-                    </div>
+                    <c:if test="${totalPages > 1}">
+                        <div class="pagination-row">
+                            <a href="${pageContext.request.contextPath}/leave?page=${currentPage - 1}${not empty keyword ? '&keyword=' : ''}${keyword}${not empty selectedStatus ? '&status=' : ''}${selectedStatus}${not empty selectedDeptId ? '&departmentId=' : ''}${selectedDeptId}${not empty selectedLeaveType ? '&leaveType=' : ''}${selectedLeaveType}"
+                               class="page-btn ${currentPage <= 1 ? 'disabled' : ''}" title="Trang trước">
+                                <i class="bi bi-chevron-left" style="font-size:0.7rem;"></i>
+                            </a>
+                            <c:forEach begin="1" end="${totalPages}" var="pg">
+                                <c:choose>
+                                    <c:when test="${pg == currentPage}">
+                                        <a href="javascript:void(0)" class="page-btn active">${pg}</a>
+                                    </c:when>
+                                    <c:when test="${pg == 1 or pg == totalPages or (pg >= currentPage - 2 and pg <= currentPage + 2)}">
+                                        <a href="${pageContext.request.contextPath}/leave?page=${pg}${not empty keyword ? '&keyword=' : ''}${keyword}${not empty selectedStatus ? '&status=' : ''}${selectedStatus}${not empty selectedDeptId ? '&departmentId=' : ''}${selectedDeptId}${not empty selectedLeaveType ? '&leaveType=' : ''}${selectedLeaveType}"
+                                           class="page-btn">${pg}</a>
+                                    </c:when>
+                                    <c:when test="${pg == currentPage - 3 or pg == currentPage + 3}">
+                                        <span class="page-btn" style="color:#94a3b8; cursor:default; border:none; background:transparent;">···</span>
+                                    </c:when>
+                                </c:choose>
+                            </c:forEach>
+                            <a href="${pageContext.request.contextPath}/leave?page=${currentPage + 1}${not empty keyword ? '&keyword=' : ''}${keyword}${not empty selectedStatus ? '&status=' : ''}${selectedStatus}${not empty selectedDeptId ? '&departmentId=' : ''}${selectedDeptId}${not empty selectedLeaveType ? '&leaveType=' : ''}${selectedLeaveType}"
+                               class="page-btn ${currentPage >= totalPages ? 'disabled' : ''}" title="Trang sau">
+                                <i class="bi bi-chevron-right" style="font-size:0.7rem;"></i>
+                            </a>
+                        </div>
+                    </c:if>
                 </div>
             </div>
 
@@ -963,6 +1027,8 @@
         modal.show();
     }
 </script>
+
+<script src="${pageContext.request.contextPath}/assets/js/leave.js"></script>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
 </body>

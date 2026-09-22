@@ -295,6 +295,96 @@ public class LeaveDAO {
         return false;
     }
 
+    public int bulkApprove(List<Integer> ids, int approvedById) {
+        if (ids == null || ids.isEmpty()) return 0;
+        StringBuilder sql = new StringBuilder("UPDATE leave_requests SET status = 'APPROVED', approved_by_id = ?, approved_at = NOW(), updated_at = NOW() WHERE id IN (");
+        for (int i = 0; i < ids.size(); i++) {
+            sql.append(i == 0 ? "?" : ",?");
+        }
+        sql.append(")");
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            if (approvedById > 0) {
+                ps.setInt(1, approvedById);
+            } else {
+                ps.setNull(1, Types.INTEGER);
+            }
+            for (int i = 0; i < ids.size(); i++) {
+                ps.setInt(i + 2, ids.get(i));
+            }
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.bulkApprove lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public int bulkReject(List<Integer> ids, int rejectedById, String reason) {
+        if (ids == null || ids.isEmpty()) return 0;
+        StringBuilder sql = new StringBuilder("UPDATE leave_requests SET status = 'REJECTED', approved_by_id = ?, approved_at = NOW(), reject_reason = ?, updated_at = NOW() WHERE id IN (");
+        for (int i = 0; i < ids.size(); i++) {
+            sql.append(i == 0 ? "?" : ",?");
+        }
+        sql.append(")");
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            if (rejectedById > 0) {
+                ps.setInt(1, rejectedById);
+            } else {
+                ps.setNull(1, Types.INTEGER);
+            }
+            ps.setString(2, reason != null ? reason : "Từ chối hàng loạt bởi quản trị");
+            for (int i = 0; i < ids.size(); i++) {
+                ps.setInt(i + 3, ids.get(i));
+            }
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.bulkReject lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public int bulkDelete(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) return 0;
+        StringBuilder sql = new StringBuilder("DELETE FROM leave_requests WHERE id IN (");
+        for (int i = 0; i < ids.size(); i++) {
+            sql.append(i == 0 ? "?" : ",?");
+        }
+        sql.append(")");
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < ids.size(); i++) {
+                ps.setInt(i + 1, ids.get(i));
+            }
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.bulkDelete lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public List<LeaveRequest> findByIds(List<Integer> ids) {
+        List<LeaveRequest> list = new ArrayList<>();
+        if (ids == null || ids.isEmpty()) return list;
+        StringBuilder sql = new StringBuilder(BASE_SELECT + "WHERE lr.id IN (");
+        for (int i = 0; i < ids.size(); i++) {
+            sql.append(i == 0 ? "?" : ",?");
+        }
+        sql.append(") ORDER BY lr.created_at DESC");
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < ids.size(); i++) {
+                ps.setInt(i + 1, ids.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.findByIds lỗi: " + e.getMessage());
+        }
+        return list;
+    }
+
     private LeaveRequest mapRow(ResultSet rs) throws SQLException {
         LeaveRequest lr = new LeaveRequest();
         lr.setId(rs.getInt("id"));

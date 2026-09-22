@@ -116,7 +116,7 @@
                             <div class="sidebar-card">
                                 <div class="sidebar-card-body text-center">
                                     <div class="avatar-upload-box" onclick="triggerAvatarUpload()">
-                                        <img id="avatarPreviewImg" src="${not empty employee.avatar ? employee.avatar : (not empty employee.fullName ? ('https://ui-avatars.com/api/?name=' += employee.fullName += '&background=2563eb&color=fff') : 'https://ui-avatars.com/api/?name=NV&background=e2e8f0&color=64748b')}"
+                                        <img id="avatarPreviewImg" src="${not empty employee.avatarUrl ? employee.avatarUrl : (not empty employee.fullName ? ('https://ui-avatars.com/api/?name=' += employee.fullName += '&background=2563eb&color=fff') : 'https://ui-avatars.com/api/?name=NV&background=e2e8f0&color=64748b')}"
                                              class="avatar-img-preview" alt="Avatar">
                                         <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="previewAvatar(this)">
                                     </div>
@@ -187,7 +187,7 @@
                             <div class="sidebar-card">
                                 <div class="sidebar-card-body">
                                     <div class="profile-summary-header">
-                                        <img src="${not empty employee.avatar ? employee.avatar : (not empty employee.fullName ? ('https://ui-avatars.com/api/?name=' += employee.fullName += '&background=2563eb&color=fff') : 'https://ui-avatars.com/api/?name=NV&background=e2e8f0&color=64748b')}"
+                                        <img src="${not empty employee.avatarUrl ? employee.avatarUrl : (not empty employee.fullName ? ('https://ui-avatars.com/api/?name=' += employee.fullName += '&background=2563eb&color=fff') : 'https://ui-avatars.com/api/?name=NV&background=e2e8f0&color=64748b')}"
                                              class="profile-summary-avatar" alt="Avatar" id="sideProfileAvatar">
                                         <div>
                                             <div class="profile-summary-name" id="sideProfileName"><c:out value="${not empty employee.fullName ? employee.fullName : 'Chưa nhập họ tên'}"/></div>
@@ -248,7 +248,7 @@
                             <div class="sidebar-card mb-2">
                                 <div class="sidebar-card-body p-3">
                                     <div class="d-flex align-items-center gap-2">
-                                        <img src="${not empty employee.avatar ? employee.avatar : (not empty employee.fullName ? ('https://ui-avatars.com/api/?name=' += employee.fullName += '&background=2563eb&color=fff') : 'https://ui-avatars.com/api/?name=NV&background=e2e8f0&color=64748b')}"
+                                        <img src="${not empty employee.avatarUrl ? employee.avatarUrl : (not empty employee.fullName ? ('https://ui-avatars.com/api/?name=' += employee.fullName += '&background=2563eb&color=fff') : 'https://ui-avatars.com/api/?name=NV&background=e2e8f0&color=64748b')}"
                                              class="profile-summary-avatar rounded-circle" style="width:38px; height:38px; object-fit:cover;" alt="Avatar" id="sideStep3Avatar">
                                         <div>
                                             <div style="font-weight:800; font-size:0.88rem; color:#0f172a;" id="sideStep3Name"><c:out value="${not empty employee.fullName ? employee.fullName : 'Nhân sự mới'}"/></div>
@@ -436,7 +436,7 @@
                                             <label class="form-label-custom">Số CCCD / Hộ chiếu (12 số) <span class="req">*</span></label>
                                             <div class="position-relative">
                                                 <input type="text" class="form-control form-control-custom step1-input"
-                                                       name="idNumber" id="idNumber" required placeholder="Nhập số CCCD 12 số"
+                                                       name="identityNumber" id="idNumber" required placeholder="Nhập số CCCD 12 số"
                                                        maxlength="12" pattern="[0-9]{9,12}" value="<c:out value='${employee.identityNumber}'/>"
                                                        oninput="validateCccd(this)">
                                                 <i class="bi bi-check-circle-fill text-success position-absolute" id="cccdValidIcon"
@@ -448,16 +448,16 @@
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Ngày cấp CCCD <span class="req">*</span></label>
                                             <input type="date" class="form-control form-control-custom step1-input"
-                                                   name="idIssueDate" id="idIssueDate" required value="<c:out value='${employee.identityIssueDate}'/>">
+                                                   name="identityDate" id="idIssueDate" required value="<c:out value='${employee.identityDate}'/>">
                                         </div>
 
                                         <!-- Nơi cấp -->
                                         <div class="col-md-12">
                                             <label class="form-label-custom">Nơi cấp <span class="req">*</span></label>
                                             <input type="text" class="form-control form-control-custom step1-input"
-                                                   name="idIssuePlace" id="idIssuePlace" required
+                                                   name="identityPlace" id="idIssuePlace" required
                                                    placeholder="Cục Cảnh sát Quản lý hành chính về trật tự xã hội"
-                                                   value="<c:out value='${employee.identityIssuePlace}'/>">
+                                                   value="${employee.identityPlace}">
                                         </div>
 
                                         <!-- Dân tộc -->
@@ -476,14 +476,14 @@
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Tôn giáo</label>
                                             <input type="text" class="form-control form-control-custom" name="religion"
-                                                   id="religion" placeholder="Không" value="<c:out value='${not empty employee.religion ? employee.religion : \"Không\"}'/>">
+                                                   id="religion" placeholder="Không" value="Không">
                                         </div>
 
                                         <!-- Quốc tịch -->
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Quốc tịch</label>
                                             <input type="text" class="form-control form-control-custom" name="nationality"
-                                                   id="nationality" value="<c:out value='${not empty employee.nationality ? employee.nationality : \"Việt Nam\"}'/>">
+                                                   id="nationality" value="${not empty employee.nationality ? employee.nationality : 'Việt Nam'}">
                                         </div>
 
                                         <!-- Tình trạng hôn nhân -->
@@ -547,11 +547,27 @@
 
                                         <!-- Liên hệ khẩn cấp -->
                                         <div class="col-md-6">
-                                            <label class="form-label-custom">Liên hệ khẩn cấp (Họ tên + SĐT + Quan hệ)</label>
-                                            <input type="text" class="form-control form-control-custom"
-                                                   name="emergencyContact" id="emergencyContact"
-                                                   placeholder="Họ tên người thân - SĐT - Mối quan hệ"
-                                                   value="<c:out value='${employee.emergencyContact}'/>">
+                                            <label class="form-label-custom">Liên hệ khẩn cấp (Họ tên • SĐT • Quan hệ)</label>
+                                            <div class="row g-1">
+                                                <div class="col-md-5">
+                                                    <input type="text" class="form-control form-control-custom"
+                                                           name="emergencyContactName" id="emergencyContactName"
+                                                           placeholder="Họ tên"
+                                                           value="<c:out value='${employee.emergencyContactName}'/>"> 
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="text" class="form-control form-control-custom"
+                                                           name="emergencyContactPhone" id="emergencyContactPhone"
+                                                           placeholder="SĐT"
+                                                           value="<c:out value='${employee.emergencyContactPhone}'/>"> 
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <input type="text" class="form-control form-control-custom"
+                                                           name="emergencyContactRelation" id="emergencyContactRelation"
+                                                           placeholder="Quan hệ"
+                                                           value="<c:out value='${employee.emergencyContactRelation}'/>"> 
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <!-- Địa chỉ thường trú -->
@@ -620,12 +636,6 @@
                                             <div class="d-flex justify-content-between align-items-center mt-2" style="font-size:0.7rem; width:100%;">
                                                 <span class="text-truncate text-muted" id="cccdBackName" style="max-width:120px;">Bấm để tải tệp</span>
                                                 <span class="text-danger fw-bold d-none" id="cccdBackDel" onclick="event.stopPropagation(); clearDocUpload('cccdBackPreview', 'cccdBackName')">Xóa</span>
-                                            </div>
-                                        </div>
-                                            </div>
-                                            <div class="d-flex justify-content-between align-items-center mt-2" style="font-size:0.7rem;">
-                                                <span class="text-truncate" id="cccdBackName" style="max-width:90px;">cccd_mat_sau.pdf</span>
-                                                <span class="text-danger fw-bold" onclick="event.stopPropagation(); clearDocUpload('cccdBackPreview', 'cccdBackName')">Xóa</span>
                                             </div>
                                         </div>
 
@@ -938,9 +948,13 @@
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Mức lương cơ bản thỏa thuận <span class="req">*</span></label>
                                             <div class="position-relative">
+                                                <c:set var="formattedBaseSalary" value="" />
+                                                <c:if test="${not empty employee.baseSalary and employee.baseSalary > 0}">
+                                                    <fmt:formatNumber var="formattedBaseSalary" value="${employee.baseSalary}" pattern="#,##0"/>
+                                                </c:if>
                                                 <input type="text" class="form-control form-control-custom fw-bold text-primary fs-6"
                                                        name="baseSalary" id="baseSalary" required
-                                                       value="<c:choose><c:when test='${not empty employee.salary and employee.salary > 0}'><fmt:formatNumber value='${employee.salary}' pattern='#,##0'/></c:when><c:otherwise></c:otherwise></c:choose>"
+                                                       value="${formattedBaseSalary}"
                                                        placeholder="VD: 15.000.000"
                                                        oninput="formatSalaryInput(this)">
                                                 <span class="position-absolute end-0 top-50 translate-middle-y me-3 text-muted fw-bold" style="font-size:0.78rem;">VNĐ / Tháng</span>
@@ -1185,7 +1199,7 @@
                                                 </span>
                                             </label>
                                             <input type="text" class="form-control form-control-custom font-monospace"
-                                                   name="bhxhCode" id="bhxhCode" placeholder="VD: 0101988234" value="">
+                                                   name="insuranceNumber" id="bhxhCode" placeholder="VD: 0101988234" value="<c:out value='${employee.insuranceNumber}'/>">
                                         </div>
 
                                         <div class="col-md-6">
@@ -1196,7 +1210,7 @@
                                                 </span>
                                             </label>
                                             <input type="text" class="form-control form-control-custom font-monospace"
-                                                   name="taxCode" id="taxCode" placeholder="VD: 8492019482" value="">
+                                                   name="taxCode" id="taxCode" placeholder="VD: 8492019482" value="<c:out value='${employee.taxCode}'/>">
                                         </div>
 
                                         <div class="col-md-6">
@@ -1210,13 +1224,13 @@
                                             <label class="form-label-custom">Tài khoản ngân hàng chi trả lương</label>
                                             <div class="input-group">
                                                 <select class="form-select form-select-custom" style="max-width:130px;" name="bankName">
-                                                    <option value="VCB" selected>VCB</option>
-                                                    <option value="TCB">Techcombank</option>
-                                                    <option value="MB">MB Bank</option>
-                                                    <option value="ACB">ACB</option>
+                                                    <option value="VCB" ${empty employee.bankName or employee.bankName eq 'VCB' ? 'selected' : ''}>VCB</option>
+                                                    <option value="TCB" ${employee.bankName eq 'TCB' ? 'selected' : ''}>Techcombank</option>
+                                                    <option value="MB" ${employee.bankName eq 'MB' ? 'selected' : ''}>MB Bank</option>
+                                                    <option value="ACB" ${employee.bankName eq 'ACB' ? 'selected' : ''}>ACB</option>
                                                 </select>
                                                 <input type="text" class="form-control form-control-custom" name="bankAccount"
-                                                       id="bankAccount" placeholder="VD: 1029384829" value="">
+                                                       id="bankAccount" placeholder="VD: 1029384829" value="<c:out value='${employee.bankAccount}'/>">
                                             </div>
                                         </div>
 

@@ -128,20 +128,29 @@ public class AttendanceServlet extends HttpServlet {
             request.setAttribute("timesheetSummary", summary);
         }
 
+        int totalAttendances = attendances != null ? attendances.size() : 0;
+        int pageSize = 10;
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalAttendances / pageSize));
+        int page = 1;
+        String pageStr = request.getParameter("page");
+        if (pageStr != null && !pageStr.trim().isEmpty()) {
+            try {
+                page = Math.max(1, Math.min(Integer.parseInt(pageStr.trim()), totalPages));
+            } catch (NumberFormatException ignored) {}
+        }
+        int fromIndex = (page - 1) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, totalAttendances);
+        List<Attendance> pagedAttendances = (attendances != null && fromIndex < totalAttendances)
+                ? attendances.subList(fromIndex, toIndex)
+                : new java.util.ArrayList<>();
+
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         request.setAttribute("todayDisplay", today.format(dtf));
-        request.setAttribute("attendances", attendances);
-        request.setAttribute("totalAttendances", attendances != null ? attendances.size() : 0);
-        request.setAttribute("employees", employeeDAO.findAll());
-        request.setAttribute("departments", departmentDAO.findAll());
-        request.setAttribute("selectedMonth", month);
-        request.setAttribute("selectedYear", year);
-        request.setAttribute("keyword", keyword);
-        request.setAttribute("departmentId", departmentId);
-        request.setAttribute("status", status);
-        request.setAttribute("activeTab", (tab != null && !tab.isEmpty()) ? tab : "daily");
-        request.setAttribute("currentPage", 1);
-        request.setAttribute("totalPages", 1);
+        request.setAttribute("attendances", pagedAttendances);
+        request.setAttribute("totalAttendances", totalAttendances);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("pageSize", pageSize);
 
         request.getRequestDispatcher("/WEB-INF/views/attendance/attendance-list.jsp")
                .forward(request, response);
@@ -231,6 +240,53 @@ public class AttendanceServlet extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/attendance?success=deleted");
                 break;
             }
+            case "bulkMarkOnTime": {
+                String[] idsArr = request.getParameterValues("ids");
+                if (idsArr != null && idsArr.length > 0) {
+                    List<Integer> ids = new java.util.ArrayList<>();
+                    for (String sid : idsArr) {
+                        try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                    }
+                    attendanceDAO.bulkMarkStatus(ids, "ON_TIME");
+                }
+                response.sendRedirect(request.getContextPath() + "/attendance?success=marked_ontime");
+                break;
+            }
+            case "bulkDelete": {
+                String[] idsArr = request.getParameterValues("ids");
+                if (idsArr != null && idsArr.length > 0) {
+                    List<Integer> ids = new java.util.ArrayList<>();
+                    for (String sid : idsArr) {
+                        try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                    }
+                    attendanceDAO.bulkDelete(ids);
+                }
+                response.sendRedirect(request.getContextPath() + "/attendance?success=deleted");
+                break;
+            }
+            case "bulkExport": {
+                String[] idsArr = request.getParameterValues("ids");
+                List<Attendance> list;
+                if (idsArr != null && idsArr.length > 0) {
+                    List<Integer> ids = new java.util.ArrayList<>();
+                    for (String sid : idsArr) {
+                        try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                    }
+                    list = attendanceDAO.findByIds(ids);
+                } else {
+                    String keyword      = request.getParameter("keyword");
+                    String deptStr      = request.getParameter("departmentId");
+                    String status       = request.getParameter("status");
+                    String mStr         = request.getParameter("month");
+                    String yStr         = request.getParameter("year");
+                    Integer departmentId = (deptStr != null && !deptStr.trim().isEmpty()) ? Integer.parseInt(deptStr.trim()) : null;
+                    Integer month        = (mStr != null && !mStr.trim().isEmpty()) ? Integer.parseInt(mStr.trim()) : LocalDate.now().getMonthValue();
+                    Integer year         = (yStr != null && !yStr.trim().isEmpty()) ? Integer.parseInt(yStr.trim()) : LocalDate.now().getYear();
+                    list = attendanceDAO.search(keyword, departmentId, status, null, month, year);
+                }
+                writeAttendanceCsv(response, list);
+                break;
+            }
             default:
                 response.sendRedirect(request.getContextPath() + "/attendance");
         }
@@ -248,9 +304,12 @@ public class AttendanceServlet extends HttpServlet {
         Integer year         = (yStr != null && !yStr.trim().isEmpty()) ? Integer.parseInt(yStr.trim()) : LocalDate.now().getYear();
 
         List<Attendance> list = attendanceDAO.search(keyword, departmentId, status, null, month, year);
+        writeAttendanceCsv(response, list);
+    }
 
+    private void writeAttendanceCsv(HttpServletResponse response, List<Attendance> list) throws IOException {
         response.setContentType("text/csv; charset=UTF-8");
-        response.setHeader("Content-Disposition", "attachment; filename=\"cham_cong_T" + month + "_" + year + ".csv\"");
+        response.setHeader("Content-Disposition", "attachment; filename=\"cham_cong_" + LocalDate.now() + ".csv\"");
 
         PrintWriter writer = response.getWriter();
         writer.write('\uFEFF'); // UTF-8 BOM

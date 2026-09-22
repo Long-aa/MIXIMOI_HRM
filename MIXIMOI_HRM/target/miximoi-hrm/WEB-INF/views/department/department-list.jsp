@@ -40,12 +40,13 @@
 
             <%-- ===== TÍNH TOÁN KPI ===== --%>
             <c:set var="totalEmp" value="0"/>
-            <c:set var="deptCount" value="${not empty departments ? fn:length(departments) : 0}"/>
-            <c:forEach var="dept" items="${departments}">
+            <c:set var="deptSource" value="${not empty allDepartments ? allDepartments : departments}"/>
+            <c:set var="deptCount" value="${not empty deptSource ? fn:length(deptSource) : 0}"/>
+            <c:forEach var="dept" items="${deptSource}">
                 <c:set var="totalEmp" value="${totalEmp + (not empty dept.employeeCount ? dept.employeeCount : 0)}"/>
             </c:forEach>
             <c:set var="maxEmpCount" value="1"/>
-            <c:forEach var="dept" items="${departments}">
+            <c:forEach var="dept" items="${deptSource}">
                 <c:if test="${dept.employeeCount > maxEmpCount}">
                     <c:set var="maxEmpCount" value="${dept.employeeCount}"/>
                 </c:if>
@@ -62,9 +63,9 @@
                     <p class="dept-page-subtitle">Quản lý cơ cấu tổ chức, phân bổ nhân sự và sơ đồ phòng ban — MIXIMOI HRM</p>
                 </div>
                 <div class="dept-header-actions">
-                    <button class="btn-export" onclick="alert('Tính năng xuất Excel đang phát triển')">
+                    <a href="${pageContext.request.contextPath}/departments?action=export" class="btn-export" title="Xuất danh sách phòng ban">
                         <i class="bi bi-download"></i> Xuất Excel
-                    </button>
+                    </a>
                     <button class="btn-org-chart" onclick="alert('Sơ đồ tổ chức đang phát triển')">
                         <i class="bi bi-diagram-3"></i> Sơ đồ tổ chức
                     </button>
@@ -174,6 +175,25 @@
                 </button>
             </div>
 
+            <%-- ===== BULK ACTION BAR ===== --%>
+            <div id="bulkActionBar" class="d-none align-items-center gap-2 mb-2 px-3 py-2"
+                 style="background:linear-gradient(90deg,#fef3c7,#fffbeb);border-radius:10px;border:1px solid #fde68a;flex-wrap:wrap;">
+                <span style="font-size:0.83rem;color:#92400e;font-weight:700;">
+                    <i class="bi bi-check2-square me-1"></i>
+                    Đã chọn <strong id="selectedCount">0</strong> phòng ban
+                </span>
+                <div class="d-flex gap-2 ms-auto">
+                    <button type="button" onclick="bulkDeleteDepts()"
+                            class="btn btn-sm btn-danger px-3" style="border-radius:8px;font-weight:600;font-size:0.8rem;">
+                        <i class="bi bi-trash me-1"></i> Xóa hàng loạt
+                    </button>
+                    <button type="button" onclick="clearDeptSelection()"
+                            class="btn btn-sm btn-light px-3" style="border-radius:8px;font-size:0.8rem;">
+                        <i class="bi bi-x-lg me-1"></i> Bỏ chọn
+                    </button>
+                </div>
+            </div>
+
             <%-- ===== BẢNG DANH SÁCH ===== --%>
             <div class="dept-table-wrap">
                 <div class="dept-table-header-bar">
@@ -226,9 +246,10 @@
                                             data-name="${fn:toLowerCase(dept.name)}"
                                             data-code="${fn:toLowerCase(not empty dept.code ? dept.code : ('pb' += (loop.index + 1)))}"
                                             data-status="${deptStatus}"
-                                            data-emp="${dept.employeeCount}">
+                                            data-emp="${dept.employeeCount}"
+                                            data-id="${dept.id}">
                                             <c:if test="${sessionScope.currentUser.canManageEmployees()}">
-                                                <td><input type="checkbox" class="dept-cb row-cb" onchange="updateBulkActions()"></td>
+                                                <td><input type="checkbox" class="dept-cb row-cb" value="${dept.id}" onchange="updateBulkActions()"></td>
                                             </c:if>
                                             <td>
                                                 <span class="dept-code-badge ${ck == 0 ? 'dept-code-blue' : ck == 1 ? 'dept-code-green' : ck == 2 ? 'dept-code-purple' : ck == 3 ? 'dept-code-amber' : ck == 4 ? 'dept-code-pink' : ck == 5 ? 'dept-code-teal' : ck == 6 ? 'dept-code-red' : 'dept-code-slate'}">
@@ -289,8 +310,9 @@
                                                     <span class="dept-emp-count">${dept.employeeCount}</span>
                                                     <span class="dept-emp-unit"> NV</span>
                                                 </a>
+                                                <fmt:formatNumber var="pctFill" value="${pct}" maxFractionDigits="0"/>
                                                 <div class="dept-progress-bar">
-                                                    <div class="dept-progress-fill" style="width:<fmt:formatNumber value='${pct}' maxFractionDigits='0'/>%"></div>
+                                                    <div class="dept-progress-fill" style="width: ${pctFill}%;"></div>
                                                 </div>
                                                 <div class="dept-progress-pct"><fmt:formatNumber value="${pct}" maxFractionDigits="1"/>%</div>
                                             </td>
@@ -355,9 +377,27 @@
                     </table>
                 </div>
                 <c:if test="${not empty departments}">
-                    <div class="dept-table-footer">
-                        <span>Tổng cộng: <strong id="visibleCount">${deptCount}</strong> phòng ban</span>
-                        <span>MIXIMOI Organization Structure — ERP v2.0</span>
+                    <div class="dept-table-footer d-flex align-items-center justify-content-between flex-wrap gap-2 py-3 px-3">
+                        <span style="color:#64748b; font-size:0.84rem;">
+                            Hiển thị <strong style="color:#1e293b;">${(currentPage - 1) * pageSize + 1} - ${currentPage * pageSize > totalDepartments ? totalDepartments : currentPage * pageSize}</strong>
+                            trên tổng số <strong style="color:#1e293b;" id="visibleCount">${totalDepartments}</strong> phòng ban
+                        </span>
+                        <c:if test="${totalPages > 1}">
+                            <div class="pagination-row">
+                                <a href="${pageContext.request.contextPath}/departments?page=${currentPage - 1}"
+                                   class="page-btn ${currentPage <= 1 ? 'disabled' : ''}" title="Trang trước">
+                                    <i class="bi bi-chevron-left" style="font-size:0.7rem;"></i>
+                                </a>
+                                <c:forEach begin="1" end="${totalPages}" var="pg">
+                                    <a href="${pageContext.request.contextPath}/departments?page=${pg}"
+                                       class="page-btn ${pg == currentPage ? 'active' : ''}">${pg}</a>
+                                </c:forEach>
+                                <a href="${pageContext.request.contextPath}/departments?page=${currentPage + 1}"
+                                   class="page-btn ${currentPage >= totalPages ? 'disabled' : ''}" title="Trang sau">
+                                    <i class="bi bi-chevron-right" style="font-size:0.7rem;"></i>
+                                </a>
+                            </div>
+                        </c:if>
                     </div>
                 </c:if>
             </div>
@@ -405,6 +445,44 @@
 </div>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
+
+<%-- ===== BULK DELETE MODAL ===== --%>
+<div class="modal fade" id="bulkDeleteDeptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;overflow:hidden">
+            <div style="background:linear-gradient(135deg,#fef2f2,#fee2e2);padding:24px 24px 16px">
+                <div style="display:flex;align-items:center;gap:12px">
+                    <div style="width:44px;height:44px;border-radius:12px;background:#fee2e2;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#dc2626;border:2px solid #fca5a5">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <div>
+                        <h6 style="font-weight:700;color:#991b1b;margin:0">Xác nhận xóa hàng loạt</h6>
+                        <p style="font-size:0.78rem;color:#b91c1c;margin:0">Chỉ phòng ban không có nhân viên mới được xóa</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body" style="padding:20px 24px">
+                <p style="font-size:0.87rem;color:#374151;margin-bottom:8px">
+                    Bạn đã chọn <strong id="bulkDeptCount" class="text-danger">0</strong> phòng ban để xóa.
+                </p>
+                <div style="background:#fffbeb;border:1px solid #fbbf24;border-radius:8px;padding:10px 14px;font-size:0.78rem;color:#92400e">
+                    <i class="bi bi-info-circle-fill me-2 text-warning"></i>
+                    Phòng ban còn nhân viên hoạt động sẽ được bỏ qua tự động.
+                </div>
+            </div>
+            <div class="modal-footer" style="padding:16px 24px;border-top:1px solid #f3f4f6;gap:10px">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius:8px">Hủy bỏ</button>
+                <form method="post" action="${pageContext.request.contextPath}/departments" id="bulkDeleteDeptForm" style="margin:0">
+                    <input type="hidden" name="action" value="bulkDelete">
+                    <button type="button" class="btn btn-danger" onclick="confirmBulkDeleteDepts()" style="border-radius:8px;font-weight:600">
+                        <i class="bi bi-trash me-1"></i> Xác nhận xóa
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="${pageContext.request.contextPath}/assets/js/department.js"></script>
 </body>
 </html>

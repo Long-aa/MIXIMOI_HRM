@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -247,7 +248,7 @@
                     <!-- Right Options & Count -->
                     <div class="d-flex align-items-center gap-3">
                         <span class="text-muted" style="font-size: 0.83rem;">
-                            Hiển thị: <strong>5</strong> / 245 nhân sự
+                            Hiển thị: <strong>${not empty payrollList ? payrollList.size() : 0}</strong> / <strong>${totalRecords}</strong> bản ghi
                         </span>
                         <div class="btn-group">
                             <button class="btn btn-sm btn-light border py-1 px-2" title="Cột hiển thị"><i class="bi bi-layout-three-columns"></i></button>
@@ -277,172 +278,139 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Row 1: NV001 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV001" class="code-link" title="Xem phiếu lương điện tử">NV001</a>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="user-initials-avatar">AN</div>
-                                        <div>
-                                            <div class="fw-bold text-dark" style="font-size: 0.86rem;">Nguyễn Văn An</div>
-                                            <div class="text-muted" style="font-size: 0.74rem;">Phần mềm (CNTT)</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-end font-monospace">15.000.000</td>
-                                <td class="text-end font-monospace">2.000.000</td>
-                                <td class="text-end font-monospace">1.000.000</td>
-                                <td class="text-end font-monospace">500.000</td>
-                                <td class="text-end font-monospace text-deduction">-1.500.000</td>
-                                <td class="text-end pe-4 font-monospace text-net-salary">17.000.000 đ</td>
-                            </tr>
-
-                            <!-- Row 2: NV002 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV002" class="code-link" title="Xem phiếu lương điện tử">NV002</a>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="user-initials-avatar" style="background:#fdf2f8; color:#db2777; border-color:#fbcfe8;">TM</div>
-                                        <div>
-                                            <div class="fw-bold text-dark" style="font-size: 0.86rem;">Trần Thị Mai</div>
-                                            <div class="text-muted" style="font-size: 0.74rem;">Phát triển Kinh Doanh</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-end font-monospace">18.000.000</td>
-                                <td class="text-end font-monospace">2.500.000</td>
-                                <td class="text-end font-monospace">
-                                    5.000.000 <br>
-                                    <small class="text-muted" style="font-size:0.7rem;">(Hoa hồng)</small>
-                                </td>
-                                <td class="text-end font-monospace text-muted">-</td>
-                                <td class="text-end font-monospace text-deduction">-2.550.000</td>
-                                <td class="text-end pe-4 font-monospace text-net-salary">22.950.000 đ</td>
-                            </tr>
-
-                            <!-- Row 3: NV003 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV003" class="code-link" title="Xem phiếu lương điện tử">NV003</a>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="user-initials-avatar" style="background:#f5f3ff; color:#7c3aed; border-color:#ddd6fe;">HN</div>
-                                        <div>
-                                            <div class="fw-bold text-dark" style="font-size: 0.86rem;">Lê Hoàng Nam</div>
-                                            <div class="text-muted" style="font-size: 0.74rem;">Quản Lý Dự Án</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-end font-monospace">20.000.000</td>
-                                <td class="text-end font-monospace">3.000.000</td>
-                                <td class="text-end font-monospace text-muted">-</td>
-                                <td class="text-end font-monospace">1.200.000</td>
-                                <td class="text-end font-monospace text-deduction">-2.400.000</td>
-                                <td class="text-end pe-4 font-monospace text-net-salary">21.800.000 đ</td>
-                            </tr>
-
-                            <!-- Row 4: NV005 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV005" class="code-link" title="Xem phiếu lương điện tử">NV005</a>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="user-initials-avatar" style="background:#ecfdf5; color:#059669; border-color:#a7f3d0;">TH</div>
-                                        <div>
-                                            <div class="fw-bold text-dark" style="font-size: 0.86rem;">Phạm Thu Hà</div>
-                                            <div class="text-muted" style="font-size: 0.74rem;">Kế Toán Nội Bộ</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-end font-monospace">14.000.000</td>
-                                <td class="text-end font-monospace">1.800.000</td>
-                                <td class="text-end font-monospace">1.000.000</td>
-                                <td class="text-end font-monospace">250.000</td>
-                                <td class="text-end font-monospace text-deduction">-1.450.000</td>
-                                <td class="text-end pe-4 font-monospace text-net-salary">15.600.000 đ</td>
-                            </tr>
-
-                            <!-- Row 5: NV006 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <a href="#" class="code-link">NV006</a>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="user-initials-avatar" style="background:#fffbeb; color:#d97706; border-color:#fde68a;">BN</div>
-                                        <div>
-                                            <div class="fw-bold text-dark" style="font-size: 0.86rem;">Đỗ Bích Ngọc</div>
-                                            <div class="text-muted" style="font-size: 0.74rem;">Nhân Sự & Đào Tạo</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-end font-monospace">11.500.000</td>
-                                <td class="text-end font-monospace">1.500.000</td>
-                                <td class="text-end font-monospace">500.000</td>
-                                <td class="text-end font-monospace text-muted">-</td>
-                                <td class="text-end font-monospace text-deduction">-1.180.000</td>
-                                <td class="text-end pe-4 font-monospace text-net-salary">12.320.000 đ</td>
-                            </tr>
-
-                            <!-- Summary Row matching Mockup -->
-                            <tr class="table-summary-row">
-                                <td class="text-center text-primary fs-5">Σ</td>
-                                <td colspan="2">TỔNG CỘNG TOÀN CÔNG TY (245 NV)</td>
-                                <td class="text-end font-monospace">720.000.000</td>
-                                <td class="text-end font-monospace">85.000.000</td>
-                                <td class="text-end font-monospace">62.000.000</td>
-                                <td class="text-end font-monospace">24.000.000</td>
-                                <td class="text-end font-monospace text-deduction">-78.000.000</td>
-                                <td class="text-end pe-4 font-monospace text-net-salary fs-6">813.000.000 đ</td>
-                            </tr>
+                            <%-- Render từ DB nếu có dữ liệu --%>
+                            <c:choose>
+                                <c:when test="${not empty payrollList}">
+                                    <c:forEach var="pr" items="${payrollList}" varStatus="st">
+                                        <c:set var="initials" value="${not empty pr.employeeName ? fn:toUpperCase(fn:substring(pr.employeeName, 0, 2)) : 'NV'}" />
+                                        <tr>
+                                            <td class="text-center">
+                                                <input type="checkbox" class="form-check-input payroll-row-check" value="${pr.id}">
+                                            </td>
+                                            <td>
+                                                <a href="${pageContext.request.contextPath}/payslip?action=detail&id=${pr.id}" class="code-link" title="Xem phiếu lương điện tử">
+                                                    <c:out value="${not empty pr.employeeCode ? pr.employeeCode : 'NV-'.concat(pr.id)}"/>
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="user-initials-avatar"><c:out value="${initials}"/></div>
+                                                    <div>
+                                                        <div class="fw-bold text-dark" style="font-size: 0.86rem;"><c:out value="${pr.employeeName}"/></div>
+                                                        <div class="text-muted" style="font-size: 0.74rem;"><c:out value="${not empty pr.departmentName ? pr.departmentName : '—'}"/></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-end font-monospace">
+                                                <c:choose>
+                                                    <c:when test="${not empty pr.baseSalary}">
+                                                        <fmt:formatNumber value="${pr.baseSalary}" pattern="#,###"/>
+                                                    </c:when>
+                                                    <c:otherwise>—</c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="text-end font-monospace">
+                                                <c:choose>
+                                                    <c:when test="${not empty pr.allowance and pr.allowance > 0}">
+                                                        <fmt:formatNumber value="${pr.allowance}" pattern="#,###"/>
+                                                    </c:when>
+                                                    <c:otherwise><span class="text-muted">—</span></c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="text-end font-monospace">
+                                                <c:choose>
+                                                    <c:when test="${not empty pr.bonus and pr.bonus > 0}">
+                                                        <fmt:formatNumber value="${pr.bonus}" pattern="#,###"/>
+                                                    </c:when>
+                                                    <c:otherwise><span class="text-muted">—</span></c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="text-end font-monospace">
+                                                <c:choose>
+                                                    <c:when test="${not empty pr.overtimeAmount and pr.overtimeAmount > 0}">
+                                                        <fmt:formatNumber value="${pr.overtimeAmount}" pattern="#,###"/>
+                                                    </c:when>
+                                                    <c:otherwise><span class="text-muted">—</span></c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="text-end font-monospace text-deduction">
+                                                <c:choose>
+                                                    <c:when test="${not empty pr.deduction and pr.deduction > 0}">
+                                                        -<fmt:formatNumber value="${pr.deduction}" pattern="#,###"/>
+                                                    </c:when>
+                                                    <c:otherwise><span class="text-muted">—</span></c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="text-end pe-4 font-monospace text-net-salary">
+                                                <c:choose>
+                                                    <c:when test="${not empty pr.netSalary}">
+                                                        <fmt:formatNumber value="${pr.netSalary}" pattern="#,###"/> đ
+                                                    </c:when>
+                                                    <c:otherwise>—</c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                    <%-- Dòng tổng cộng --%>
+                                    <tr class="table-summary-row">
+                                        <td class="text-center text-primary fs-5">Σ</td>
+                                        <td colspan="2">TỔNG CỘNG KỲ THÁNG ${selectedMonth}/${selectedYear} (${totalRecords} NV)</td>
+                                        <td class="text-end font-monospace" colspan="5"></td>
+                                        <td class="text-end pe-4 font-monospace text-net-salary fs-6">
+                                            <c:choose>
+                                                <c:when test="${not empty totalPayroll and totalPayroll > 0}">
+                                                    <fmt:formatNumber value="${totalPayroll}" pattern="#,###"/> đ
+                                                </c:when>
+                                                <c:otherwise>—</c:otherwise>
+                                            </c:choose>
+                                        </td>
+                                    </tr>
+                                </c:when>
+                                <c:otherwise>
+                                    <tr>
+                                        <td colspan="9" class="text-center py-5 text-muted">
+                                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                            Chưa có dữ liệu bảng lương tháng ${selectedMonth}/${selectedYear}.<br>
+                                            <small>Nhấn "Tính lương tự động" để tạo bảng lương cho kỳ này.</small>
+                                        </td>
+                                    </tr>
+                                </c:otherwise>
+                            </c:choose>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Table Pagination Footer -->
+                <!-- Table Pagination Footer (Server-Side) -->
                 <div class="p-3 border-top d-flex flex-wrap justify-content-between align-items-center gap-3">
                     <div class="d-flex align-items-center gap-2" style="font-size: 0.82rem;">
-                        <span class="text-muted">Số dòng mỗi trang:</span>
-                        <select class="form-select form-select-sm d-inline-block w-auto">
-                            <option selected>25</option>
-                            <option>50</option>
-                            <option>100</option>
-                        </select>
-                        <span class="text-muted ms-3">|&nbsp;&nbsp;Hiển thị 1 - 5 của 245 kết quả</span>
+                        <span class="text-muted">
+                            Hiển thị
+                            <strong>${(currentPage - 1) * pageSize + 1}</strong>
+                            –
+                            <strong>${(currentPage - 1) * pageSize + payrollList.size()}</strong>
+                            của <strong>${totalRecords}</strong> bản ghi
+                        </span>
                     </div>
 
-                    <nav aria-label="Page navigation">
+                    <nav aria-label="Phân trang bảng lương">
                         <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-bar-left"></i></a></li>
-                            <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a></li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                            <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
-                            <li class="page-item"><a class="page-link" href="#">10</a></li>
-                            <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
-                            <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-bar-right"></i></a></li>
+                            <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                                <a class="page-link" href="${pageContext.request.contextPath}/payroll?month=${selectedMonth}&year=${selectedYear}&page=1"><i class="bi bi-chevron-bar-left"></i></a>
+                            </li>
+                            <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                                <a class="page-link" href="${pageContext.request.contextPath}/payroll?month=${selectedMonth}&year=${selectedYear}&page=${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
+                            </li>
+                            <c:forEach var="p" begin="1" end="${totalPages}">
+                                <li class="page-item ${p == currentPage ? 'active' : ''}">
+                                    <a class="page-link" href="${pageContext.request.contextPath}/payroll?month=${selectedMonth}&year=${selectedYear}&page=${p}">${p}</a>
+                                </li>
+                            </c:forEach>
+                            <li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}">
+                                <a class="page-link" href="${pageContext.request.contextPath}/payroll?month=${selectedMonth}&year=${selectedYear}&page=${currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
+                            </li>
+                            <li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}">
+                                <a class="page-link" href="${pageContext.request.contextPath}/payroll?month=${selectedMonth}&year=${selectedYear}&page=${totalPages}"><i class="bi bi-chevron-bar-right"></i></a>
+                            </li>
                         </ul>
                     </nav>
                 </div>
