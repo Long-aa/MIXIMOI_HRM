@@ -398,3 +398,81 @@ ALTER TABLE contracts
 -- Attendance: thêm index cho method
 CREATE INDEX IF NOT EXISTS idx_attendance_method    ON attendance(method);
 CREATE INDEX IF NOT EXISTS idx_attendance_device    ON attendance(device_id);
+
+-- =============================================================
+-- 21. YÊU CẦU TUYỂN DỤNG (Recruitment Requests)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS recruitment_requests (
+    id               SERIAL PRIMARY KEY,
+    request_code     VARCHAR(50) NOT NULL UNIQUE,
+    title            VARCHAR(250) NOT NULL,
+    department_id    INTEGER REFERENCES departments(id),
+    position_id      INTEGER REFERENCES positions(id),
+    target_headcount INTEGER NOT NULL DEFAULT 1,
+    hired_count      INTEGER NOT NULL DEFAULT 0,
+    salary_min       NUMERIC(15,0) DEFAULT 0,
+    salary_max       NUMERIC(15,0) DEFAULT 0,
+    salary_negotiable BOOLEAN DEFAULT FALSE,
+    deadline         DATE NOT NULL,
+    priority         VARCHAR(20) NOT NULL DEFAULT 'NORMAL', -- NORMAL | URGENT | HOT
+    status           VARCHAR(30) NOT NULL DEFAULT 'OPEN',   -- OPEN | PAUSED | FILLED | CLOSED
+    quarter          VARCHAR(20) NOT NULL DEFAULT 'Q3/2026',
+    assignee_id      INTEGER REFERENCES employees(id),
+    description      TEXT,
+    requirements     TEXT,
+    benefits         TEXT,
+    created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_rec_req_status ON recruitment_requests(status);
+CREATE INDEX IF NOT EXISTS idx_rec_req_quarter ON recruitment_requests(quarter);
+CREATE INDEX IF NOT EXISTS idx_rec_req_dept ON recruitment_requests(department_id);
+
+-- =============================================================
+-- 22. ỨNG VIÊN (Candidates)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS candidates (
+    id                     SERIAL PRIMARY KEY,
+    candidate_code         VARCHAR(50) NOT NULL UNIQUE,
+    full_name              VARCHAR(200) NOT NULL,
+    email                  VARCHAR(150),
+    phone                  VARCHAR(20),
+    recruitment_request_id INTEGER NOT NULL REFERENCES recruitment_requests(id) ON DELETE CASCADE,
+    source                 VARCHAR(50) NOT NULL DEFAULT 'LinkedIn', -- LinkedIn | TopCV/VNW | Nội bộ (Ref) | Khác
+    stage                  VARCHAR(50) NOT NULL DEFAULT 'NEW',       -- NEW | SCREENING | INTERVIEW | OFFER | ONBOARDED | REJECTED
+    experience_years       NUMERIC(4,1) DEFAULT 0,
+    expected_salary        NUMERIC(15,0) DEFAULT 0,
+    cv_url                 VARCHAR(255),
+    notes                  TEXT,
+    applied_date           DATE NOT NULL DEFAULT CURRENT_DATE,
+    created_at             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_cand_request ON candidates(recruitment_request_id);
+CREATE INDEX IF NOT EXISTS idx_cand_stage ON candidates(stage);
+CREATE INDEX IF NOT EXISTS idx_cand_source ON candidates(source);
+
+-- =============================================================
+-- 23. LỊCH PHỎNG VẤN (Interviews)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS interviews (
+    id                     SERIAL PRIMARY KEY,
+    candidate_id           INTEGER NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
+    recruitment_request_id INTEGER REFERENCES recruitment_requests(id) ON DELETE CASCADE,
+    interviewer_id         INTEGER REFERENCES employees(id),
+    round_name             VARCHAR(150) NOT NULL,
+    interview_date         DATE NOT NULL,
+    interview_time         TIME NOT NULL,
+    location_or_link       VARCHAR(255) DEFAULT 'Phòng họp Tầng 3 (HQ)',
+    status                 VARCHAR(30) NOT NULL DEFAULT 'SCHEDULED', -- SCHEDULED | COMPLETED | CANCELLED | PASSED | FAILED
+    feedback               TEXT,
+    score                  NUMERIC(3,1),
+    created_at             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_interview_date ON interviews(interview_date);
+CREATE INDEX IF NOT EXISTS idx_interview_cand ON interviews(candidate_id);

@@ -3032,6 +3032,108 @@ a {
   flex-shrink: 0;
 }
 
+/* Weekly Interview Calendar & Modal Enhancements */
+.interview-week-nav {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+.interview-week-day-btn {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: 95px;
+}
+.interview-week-day-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+.interview-week-day-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+.interview-week-day-btn.active .badge {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+.interview-card-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+.interview-card-item:hover {
+  border-color: #bfdbfe;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+  transform: translateY(-1px);
+}
+.modal-header-brand {
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+  color: #ffffff;
+  border-top-left-radius: calc(0.5rem - 1px);
+  border-top-right-radius: calc(0.5rem - 1px);
+}
+.modal-header-brand .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* AI Assistant CV Screening Styles */
+.modal-header-ai {
+  background: linear-gradient(135deg, #6d28d9 0%, #9333ea 50%, #2563eb 100%);
+  color: #ffffff;
+  border-top-left-radius: calc(0.5rem - 1px);
+  border-top-right-radius: calc(0.5rem - 1px);
+}
+.modal-header-ai .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+.ai-sparkle-badge {
+  background: linear-gradient(135deg, #7e22ce 0%, #2563eb 100%);
+  color: #ffffff;
+  font-weight: 700;
+  padding: 0.3rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.74rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: 0 2px 8px rgba(126, 34, 206, 0.25);
+}
+.ai-match-progress-bar {
+  background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%);
+}
+.ai-insight-box {
+  background: #fdf4ff;
+  border: 1px solid #f0abfc;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+}
+.ai-candidate-card {
+  border: 1px solid #e9d5ff;
+  border-radius: 10px;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+.ai-candidate-card:hover {
+  border-color: #a855f7;
+  box-shadow: 0 4px 14px rgba(168, 85, 247, 0.12);
+}
+
+
+
 /* ==========================================================================
    JOB OPENINGS & PREVIEW DRAWER (MOCKUP 3)
    ========================================================================== */
@@ -3323,18 +3425,199 @@ a {
   gap: 0.3rem;
 }
 
-/* Modal and Backdrop Z-Index fix to prevent dark-screen blocking */
-.modal {
-  z-index: 1060 !important;
+/* ==========================================================================
+   RECRUITMENT & ATS MODULE STYLING
+   ========================================================================== */
+
+/* KPI Icon Boxes */
+.kpi-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
 }
-.modal-backdrop {
-  z-index: 1055 !important;
-  opacity: 0.5 !important;
+.kpi-icon-box.blue {
+  background: #eff6ff;
+  color: #2563eb;
 }
-.modal.fade .modal-dialog {
-  transition: transform 0.25s ease-out;
+.kpi-icon-box.cyan {
+  background: #ecfeff;
+  color: #0891b2;
+}
+.kpi-icon-box.green {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+.kpi-icon-box.amber {
+  background: #fffbeb;
+  color: #d97706;
+}
+.kpi-icon-box.purple {
+  background: #faf5ff;
+  color: #9333ea;
 }
 
+/* Split View Drawers */
+.job-preview-drawer,
+.candidate-detail-drawer {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 80px;
+}
+
+.job-salary-highlight {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+/* AI Smart Screener Cards & Badges */
+.ai-insight-box {
+  background: linear-gradient(135deg, #fbf7ff 0%, #eff6ff 100%);
+  border: 1.5px solid #d8b4fe;
+  border-radius: 10px;
+  padding: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-sparkle-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #7e22ce;
+  background: #f3e8ff;
+  border: 1px solid #e9d5ff;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ai-candidate-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+.ai-candidate-card:hover {
+  border-color: #9333ea;
+  box-shadow: 0 8px 24px rgba(147, 51, 234, 0.12);
+  transform: translateY(-2px);
+}
+
+.ai-match-progress-bar {
+  background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%);
+}
+
+/* Kanban Board & Columns */
+.kanban-board-wrapper {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  min-height: 580px;
+}
+
+.kanban-column {
+  flex: 1;
+  min-width: 220px;
+  background: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: background 0.15s ease;
+}
+
+.kanban-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.85rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  cursor: grab;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.kanban-card:hover {
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+  transform: translateY(-2px);
+}
+.kanban-card.active-card {
+  border: 2px solid #2563eb !important;
+  background: #f0f7ff !important;
+}
+
+.badge-dot-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Modals Gradient Headers */
+.modal-header-brand {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+}
+.modal-header-brand .btn-close {
+  filter: brightness(0) invert(1);
+}
+
+.modal-header-ai {
+  background: linear-gradient(135deg, #7e22ce 0%, #2563eb 100%);
+  color: #ffffff;
+}
+.modal-header-ai .btn-close {
+  filter: brightness(0) invert(1);
+}
+
+/* Avatar Initials */
+.avatar-circle {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.job-card-interactive {
+  transition: all 0.2s ease;
+}
+.job-card-interactive:hover {
+  border-color: #2563eb !important;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.1) !important;
+  transform: translateY(-2px);
+}
+
+/* Spinner Animation for Icons */
+.bi-spin {
+  animation: bi-spin-anim 1s infinite linear;
+}
+@keyframes bi-spin-anim {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
 
 

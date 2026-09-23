@@ -13,7 +13,7 @@ public class DBConnection {
 
     private static final String URL = getParam("DB_URL", "db.url", "jdbc:postgresql://localhost:5432/miximoi_hrm");
     private static final String USER = getParam("DB_USER", "db.user", "postgres");
-    private static final String PASSWORD = getParam("DB_PASSWORD", "db.password", "nqdung355");
+    private static final String PASSWORD = getParam("DB_PASSWORD", "db.password", "vu123456@");
 
     private static String getParam(String envKey, String propKey, String defaultValue) {
         String val = System.getProperty(propKey);

@@ -152,3 +152,35 @@ INSERT INTO employee_biometrics (employee_id, fingerprint_enrolled, fingerprint_
     (6, TRUE, 3, TRUE, 1, 'CARD-006', TRUE),
     (7, TRUE, 3, TRUE, 2, 'CARD-007', TRUE);
 
+-- =============================================================
+-- 14. NHÂN VIÊN PHỤ TRÁCH & PHỎNG VẤN BỔ SUNG
+-- =============================================================
+INSERT INTO employees (employee_code, full_name, date_of_birth, gender, phone, email, address, department_id, position_id, employee_type_id, start_date, status)
+VALUES 
+    ('NV011', 'Phạm Phương Thảo', '1993-04-12', 'FEMALE', '0912111222', 'thao.pp@miximoi.vn', 'Hà Nội', 2, 8, 1, '2022-03-01', 'ACTIVE'),
+    ('NV012', 'Nguyễn Minh Tuấn', '1989-08-25', 'MALE',   '0913222333', 'tuan.nm@miximoi.vn', 'Hà Nội', 6, 7, 1, '2021-05-15', 'ACTIVE'),
+    ('NV013', 'Trần Thị Mai',     '1994-11-09', 'FEMALE', '0914333444', 'mai.tt@miximoi.vn',  'Hà Nội', 2, 8, 1, '2022-08-01', 'ACTIVE'),
+    ('NV014', 'Lê Trọng',         '1991-02-18', 'MALE',   '0915444555', 'trong.l@miximoi.vn',  'Hà Nội', 5, 5, 1, '2023-01-10', 'ACTIVE'),
+    ('NV015', 'Đặng Quốc Việt',   '1990-10-30', 'MALE',   '0916555666', 'viet.dq@miximoi.vn',  'Hà Nội', 3, 9, 1, '2022-02-20', 'ACTIVE')
+ON CONFLICT (employee_code) DO NOTHING;
+
+-- =============================================================
+-- 15. DỮ LIỆU MẪU YÊU CẦU TUYỂN DỤNG (12 Chiến dịch)
+-- =============================================================
+INSERT INTO recruitment_requests 
+(id, request_code, title, department_id, position_id, target_headcount, hired_count, salary_min, salary_max, deadline, priority, status, quarter, assignee_id, description, requirements, benefits)
+VALUES
+(1, 'YCTD-2026-081', 'Senior Fullstack Engineer (React/Go)', 6, 7, 3, 2, 35000000, 55000000, '2026-10-15', 'HOT', 'OPEN', 'Q3/2026', 11, 'Phát triển hệ thống Microservices quy mô lớn và giao diện Frontend ReactJS hiện đại.', 'Tối thiểu 4 năm kinh nghiệm ReactJS, Go/NodeJS. Thành thạo PostgreSQL, Docker.', 'Lương thưởng cạnh tranh, bảo hiểm sức khỏe cao cấp.'),
+(2, 'YCTD-2026-082', 'Trưởng nhóm Kinh doanh B2B (Sales Lead)', 4, 10, 1, 1, 25000000, 45000000, '2026-09-30', 'NORMAL', 'FILLED', 'Q3/2026', 13, 'Dẫn dắt đội ngũ kinh doanh tiếp cận khách hàng doanh nghiệp.', '3+ năm kinh nghiệm Sales Lead mảng B2B.', 'Hoa hồng theo doanh số không giới hạn.'),
+(3, 'YCTD-2026-083', 'Product Designer (UI/UX Senior)', 6, 7, 2, 1, 28000000, 42000000, '2026-10-20', 'NORMAL', 'OPEN', 'Q3/2026', 11, 'Thiết kế trải nghiệm người dùng HRM & Payroll.', '3+ năm thiết kế Web/App B2B, Figma.', 'Môi trường Agile năng động.'),
+(4, 'YCTD-2026-084', 'Content Marketing Specialist', 5, 5, 2, 0, 16000000, 24000000, '2026-10-05', 'URGENT', 'OPEN', 'Q3/2026', 14, 'Sáng tạo nội dung truyền thông đa kênh.', '2+ năm viết nội dung B2B, SEO.', 'Phụ cấp đào tạo chuyên môn.'),
+(5, 'YCTD-2026-085', 'Kế toán Thuế & Kiểm toán nội bộ', 3, 9, 1, 1, 20000000, 30000000, '2026-09-15', 'NORMAL', 'CLOSED', 'Q3/2026', 15, 'Quyết toán thuế doanh nghiệp, soát xét sổ sách.', '3+ năm làm kế toán thuế tổng hợp.', 'Thưởng lương tháng 13++.'),
+(6, 'YCTD-2026-086', 'DevOps / Cloud Security Specialist', 6, 7, 1, 0, 35000000, 50000000, '2026-10-25', 'URGENT', 'PAUSED', 'Q3/2026', 11, 'Vận hành hạ tầng AWS/GCP, bảo mật và CI/CD.', 'Chứng chỉ AWS/CKS, kinh nghiệm Kubernetes.', 'Làm việc Hybrid linh hoạt.'),
+(7, 'YCTD-2026-087', 'Chuyên viên Nhân sự C&B', 2, 8, 1, 0, 18000000, 26000000, '2026-10-12', 'NORMAL', 'OPEN', 'Q3/2026', 15, 'Tính lương, quản lý BHXH và thuế TNCN.', '2+ năm kinh nghiệm C&B chuyên sâu.', 'Thưởng hiệu suất tháng.'),
+(8, 'YCTD-2026-088', 'Frontend Developer (VueJS / NuxtJS)', 6, 7, 2, 0, 22000000, 32000000, '2026-10-18', 'NORMAL', 'OPEN', 'Q3/2026', 11, 'Phát triển web portal nhân viên.', '2+ năm kinh nghiệm VueJS/NuxtJS.', 'Thưởng dự án sprint.'),
+(9, 'YCTD-2026-089', 'Chuyên viên Quản lý Khách hàng Doanh nghiệp (Account Manager)', 4, 10, 2, 0, 18000000, 30000000, '2026-10-22', 'NORMAL', 'OPEN', 'Q3/2026', 13, 'Chăm sóc và phát triển khách hàng B2B.', 'Kỹ năng giao tiếp và đàm phán xuất sắc.', 'Thưởng hoa hồng định kỳ.'),
+(10, 'YCTD-2026-090', 'QA/QC Engineer (Automation Test)', 6, 7, 2, 0, 20000000, 30000000, '2026-10-28', 'NORMAL', 'OPEN', 'Q3/2026', 11, 'Kiểm thử tự động API và Web UI.', 'Kinh nghiệm Selenium, Playwright.', 'Đào tạo chuyên sâu.'),
+(11, 'YCTD-2026-091', 'Chuyên viên Tuyển dụng Kỹ thuật (Tech Recruiter)', 2, 8, 1, 0, 16000000, 25000000, '2026-10-08', 'URGENT', 'OPEN', 'Q3/2026', 11, 'Săn đầu người và tuyển dụng kỹ sư công nghệ.', '2+ năm tuyển dụng IT.', 'Thưởng tuyển dụng case.'),
+(12, 'YCTD-2026-092', 'Nhân viên Hành chính Tổng hợp', 2, 5, 1, 0, 12000000, 16000000, '2026-11-05', 'NORMAL', 'PAUSED', 'Q3/2026', 13, 'Quản lý văn phòng phẩm, cơ sở vật chất.', 'Nhanh nhẹn, cẩn thận, giao tiếp tốt.', 'Phụ cấp ăn trưa.')
+ON CONFLICT (request_code) DO NOTHING;
+
