@@ -68,11 +68,11 @@
                             </div>
                         </div>
                         <div class="d-flex align-items-baseline gap-1 mb-2">
-                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.85rem;">245</span>
+                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.85rem;">${totalUsers}</span>
                         </div>
                         <div class="d-flex align-items-center justify-content-between">
-                            <span class="badge bg-primary-subtle text-primary fw-semibold">↗ +8 so với tháng trước</span>
-                            <span class="text-muted small">100% Phủ sóng</span>
+                            <span class="badge bg-primary-subtle text-primary fw-semibold">100% Phủ sóng</span>
+                            <span class="text-muted small">Toàn bộ nhân sự</span>
                         </div>
                     </div>
                 </div>
@@ -87,12 +87,14 @@
                             </div>
                         </div>
                         <div class="d-flex align-items-baseline gap-1 mb-2">
-                            <span class="kpi-value text-success fw-bold" style="font-size: 1.85rem;">232</span>
-                            <span class="badge bg-success-subtle text-success ms-2">94.7% active</span>
+                            <span class="kpi-value text-success fw-bold" style="font-size: 1.85rem;">${activeUsers}</span>
+                            <span class="badge bg-success-subtle text-success ms-2">
+                                <fmt:formatNumber value="${totalUsers > 0 ? (activeUsers * 100.0 / totalUsers) : 0}" maxFractionDigits="1"/>% active
+                            </span>
                         </div>
                         <div class="d-flex align-items-center justify-content-between">
-                            <span class="text-muted small">Phiên đăng nhập thực tế</span>
-                            <span class="badge bg-light text-dark border">41 online</span>
+                            <span class="text-muted small">Tài khoản khả dụng</span>
+                            <span class="badge bg-light text-dark border">${activeUsers} sẵn sàng</span>
                         </div>
                     </div>
                 </div>
@@ -107,12 +109,14 @@
                             </div>
                         </div>
                         <div class="d-flex align-items-baseline gap-1 mb-2">
-                            <span class="kpi-value text-danger fw-bold" style="font-size: 1.85rem;">8</span>
+                            <span class="kpi-value text-danger fw-bold" style="font-size: 1.85rem;">${lockedUsers}</span>
                             <span class="badge bg-danger-subtle text-danger ms-2">Bảo mật kiểm soát</span>
                         </div>
                         <div class="d-flex align-items-center justify-content-between">
                             <span class="text-muted small">Nghỉ việc / Tạm dừng</span>
-                            <span class="text-muted small">3.2% tổng số</span>
+                            <span class="text-muted small">
+                                <fmt:formatNumber value="${totalUsers > 0 ? (lockedUsers * 100.0 / totalUsers) : 0}" maxFractionDigits="1"/>% tổng số
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -121,18 +125,18 @@
                 <div class="col-12 col-sm-6 col-xl-3">
                     <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Chờ kích hoạt</span>
+                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Bảo mật phân quyền</span>
                             <div class="kpi-icon-box purple">
-                                <i class="bi bi-envelope-exclamation"></i>
+                                <i class="bi bi-shield-check"></i>
                             </div>
                         </div>
                         <div class="d-flex align-items-baseline gap-1 mb-2">
-                            <span class="kpi-value text-purple fw-bold" style="font-size: 1.85rem; color: #7c3aed;">5</span>
-                            <span class="badge bg-warning-subtle text-warning-emphasis ms-2">Chưa xác thực 2FA</span>
+                            <span class="kpi-value text-purple fw-bold" style="font-size: 1.85rem; color: #7c3aed;">RBAC</span>
+                            <span class="badge bg-success-subtle text-success ms-2">2FA Active</span>
                         </div>
                         <div class="d-flex align-items-center justify-content-between">
-                            <span class="text-muted small">Nhân sự mới tuyển</span>
-                            <a href="#" class="small text-primary text-decoration-none fw-semibold">Gửi lại email</a>
+                            <span class="text-muted small">Cấp độ bảo mật</span>
+                            <span class="badge bg-primary-subtle text-primary">Level 4 Enterprise</span>
                         </div>
                     </div>
                 </div>
@@ -163,27 +167,25 @@
                         <div class="col-6 col-md-2">
                             <select name="role" class="form-select form-select-sm">
                                 <option value="">Tất cả vai trò</option>
-                                <option value="ADMIN">Super Admin</option>
-                                <option value="HR">HR Manager</option>
-                                <option value="PAYROLL">Payroll Manager</option>
-                                <option value="EMPLOYEE">Employee</option>
+                                <option value="ADMIN" ${param.role == 'ADMIN' ? 'selected' : ''}>Super Admin</option>
+                                <option value="HR" ${param.role == 'HR' ? 'selected' : ''}>HR Manager</option>
+                                <option value="PAYROLL" ${param.role == 'PAYROLL' ? 'selected' : ''}>Payroll Manager</option>
+                                <option value="EMPLOYEE" ${param.role == 'EMPLOYEE' ? 'selected' : ''}>Employee</option>
                             </select>
                         </div>
                         <div class="col-6 col-md-2">
                             <select name="dept" class="form-select form-select-sm">
                                 <option value="">Tất cả phòng ban</option>
-                                <option value="BGD">Ban Giám Đốc</option>
-                                <option value="IT">CNTT & R&D</option>
-                                <option value="HR">Nhân sự & Tuyển dụng</option>
-                                <option value="FIN">Kế toán & Tài chính</option>
+                                <c:forEach var="d" items="${departments}">
+                                    <option value="${d}" ${param.dept == d ? 'selected' : ''}>${d}</option>
+                                </c:forEach>
                             </select>
                         </div>
                         <div class="col-6 col-md-2">
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">Tất cả trạng thái</option>
-                                <option value="active">Đang hoạt động</option>
-                                <option value="locked">Đã khóa</option>
-                                <option value="pending">Chờ kích hoạt</option>
+                                <option value="active" ${param.status == 'active' ? 'selected' : ''}>Đang hoạt động</option>
+                                <option value="locked" ${param.status == 'locked' ? 'selected' : ''}>Đã khóa</option>
                             </select>
                         </div>
                         <div class="col-6 col-md-2 d-flex gap-2">
@@ -211,270 +213,93 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- User 1: Nguyễn Văn Admin -->
-                            <tr>
-                                <td class="ps-3"><input class="form-check-input" type="checkbox"></td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-circle bg-primary text-white fw-bold" style="width: 34px; height: 34px; font-size: 0.8rem;">NA</div>
-                                        <div>
-                                            <div class="fw-bold text-dark">Nguyễn Văn Admin</div>
-                                            <small class="text-muted font-monospace">NV-001 • Chính thức</small>
+                            <c:forEach var="u" items="${users}">
+                                <tr>
+                                    <td class="ps-3"><input class="form-check-input" type="checkbox" value="${u.id}"></td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar-circle ${u.admin ? 'bg-primary text-white' : (u.hr ? 'bg-info-subtle text-info' : (u.accountant ? 'bg-warning-subtle text-warning' : 'bg-secondary-subtle text-secondary'))} fw-bold" style="width: 34px; height: 34px; font-size: 0.8rem;">
+                                                ${fn:substring(u.fullName != null ? u.fullName : u.username, 0, 2).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold text-dark">${u.fullName != null ? u.fullName : u.username}</div>
+                                                <small class="text-muted font-monospace">${u.employeeCode != null ? u.employeeCode : 'SYSTEM'} • ${u.positionName != null ? u.positionName : 'Thành viên'}</small>
+                                            </div>
                                         </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-primary font-monospace">@admin.executive</div>
-                                    <small class="text-muted">admin@miximoi.vn</small>
-                                </td>
-                                <td>
-                                    <span class="role-badge-superadmin">
-                                        <i class="bi bi-shield-fill-check"></i> Super Admin
-                                    </span>
-                                </td>
-                                <td>Ban Giám Đốc</td>
-                                <td>
-                                    <div class="fw-semibold text-dark">Vừa xong (14:32)</div>
-                                    <small class="text-muted font-monospace">118.69.182.45 • Chrome</small>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
-                                        <span class="vssid-status-dot"></span> Đang hoạt động
-                                    </span>
-                                </td>
-                                <td class="text-center pe-3">
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-secondary py-1 px-2" title="Xem chi tiết"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-outline-secondary py-1 px-2" title="Chỉnh sửa quyền"><i class="bi bi-sliders"></i></button>
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-three-dots-vertical"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- User 2: Lê Hoàng Nam -->
-                            <tr>
-                                <td class="ps-3"><input class="form-check-input" type="checkbox"></td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-circle bg-purple-subtle text-purple fw-bold" style="width: 34px; height: 34px; font-size: 0.8rem; background: #f3e8ff; color: #7e22ce;">LN</div>
-                                        <div>
-                                            <div class="fw-bold text-dark">Lê Hoàng Nam</div>
-                                            <small class="text-muted font-monospace">NV-014 • Kỹ sư trưởng</small>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-primary font-monospace">@${u.username}</div>
+                                        <small class="text-muted">${u.email}</small>
+                                    </td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${u.role == 'ADMIN'}">
+                                                <span class="role-badge-superadmin"><i class="bi bi-shield-fill-check"></i> Super Admin</span>
+                                            </c:when>
+                                            <c:when test="${u.role == 'HR'}">
+                                                <span class="role-badge-manager"><i class="bi bi-people-fill"></i> HR Manager</span>
+                                            </c:when>
+                                            <c:when test="${u.role == 'PAYROLL' || u.role == 'ACCOUNTANT'}">
+                                                <span class="role-badge-payroll"><i class="bi bi-wallet2"></i> Payroll Manager</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="role-badge-employee"><i class="bi bi-person"></i> Employee</span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
+                                    <td>${u.departmentName != null ? u.departmentName : 'Ban Quản trị'}</td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">Hôm nay</div>
+                                        <small class="text-muted font-monospace">Web Portal</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <c:choose>
+                                            <c:when test="${u.active}">
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
+                                                    <span class="vssid-status-dot"></span> Đang hoạt động
+                                                </span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="badge bg-secondary-subtle text-secondary border d-inline-flex align-items-center gap-1">
+                                                    <i class="bi bi-lock-fill"></i> Đã khóa
+                                                </span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
+                                    <td class="text-center pe-3">
+                                        <div class="btn-group btn-group-sm">
+                                            <form method="post" action="${pageContext.request.contextPath}/users" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn ${u.active ? 'khóa' : 'mở khóa'} tài khoản @${u.username}?');">
+                                                <input type="hidden" name="action" value="toggle_status">
+                                                <input type="hidden" name="userId" value="${u.id}">
+                                                <button type="submit" class="btn btn-outline-${u.active ? 'danger' : 'success'} py-1 px-2" title="${u.active ? 'Khóa tài khoản' : 'Mở khóa'}">
+                                                    <i class="bi bi-${u.active ? 'lock' : 'unlock'}"></i>
+                                                </button>
+                                            </form>
+                                            <button class="btn btn-outline-secondary py-1 px-2" title="Chỉnh sửa quyền"><i class="bi bi-sliders"></i></button>
                                         </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark font-monospace">@nam.le</div>
-                                    <small class="text-muted">nam.le@miximoi.vn</small>
-                                </td>
-                                <td>
-                                    <span class="role-badge-admin">
-                                        <i class="bi bi-shield-shaded"></i> Administrator
-                                    </span>
-                                </td>
-                                <td>CNTT & R&D</td>
-                                <td>
-                                    <div>Hôm nay 13:48</div>
-                                    <small class="text-muted font-monospace">14.161.35.88 • Firefox</small>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
-                                        <span class="vssid-status-dot"></span> Đang hoạt động
-                                    </span>
-                                </td>
-                                <td class="text-center pe-3">
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-sliders"></i></button>
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-three-dots-vertical"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- User 3: Trần Thị Mai -->
-                            <tr>
-                                <td class="ps-3"><input class="form-check-input" type="checkbox"></td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-circle bg-info-subtle text-info fw-bold" style="width: 34px; height: 34px; font-size: 0.8rem;">TM</div>
-                                        <div>
-                                            <div class="fw-bold text-dark">Trần Thị Mai</div>
-                                            <small class="text-muted font-monospace">NV-028 • Trưởng phòng</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark font-monospace">@mai.tran</div>
-                                    <small class="text-muted">mai.tran@miximoi.vn</small>
-                                </td>
-                                <td>
-                                    <span class="role-badge-manager">
-                                        <i class="bi bi-people-fill"></i> HR Manager
-                                    </span>
-                                </td>
-                                <td>Nhân sự & Tuyển dụng</td>
-                                <td>
-                                    <div>Hôm nay 14:15</div>
-                                    <small class="text-muted font-monospace">115.78.22.10 • Edge</small>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
-                                        <span class="vssid-status-dot"></span> Đang hoạt động
-                                    </span>
-                                </td>
-                                <td class="text-center pe-3">
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-sliders"></i></button>
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-three-dots-vertical"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- User 4: Đặng Hoàng Quân -->
-                            <tr>
-                                <td class="ps-3"><input class="form-check-input" type="checkbox"></td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-circle bg-warning-subtle text-warning fw-bold" style="width: 34px; height: 34px; font-size: 0.8rem;">HQ</div>
-                                        <div>
-                                            <div class="fw-bold text-dark">Đặng Hoàng Quân</div>
-                                            <small class="text-muted font-monospace">NV-035 • Kế toán trưởng</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark font-monospace">@quan.dang</div>
-                                    <small class="text-muted">quan.dang@miximoi.vn</small>
-                                </td>
-                                <td>
-                                    <span class="role-badge-payroll">
-                                        <i class="bi bi-wallet2"></i> Payroll Manager
-                                    </span>
-                                </td>
-                                <td>Kế toán & Tài chính</td>
-                                <td>
-                                    <div>12/05 09:15</div>
-                                    <small class="text-muted font-monospace">125.235.4.11 • Chrome</small>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
-                                        <span class="vssid-status-dot"></span> Đang hoạt động
-                                    </span>
-                                </td>
-                                <td class="text-center pe-3">
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-sliders"></i></button>
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-three-dots-vertical"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- User 5: Lê Văn Cường (Đã khóa) -->
-                            <tr>
-                                <td class="ps-3"><input class="form-check-input" type="checkbox"></td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-circle bg-secondary-subtle text-secondary fw-bold" style="width: 34px; height: 34px; font-size: 0.8rem;">LC</div>
-                                        <div>
-                                            <div class="fw-bold text-dark">Lê Văn Cường</div>
-                                            <small class="text-muted font-monospace">NV-108 • Kế toán viên</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark font-monospace">@cuong.le</div>
-                                    <small class="text-muted">cuong.le@miximoi.vn</small>
-                                </td>
-                                <td>
-                                    <span class="role-badge-employee">
-                                        <i class="bi bi-person"></i> Employee
-                                    </span>
-                                </td>
-                                <td>Kế toán - Tài chính</td>
-                                <td>
-                                    <div class="text-muted">10 ngày trước</div>
-                                    <small class="text-muted">Tạm dừng bảo mật</small>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-secondary-subtle text-secondary border d-inline-flex align-items-center gap-1">
-                                        <i class="bi bi-lock-fill"></i> Đã khóa
-                                    </span>
-                                </td>
-                                <td class="text-center pe-3">
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-secondary py-1 px-2" title="Mở khóa tài khoản"><i class="bi bi-unlock"></i></button>
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-sliders"></i></button>
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-three-dots-vertical"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- User 6: Vũ Quốc Bình (Chờ kích hoạt) -->
-                            <tr>
-                                <td class="ps-3"><input class="form-check-input" type="checkbox"></td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-circle bg-primary-subtle text-primary fw-bold" style="width: 34px; height: 34px; font-size: 0.8rem;">QB</div>
-                                        <div>
-                                            <div class="fw-bold text-dark">Vũ Quốc Bình</div>
-                                            <small class="text-muted font-monospace">NV-241 • Onboarding</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark font-monospace">@binh.vu</div>
-                                    <small class="text-muted">binh.vu@miximoi.vn</small>
-                                </td>
-                                <td>
-                                    <span class="role-badge-manager" style="background: #e0f2fe; color: #0284c7; border-color: #bae6fd;">
-                                        <i class="bi bi-person-badge"></i> HR Staff
-                                    </span>
-                                </td>
-                                <td>Nhân sự & Tuyển dụng</td>
-                                <td>
-                                    <div class="text-primary fw-semibold">Chưa từng đăng nhập</div>
-                                    <small class="text-muted">Email mời: 08:30 hôm nay</small>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-purple-subtle text-purple border border-purple-subtle d-inline-flex align-items-center gap-1" style="background: #f3e8ff; color: #7e22ce;">
-                                        <i class="bi bi-envelope-paper"></i> Chờ kích hoạt
-                                    </span>
-                                </td>
-                                <td class="text-center pe-3">
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-secondary py-1 px-2" title="Gửi lại thư mời"><i class="bi bi-send"></i></button>
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-sliders"></i></button>
-                                        <button class="btn btn-outline-secondary py-1 px-2"><i class="bi bi-three-dots-vertical"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
+                                    </td>
+                                </tr>
+                            </c:forEach>
+                            <c:if test="${empty users}">
+                                <tr>
+                                    <td colspan="8" class="text-center py-4 text-muted">
+                                        <i class="bi bi-people fs-2 d-block mb-2"></i>
+                                        Không tìm thấy tài khoản phù hợp với điều kiện lọc
+                                    </td>
+                                </tr>
+                            </c:if>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="card-footer bg-white border-top py-3 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
                     <div class="d-flex align-items-center gap-2 small text-muted">
-                        <span>Hiển thị <strong>1 - 6</strong> trong tổng số <strong>245</strong> tài khoản</span>
-                        <span>•</span>
-                        <span>Dòng mỗi trang:</span>
-                        <select class="form-select form-select-sm d-inline-block w-auto">
-                            <option selected>20</option>
-                            <option>50</option>
-                            <option>100</option>
-                        </select>
+                        <span>Hiển thị <strong>${fn:length(users)}</strong> tài khoản</span>
                     </div>
 
                     <nav aria-label="Page navigation">
                         <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a></li>
                             <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                            <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
-                            <li class="page-item"><a class="page-link" href="#">25</a></li>
-                            <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
                         </ul>
                     </nav>
                 </div>
@@ -499,11 +324,11 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Gán cho Nhân viên</label>
-                        <select class="form-select" name="employeeId" required>
-                            <option value="">-- Chọn nhân sự đã tiếp nhận --</option>
-                            <option value="1">Vũ Đức Minh (NV-8841) - CNTT & R&D</option>
-                            <option value="2">Trần Thị Bình (NV-6419) - Kinh doanh</option>
-                            <option value="3">Vũ Quốc Bình (NV-241) - Nhân sự</option>
+                        <select class="form-select" name="employeeId">
+                            <option value="">-- Chọn nhân sự đã tiếp nhận (hoặc để trống) --</option>
+                            <c:forEach var="emp" items="${employees}">
+                                <option value="${emp.id}">${emp.fullName} (${emp.employeeCode}) - ${emp.departmentName}</option>
+                            </c:forEach>
                         </select>
                     </div>
                     <div class="mb-3">

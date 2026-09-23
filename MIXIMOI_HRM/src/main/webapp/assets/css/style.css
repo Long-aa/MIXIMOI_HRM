@@ -3631,6 +3631,95 @@ a {
   100% { transform: rotate(360deg); }
 }
 
+/* ==========================================================================
+   DARK THEME SYSTEM — data-theme="dark"
+   ========================================================================== */
+[data-theme="dark"] {
+  --body-bg: #0b1120;
+  --card-bg: #1e293b;
+  --card-border: #334155;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-subtle: #64748b;
+  --border-color: #334155;
+}
+
+[data-theme="dark"] body {
+  background-color: #0b1120 !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .app-main {
+  background-color: #0b1120 !important;
+}
+
+[data-theme="dark"] .app-topbar {
+  background-color: #0f172a !important;
+  border-bottom-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .card,
+[data-theme="dark"] .setting-section-card,
+[data-theme="dark"] .settings-nav-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .card-header,
+[data-theme="dark"] .setting-section-header {
+  background-color: #1e293b !important;
+  border-bottom-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .table {
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .table-light,
+[data-theme="dark"] thead.table-light tr,
+[data-theme="dark"] thead.table-light th {
+  background-color: #0f172a !important;
+  color: #94a3b8 !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .table tbody tr td {
+  border-bottom-color: #334155 !important;
+}
+
+[data-theme="dark"] .table-hover tbody tr:hover {
+  background-color: #1a2538 !important;
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+  background-color: #0f172a !important;
+  border-color: #38bdf8 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .bg-light {
+  background-color: #0f172a !important;
+}
+
+[data-theme="dark"] .border {
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .text-dark {
+  color: #f8fafc !important;
+}
+
 
 
 

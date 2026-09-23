@@ -18,6 +18,9 @@ public class User {
 
     private String fullName;
     private String email;
+    private String employeeCode;
+    private String positionName;
+    private String departmentName;
 
     public User() {}
 
@@ -66,6 +69,15 @@ public class User {
         return (username != null ? username : "admin") + "@miximoi.vn";
     }
     public void setEmail(String email) { this.email = email; }
+
+    public String getEmployeeCode() { return employeeCode; }
+    public void setEmployeeCode(String employeeCode) { this.employeeCode = employeeCode; }
+
+    public String getPositionName() { return positionName; }
+    public void setPositionName(String positionName) { this.positionName = positionName; }
+
+    public String getDepartmentName() { return departmentName; }
+    public void setDepartmentName(String departmentName) { this.departmentName = departmentName; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

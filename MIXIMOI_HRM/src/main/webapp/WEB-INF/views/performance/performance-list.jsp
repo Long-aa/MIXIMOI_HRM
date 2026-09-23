@@ -55,43 +55,52 @@
             <!-- Filter Bar -->
             <div class="card border-0 shadow-sm rounded-3 mb-4">
                 <div class="card-body p-3">
-                    <div class="row g-2 align-items-center">
+                    <form method="get" action="${pageContext.request.contextPath}/performance" class="row g-2 align-items-center">
                         <div class="col-6 col-md-3">
-                            <select class="form-select form-select-sm">
-                                <option selected>📅 Quý 3/2026 (01/07 - 30/09)</option>
-                                <option>📅 Quý 2/2026 (01/04 - 30/06)</option>
-                                <option>📅 Quý 1/2026 (01/01 - 31/03)</option>
+                            <select name="quarter" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <optgroup label="Theo Quý (Quarterly)">
+                                    <option value="Q3/2026" ${param.quarter eq 'Q3/2026' or empty param.quarter ? 'selected' : ''}>📅 Quý 3/2026 (01/07 - 30/09)</option>
+                                    <option value="Q2/2026" ${param.quarter eq 'Q2/2026' ? 'selected' : ''}>📅 Quý 2/2026 (01/04 - 30/06)</option>
+                                    <option value="Q1/2026" ${param.quarter eq 'Q1/2026' ? 'selected' : ''}>📅 Quý 1/2026 (01/01 - 31/03)</option>
+                                </optgroup>
+                                <optgroup label="Theo Tháng (Monthly)">
+                                    <option value="T09/2026" ${param.quarter eq 'T09/2026' ? 'selected' : ''}>📅 Tháng 09/2026</option>
+                                    <option value="T08/2026" ${param.quarter eq 'T08/2026' ? 'selected' : ''}>📅 Tháng 08/2026</option>
+                                    <option value="T07/2026" ${param.quarter eq 'T07/2026' ? 'selected' : ''}>📅 Tháng 07/2026</option>
+                                </optgroup>
+                                <optgroup label="Theo Năm (Yearly)">
+                                    <option value="Y2026" ${param.quarter eq 'Y2026' ? 'selected' : ''}>📅 Năm 2026</option>
+                                    <option value="Y2025" ${param.quarter eq 'Y2025' ? 'selected' : ''}>📅 Năm 2025</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div class="col-6 col-md-3">
-                            <select class="form-select form-select-sm">
-                                <option selected>Tất cả phòng ban (5)</option>
-                                <option>CNTT & R&D (Engineering)</option>
-                                <option>Tài chính - Kế toán</option>
-                                <option>Kinh doanh & Phát triển</option>
-                                <option>Hành chính - Nhân sự</option>
-                                <option>Marketing & Truyền thông</option>
+                            <select name="deptId" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="">Tất cả phòng ban (${departments.size()})</option>
+                                <c:forEach var="d" items="${departments}">
+                                    <option value="${d.id}" ${param.deptId eq d.id ? 'selected' : ''}>${d.name}</option>
+                                </c:forEach>
                             </select>
                         </div>
                         <div class="col-6 col-md-3">
-                            <select class="form-select form-select-sm">
-                                <option selected>Tất cả trạng thái</option>
-                                <option>Đang tiến hành</option>
-                                <option>Đã phê duyệt</option>
-                                <option>Cần can thiệp</option>
+                            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="" ${empty param.status ? 'selected' : ''}>Tất cả trạng thái</option>
+                                <option value="IN_PROGRESS" ${param.status eq 'IN_PROGRESS' ? 'selected' : ''}>Đang tiến hành</option>
+                                <option value="APPROVED" ${param.status eq 'APPROVED' ? 'selected' : ''}>Đã phê duyệt</option>
+                                <option value="OVERDUE" ${param.status eq 'OVERDUE' ? 'selected' : ''}>Cần can thiệp (Quá hạn)</option>
                             </select>
                         </div>
                         <div class="col-6 col-md-3 d-flex gap-2">
-                            <select class="form-select form-select-sm">
-                                <option selected>Tất cả xếp loại</option>
-                                <option>Vượt mục tiêu (>100%)</option>
-                                <option>Đạt mục tiêu (90-100%)</option>
-                                <option>Cần cải thiện (70-89%)</option>
-                                <option>Không đạt (<70%)</option>
+                            <select name="rating" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="" ${empty param.rating ? 'selected' : ''}>Tất cả xếp loại</option>
+                                <option value="EXCEED" ${param.rating eq 'EXCEED' ? 'selected' : ''}>Vượt mục tiêu (>100%)</option>
+                                <option value="ACHIEVED" ${param.rating eq 'ACHIEVED' ? 'selected' : ''}>Đạt mục tiêu (90-100%)</option>
+                                <option value="IMPROVE" ${param.rating eq 'IMPROVE' ? 'selected' : ''}>Cần cải thiện (70-89%)</option>
+                                <option value="FAILED" ${param.rating eq 'FAILED' ? 'selected' : ''}>Không đạt (&lt;70%)</option>
                             </select>
-                            <button class="btn btn-sm btn-outline-secondary" title="Tải lại"><i class="bi bi-arrow-repeat"></i></button>
+                            <a href="${pageContext.request.contextPath}/performance" class="btn btn-sm btn-outline-secondary" title="Đặt lại"><i class="bi bi-arrow-repeat"></i></a>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
 
@@ -107,9 +116,9 @@
                             </div>
                         </div>
                         <div class="d-flex align-items-baseline gap-1 mb-2">
-                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.85rem;">245</span>
+                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.85rem;">${totalKpi}</span>
                         </div>
-                        <div class="text-muted small">Phân bổ trên 5 phòng ban</div>
+                        <div class="text-muted small">Phân bổ trên ${departments.size()} phòng ban</div>
                     </div>
                 </div>
 
@@ -123,10 +132,12 @@
                             </div>
                         </div>
                         <div class="d-flex align-items-baseline gap-1 mb-2">
-                            <span class="kpi-value text-success fw-bold" style="font-size: 1.85rem;">188</span>
+                            <span class="kpi-value text-success fw-bold" style="font-size: 1.85rem;">${achievedCount}</span>
                         </div>
                         <div class="d-flex align-items-center justify-content-between">
-                            <span class="badge bg-success-subtle text-success fw-semibold">+76.7% tỷ lệ</span>
+                            <span class="badge bg-success-subtle text-success fw-semibold">
+                                <fmt:formatNumber value="${totalKpi > 0 ? (achievedCount * 100.0 / totalKpi) : 0}" maxFractionDigits="1"/>% tỷ lệ
+                            </span>
                             <span class="text-muted small">hoàn thành</span>
                         </div>
                     </div>
@@ -142,7 +153,7 @@
                             </div>
                         </div>
                         <div class="d-flex align-items-baseline gap-1 mb-2">
-                            <span class="kpi-value text-primary fw-bold" style="font-size: 1.85rem;">42</span>
+                            <span class="kpi-value text-primary fw-bold" style="font-size: 1.85rem;">${inProgressCount}</span>
                         </div>
                         <div class="text-muted small">
                             <span class="badge bg-info-subtle text-info fw-semibold">Đang tiến hành</span>
@@ -160,7 +171,7 @@
                             </div>
                         </div>
                         <div class="d-flex align-items-baseline gap-1 mb-2">
-                            <span class="kpi-value text-danger fw-bold" style="font-size: 1.85rem;">15</span>
+                            <span class="kpi-value text-danger fw-bold" style="font-size: 1.85rem;">${failedCount}</span>
                         </div>
                         <div class="text-muted small">
                             <span class="badge bg-danger-subtle text-danger fw-semibold">Cần can thiệp</span>
@@ -178,7 +189,7 @@
                             </div>
                         </div>
                         <div class="d-flex align-items-baseline gap-1 mb-2">
-                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.85rem;">91.4<span class="fs-5">%</span></span>
+                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.85rem;">${avgPerformance}<span class="fs-5">%</span></span>
                         </div>
                         <div class="d-flex align-items-center gap-1">
                             <span class="text-muted small">Vượt kỳ vọng chung</span>
@@ -423,117 +434,52 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Row 1: Selected / Active -->
-                                    <tr class="table-primary bg-opacity-25" style="cursor: pointer;">
-                                        <td class="ps-3"><input class="form-check-input" type="checkbox" checked></td>
-                                        <td class="fw-bold font-monospace text-primary">KPI-IT-042</td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="avatar-circle bg-primary text-white fw-bold" style="width: 30px; height: 30px; font-size: 0.75rem;">LN</div>
-                                                <div>
-                                                    <div class="fw-bold text-dark">Lê Hoàng Nam</div>
-                                                    <small class="text-muted">Senior Tech Lead</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td><span class="badge bg-light text-dark border">CNTT & R&D</span></td>
-                                        <td class="pe-3">
-                                            <div class="fw-bold text-dark">Microservices & Uptime 99.9%</div>
-                                            <small class="text-muted">Trọng số: 35%</small>
-                                        </td>
-                                    </tr>
-
-                                    <!-- Row 2 -->
-                                    <tr style="cursor: pointer;">
-                                        <td class="ps-3"><input class="form-check-input" type="checkbox"></td>
-                                        <td class="fw-bold font-monospace text-dark">KPI-KD-081</td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="avatar-circle bg-info-subtle text-info fw-bold" style="width: 30px; height: 30px; font-size: 0.75rem;">TM</div>
-                                                <div>
-                                                    <div class="fw-bold text-dark">Trần Thị Mai</div>
-                                                    <small class="text-muted">Enterprise Sales Mgr</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td><span class="badge bg-light text-dark border">Kinh doanh</span></td>
-                                        <td class="pe-3">
-                                            <div class="fw-bold text-dark">Doanh số ký mới 3.5 Tỷ VNĐ</div>
-                                            <small class="text-muted">Trọng số: 40%</small>
-                                        </td>
-                                    </tr>
-
-                                    <!-- Row 3 -->
-                                    <tr style="cursor: pointer;">
-                                        <td class="ps-3"><input class="form-check-input" type="checkbox"></td>
-                                        <td class="fw-bold font-monospace text-dark">KPI-MKT-019</td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="avatar-circle bg-warning-subtle text-warning fw-bold" style="width: 30px; height: 30px; font-size: 0.75rem;">VB</div>
-                                                <div>
-                                                    <div class="fw-bold text-dark">Vũ Quốc Bình</div>
-                                                    <small class="text-muted">Performance Specialist</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td><span class="badge bg-light text-dark border">Marketing</span></td>
-                                        <td class="pe-3">
-                                            <div class="fw-bold text-dark">Chi phí CPL < 120.000 VNĐ</div>
-                                            <small class="text-muted">Trọng số: 25%</small>
-                                        </td>
-                                    </tr>
-
-                                    <!-- Row 4 -->
-                                    <tr style="cursor: pointer;">
-                                        <td class="ps-3"><input class="form-check-input" type="checkbox"></td>
-                                        <td class="fw-bold font-monospace text-dark">KPI-TC-023</td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="avatar-circle bg-secondary-subtle text-secondary fw-bold" style="width: 30px; height: 30px; font-size: 0.75rem;">NV</div>
-                                                <div>
-                                                    <div class="fw-bold text-dark">Nguyễn Thị Cẩm Vân</div>
-                                                    <small class="text-muted">Trưởng phòng Kế toán</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td><span class="badge bg-light text-dark border">Tài chính</span></td>
-                                        <td class="pe-3">
-                                            <div class="fw-bold text-dark">Quyết toán thuế & BCTC kiểm toán</div>
-                                            <small class="text-muted">Trọng số: 30%</small>
-                                        </td>
-                                    </tr>
-
-                                    <!-- Row 5 -->
-                                    <tr style="cursor: pointer;">
-                                        <td class="ps-3"><input class="form-check-input" type="checkbox"></td>
-                                        <td class="fw-bold font-monospace text-dark">KPI-HR-012</td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="avatar-circle bg-secondary-subtle text-secondary fw-bold" style="width: 30px; height: 30px; font-size: 0.75rem;">PT</div>
-                                                <div>
-                                                    <div class="fw-bold text-dark">Phan Thanh Tùng</div>
-                                                    <small class="text-muted">HR Generalist Lead</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td><span class="badge bg-light text-dark border">Hành chính NS</span></td>
-                                        <td class="pe-3">
-                                            <div class="fw-bold text-dark">Tỷ lệ Onboarding thành công 95%</div>
-                                            <small class="text-muted">Trọng số: 30%</small>
-                                        </td>
-                                    </tr>
+                                    <c:choose>
+                                        <c:when test="${not empty kpis}">
+                                            <c:forEach var="k" items="${kpis}" varStatus="status">
+                                                <tr class="${status.first ? 'table-primary bg-opacity-25' : ''}" style="cursor: pointer;"
+                                                    onclick="selectKpi('${k.kpiCode}', '${k.title}', '${k.employeeName}', '${k.positionName}', '${k.departmentName}', '${k.targetValue} ${k.unit}', '${k.currentValue} ${k.unit}', '${k.progressPct}', '${k.weightPct}', '${k.statusDisplayName}', '${k.statusBadgeClass}')">
+                                                    <td class="ps-3"><input class="form-check-input" type="checkbox" ${status.first ? 'checked' : ''}></td>
+                                                    <td class="fw-bold font-monospace text-primary">${k.kpiCode}</td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="avatar-circle bg-primary text-white fw-bold" style="width: 30px; height: 30px; font-size: 0.75rem;">
+                                                                ${k.employeeName != null && k.employeeName.length() > 0 ? k.employeeName.substring(0, 1).toUpperCase() : 'U'}
+                                                            </div>
+                                                            <div>
+                                                                <div class="fw-bold text-dark">${k.employeeName}</div>
+                                                                <small class="text-muted">${k.positionName}</small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td><span class="badge bg-light text-dark border">${k.departmentName}</span></td>
+                                                    <td class="pe-3">
+                                                        <div class="fw-bold text-dark">${k.title}</div>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <small class="text-muted">Trọng số: ${k.weightPct}%</small>
+                                                            <span class="badge ${k.statusBadgeClass}" style="font-size: 0.7rem;">${k.statusDisplayName}</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </c:forEach>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <tr>
+                                                <td colspan="5" class="text-center py-4 text-muted">
+                                                    <i class="bi bi-inbox fs-3 d-block mb-1"></i>
+                                                    Không có chỉ tiêu KPI nào phù hợp với bộ lọc hiện tại.
+                                                </td>
+                                            </tr>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </tbody>
                             </table>
                         </div>
 
                         <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center">
-                            <span class="text-muted small">Hiển thị 1 - 5 trong 245 KPI</span>
+                            <span class="text-muted small">Hiển thị <strong>${kpis.size()}</strong> chỉ tiêu trong hệ thống</span>
                             <ul class="pagination pagination-sm mb-0">
                                 <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                                <li class="page-item"><a class="page-link" href="#">2</a></li>
-                                <li class="page-item"><a class="page-link" href="#">3</a></li>
-                                <li class="page-item"><a class="page-link" href="#">...</a></li>
-                                <li class="page-item"><a class="page-link" href="#">25</a></li>
                             </ul>
                         </div>
                     </div>
@@ -624,10 +570,12 @@
 
                         <!-- Drawer Footer Buttons -->
                         <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1">Cập nhật điểm</button>
                             <form method="post" action="${pageContext.request.contextPath}/performance" class="flex-grow-1 m-0">
                                 <input type="hidden" name="action" value="approve_kpi">
-                                <button type="submit" class="btn btn-primary btn-sm w-100 shadow-sm">Phê duyệt đánh giá</button>
+                                <input type="hidden" name="kpiCode" id="drawerInputKpiCode" value="KPI-IT-042">
+                                <button type="submit" class="btn btn-primary btn-sm w-100 shadow-sm">
+                                    <i class="bi bi-check-circle me-1"></i>Phê duyệt đánh giá
+                                </button>
                             </form>
                         </div>
                     </div>
@@ -640,7 +588,89 @@
     </div>
 </div>
 
+<!-- Modal Tạo KPI Mới -->
+<div class="modal fade" id="createKpiModal" tabindex="-1" aria-labelledby="createKpiModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="createKpiModalLabel">Thiết lập chỉ tiêu KPI mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="${pageContext.request.contextPath}/performance">
+                <input type="hidden" name="action" value="create_kpi">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Mục tiêu cốt lõi / Tiêu đề KPI <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="title" placeholder="VD: Tối ưu hóa chi phí AWS Cloud tiết kiệm 15%" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold">Nhân sự thực hiện <span class="text-danger">*</span></label>
+                            <select class="form-select" name="employeeId" required>
+                                <option value="">-- Chọn nhân sự --</option>
+                                <c:forEach var="emp" items="${employees}">
+                                    <option value="${emp.id}">${emp.fullName} (${emp.employeeCode})</option>
+                                </c:forEach>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold">Phòng ban phụ trách</label>
+                            <select class="form-select" name="departmentId">
+                                <option value="">-- Chọn phòng ban --</option>
+                                <c:forEach var="dept" items="${departments}">
+                                    <option value="${dept.id}">${dept.name}</option>
+                                </c:forEach>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label small fw-semibold">Kỳ đánh giá</label>
+                            <input type="text" class="form-control" name="quarter" value="Q3/2026" required>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label small fw-semibold">Chỉ tiêu cam kết</label>
+                            <input type="number" step="0.1" class="form-control" name="targetValue" value="100.0" required>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label small fw-semibold">Đơn vị đo</label>
+                            <input type="text" class="form-control" name="unit" value="%" required>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label small fw-semibold">Trọng số (%)</label>
+                            <input type="number" step="1" class="form-control" name="weightPct" value="25" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold">Hạn chót hoàn thành (Deadline)</label>
+                            <input type="date" class="form-control" name="deadline" value="2026-09-30">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold">Tiến độ hiện tại ban đầu</label>
+                            <input type="number" step="0.1" class="form-control" name="currentValue" value="0.0">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Ghi chú & Phương thức tính điểm</label>
+                            <textarea class="form-control" name="notes" rows="2" placeholder="Ghi chú chi tiết cách thức nghiệm thu chỉ tiêu..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Xác nhận tạo KPI</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="${pageContext.request.contextPath}/assets/js/main.js"></script>
+<script>
+function selectKpi(code, title, empName, posName, deptName, target, current, pct, weight, statusName, statusClass) {
+    document.getElementById('drawerInputKpiCode').value = code;
+    const badge = document.querySelector('.kpi-inspector-card .badge.bg-primary-subtle');
+    if (badge) badge.textContent = code;
+    const titleEl = document.querySelector('.kpi-inspector-card h3');
+    if (titleEl) titleEl.textContent = title;
+}
+</script>
 </body>
 </html>

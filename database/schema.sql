@@ -506,3 +506,81 @@ CREATE TABLE IF NOT EXISTS salary_deductions (
 
 CREATE INDEX IF NOT EXISTS idx_deductions_employee ON salary_deductions(employee_id);
 CREATE INDEX IF NOT EXISTS idx_deductions_period   ON salary_deductions(pay_month, pay_year);
+
+-- =============================================================
+-- 26. KỲ ĐÁNH GIÁ (Performance Cycles)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS performance_cycles (
+    id          SERIAL PRIMARY KEY,
+    name        VARCHAR(100) NOT NULL UNIQUE,  -- Q3/2026, Q2/2026, ...
+    start_date  DATE NOT NULL,
+    end_date    DATE NOT NULL,
+    status      VARCHAR(30) NOT NULL DEFAULT 'OPEN', -- OPEN | CLOSED | DRAFT
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =============================================================
+-- 27. CHỈ TIÊU KPI (Kpi Metrics)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS kpi_metrics (
+    id             SERIAL PRIMARY KEY,
+    kpi_code       VARCHAR(50) NOT NULL UNIQUE,
+    title          VARCHAR(255) NOT NULL,
+    employee_id    INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    department_id  INTEGER REFERENCES departments(id),
+    quarter        VARCHAR(30) NOT NULL DEFAULT 'Q3/2026',
+    target_value   NUMERIC(10,2) NOT NULL DEFAULT 100.0,
+    current_value  NUMERIC(10,2) NOT NULL DEFAULT 0.0,
+    unit           VARCHAR(50) NOT NULL DEFAULT '%', -- %, Triệu VNĐ, Khách hàng, Giờ, ...
+    weight_pct     NUMERIC(5,2) NOT NULL DEFAULT 20.0, -- Trọng số %
+    deadline       DATE,
+    status         VARCHAR(30) NOT NULL DEFAULT 'IN_PROGRESS', -- IN_PROGRESS | APPROVED | OVERDUE | NEEDS_IMPROVEMENT
+    notes          TEXT,
+    created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_kpi_employee ON kpi_metrics(employee_id);
+CREATE INDEX IF NOT EXISTS idx_kpi_dept ON kpi_metrics(department_id);
+CREATE INDEX IF NOT EXISTS idx_kpi_quarter ON kpi_metrics(quarter);
+CREATE INDEX IF NOT EXISTS idx_kpi_status ON kpi_metrics(status);
+
+-- =============================================================
+-- 28. ĐÁNH GIÁ HIỆU SUẤT NHÂN SỰ (Performance Evaluations)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS performance_evaluations (
+    id                SERIAL PRIMARY KEY,
+    evaluation_code   VARCHAR(50) NOT NULL UNIQUE,
+    employee_id       INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    evaluator_id      INTEGER REFERENCES employees(id),
+    quarter           VARCHAR(30) NOT NULL DEFAULT 'Q3/2026',
+    kpi_score         NUMERIC(4,2) NOT NULL DEFAULT 0.0, -- Thang điểm 10 (Trọng số 40%)
+    competency_score  NUMERIC(4,2) NOT NULL DEFAULT 0.0, -- Thang điểm 10 (Trọng số 30%)
+    culture_score     NUMERIC(4,2) NOT NULL DEFAULT 0.0, -- Thang điểm 10 (Trọng số 20%)
+    innovation_score  NUMERIC(4,2) NOT NULL DEFAULT 0.0, -- Thang điểm 10 (Trọng số 10%)
+    final_score       NUMERIC(4,2) NOT NULL DEFAULT 0.0, -- Tính tổng hợp: kpi*0.4 + comp*0.3 + cult*0.2 + inno*0.1
+    grade             VARCHAR(30) NOT NULL DEFAULT 'B',  -- A+ (Xuất sắc) | A (Tốt) | B (Khá) | C (Cần cải thiện) | D (Không đạt)
+    status            VARCHAR(30) NOT NULL DEFAULT 'PENDING', -- PENDING | DRAFT | SUBMITTED | CONFIRMED
+    feedback          TEXT,
+    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_eval_employee ON performance_evaluations(employee_id);
+CREATE INDEX IF NOT EXISTS idx_eval_quarter ON performance_evaluations(quarter);
+CREATE INDEX IF NOT EXISTS idx_eval_status ON performance_evaluations(status);
+
+-- =============================================================
+-- 29. THIẾT LẬP HỆ THỐNG DOANH NGHIỆP (System Settings)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS system_settings (
+    setting_key    VARCHAR(100) PRIMARY KEY,
+    setting_value  TEXT,
+    category       VARCHAR(50) NOT NULL DEFAULT 'GENERAL', -- GENERAL | EMP_CODE | TIME_ATTENDANCE | PAYROLL | SECURITY
+    description    VARCHAR(255),
+    updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

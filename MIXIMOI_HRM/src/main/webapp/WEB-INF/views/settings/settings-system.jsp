@@ -147,43 +147,43 @@
                             <div class="row g-3">
                                 <div class="col-12">
                                     <label class="form-label small fw-semibold">Tên doanh nghiệp đầy đủ (Theo ĐKKD) <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="companyFullName" value="CÔNG TY CỔ PHẦN CÔNG NGHỆ & DỊCH VỤ MIXIMOI VIỆT NAM" required>
+                                    <input type="text" class="form-control" name="company_full_name" value="${not empty settings['company_full_name'] ? settings['company_full_name'] : 'CÔNG TY CỔ PHẦN CÔNG NGHỆ & DỊCH VỤ MIXIMOI VIỆT NAM'}" required>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label small fw-semibold">Tên viết tắt / Tên giao dịch <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="companyShortName" value="MIXIMOI CORP" required>
+                                    <input type="text" class="form-control" name="company_short_name" value="${not empty settings['company_short_name'] ? settings['company_short_name'] : 'MIXIMOI CORP'}" required>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label small fw-semibold">Mã số doanh nghiệp (MST) <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="taxCode" value="0316888999" required>
+                                    <input type="text" class="form-control" name="tax_code" value="${not empty settings['tax_code'] ? settings['tax_code'] : '0316888999'}" required>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label small fw-semibold">Người đại diện pháp luật <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="legalRep" value="Nguyễn Văn Admin" required>
+                                    <input type="text" class="form-control" name="legal_rep" value="${not empty settings['legal_rep'] ? settings['legal_rep'] : 'Nguyễn Văn An'}" required>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label small fw-semibold">Chức danh người đại diện</label>
-                                    <input type="text" class="form-control" name="legalTitle" value="Tổng Giám Đốc" required>
+                                    <input type="text" class="form-control" name="legal_title" value="${not empty settings['legal_title'] ? settings['legal_title'] : 'Tổng Giám Đốc'}" required>
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label small fw-semibold">Địa chỉ trụ sở chính (Theo ĐKKD) <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="address" value="Tầng 18, Tòa nhà Landmark 81, 720A Điện Biên Phủ, Phường 22, Bình Thạnh, TP. Hồ Chí Minh" required>
+                                    <input type="text" class="form-control" name="company_address" value="${not empty settings['company_address'] ? settings['company_address'] : 'Tầng 18, Tòa nhà Landmark 81, 720A Điện Biên Phủ, Phường 22, Bình Thạnh, TP. Hồ Chí Minh'}" required>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label small fw-semibold">Số điện thoại bàn / Hotline</label>
-                                    <input type="text" class="form-control" name="phone" value="028 7300 8888">
+                                    <input type="text" class="form-control" name="company_phone" value="${not empty settings['company_phone'] ? settings['company_phone'] : '028 7300 8888'}">
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label small fw-semibold">Website chính thức</label>
-                                    <input type="text" class="form-control" name="website" value="https://miximoi.vn">
+                                    <input type="text" class="form-control" name="company_website" value="${not empty settings['company_website'] ? settings['company_website'] : 'https://miximoi.vn'}">
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label small fw-semibold">Email hệ thống (System Notification)</label>
-                                    <input type="email" class="form-control" name="sysEmail" value="contact@miximoi.vn">
+                                    <input type="email" class="form-control" name="system_email" value="${not empty settings['system_email'] ? settings['system_email'] : 'contact@miximoi.vn'}">
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label small fw-semibold">Email nhận hóa đơn & chứng từ kế toán</label>
-                                    <input type="email" class="form-control" name="billingEmail" value="accounting@miximoi.vn">
+                                    <input type="email" class="form-control" name="billing_email" value="${not empty settings['billing_email'] ? settings['billing_email'] : 'accounting@miximoi.vn'}">
                                 </div>
                             </div>
                         </div>
@@ -207,22 +207,22 @@
                             <div class="row g-3 mb-3">
                                 <div class="col-12 col-md-4">
                                     <label class="form-label small fw-semibold">Tiền tố mã (Prefix)</label>
-                                    <input type="text" class="form-control" value="NV">
+                                    <input type="text" class="form-control" name="emp_code_prefix" value="${not empty settings['emp_code_prefix'] ? settings['emp_code_prefix'] : 'NV'}">
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label class="form-label small fw-semibold">Độ dài số tự tăng</label>
-                                    <select class="form-select">
-                                        <option selected>4 chữ số (Ví dụ: 0102)</option>
-                                        <option>5 chữ số (Ví dụ: 00102)</option>
-                                        <option>6 chữ số (Ví dụ: 000102)</option>
+                                    <select class="form-select" name="emp_code_digits">
+                                        <option value="4" ${settings['emp_code_digits'] == '4' ? 'selected' : ''}>4 chữ số (Ví dụ: 0102)</option>
+                                        <option value="5" ${settings['emp_code_digits'] == '5' ? 'selected' : ''}>5 chữ số (Ví dụ: 00102)</option>
+                                        <option value="6" ${settings['emp_code_digits'] == '6' ? 'selected' : ''}>6 chữ số (Ví dụ: 000102)</option>
                                     </select>
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label class="form-label small fw-semibold">Format định dạng năm</label>
-                                    <select class="form-select">
-                                        <option selected>Theo năm hiện tại (YYYY)</option>
-                                        <option>Theo 2 số cuối năm (YY)</option>
-                                        <option>Không kèm năm</option>
+                                    <select class="form-select" name="emp_code_format">
+                                        <option value="YYYY" ${settings['emp_code_format'] == 'YYYY' ? 'selected' : ''}>Theo năm hiện tại (YYYY)</option>
+                                        <option value="YY" ${settings['emp_code_format'] == 'YY' ? 'selected' : ''}>Theo 2 số cuối năm (YY)</option>
+                                        <option value="NONE" ${settings['emp_code_format'] == 'NONE' ? 'selected' : ''}>Không kèm năm</option>
                                     </select>
                                 </div>
                             </div>
@@ -253,11 +253,11 @@
                             <div class="row g-3 mb-3">
                                 <div class="col-12 col-md-4">
                                     <label class="form-label small fw-semibold">Giờ bắt đầu làm việc</label>
-                                    <input type="time" class="form-control" value="08:30">
+                                    <input type="time" class="form-control" name="work_start_time" value="${not empty settings['work_start_time'] ? settings['work_start_time'] : '08:30'}">
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label class="form-label small fw-semibold">Giờ kết thúc làm việc</label>
-                                    <input type="time" class="form-control" value="18:00">
+                                    <input type="time" class="form-control" name="work_end_time" value="${not empty settings['work_end_time'] ? settings['work_end_time'] : '18:00'}">
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label class="form-label small fw-semibold">Khoảng thời gian nghỉ trưa</label>
@@ -266,14 +266,14 @@
                                 <div class="col-12 col-md-4">
                                     <label class="form-label small fw-semibold">Dung sai đi muộn cho phép</label>
                                     <div class="input-group">
-                                        <input type="number" class="form-control" value="15">
+                                        <input type="number" class="form-control" name="grace_late_minutes" value="${not empty settings['grace_late_minutes'] ? settings['grace_late_minutes'] : '15'}">
                                         <span class="input-group-text">phút</span>
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label class="form-label small fw-semibold">Số lần trễ tối đa / tháng</label>
                                     <div class="input-group">
-                                        <input type="number" class="form-control" value="3">
+                                        <input type="number" class="form-control" name="max_late_per_month" value="${not empty settings['max_late_per_month'] ? settings['max_late_per_month'] : '3'}">
                                         <span class="input-group-text">lần/tháng</span>
                                     </div>
                                 </div>
@@ -389,16 +389,16 @@
                             <div class="row g-3 mb-3">
                                 <div class="col-12 col-md-4">
                                     <label class="form-label small fw-semibold">Ngày chốt bảng công tháng</label>
-                                    <select class="form-select">
-                                        <option selected>Ngày 25 hàng tháng</option>
-                                        <option>Ngày cuối cùng của tháng</option>
+                                    <select class="form-select" name="timesheet_cutoff_day">
+                                        <option value="25" ${settings['timesheet_cutoff_day'] == '25' ? 'selected' : ''}>Ngày 25 hàng tháng</option>
+                                        <option value="last_day" ${settings['timesheet_cutoff_day'] == 'last_day' ? 'selected' : ''}>Ngày cuối cùng của tháng</option>
                                     </select>
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label class="form-label small fw-semibold">Ngày chi trả lương chính thức</label>
-                                    <select class="form-select">
-                                        <option selected>Ngày 05 của tháng tiếp theo</option>
-                                        <option>Ngày 10 của tháng tiếp theo</option>
+                                    <select class="form-select" name="payroll_pay_day">
+                                        <option value="5" ${settings['payroll_pay_day'] == '5' ? 'selected' : ''}>Ngày 05 của tháng tiếp theo</option>
+                                        <option value="10" ${settings['payroll_pay_day'] == '10' ? 'selected' : ''}>Ngày 10 của tháng tiếp theo</option>
                                     </select>
                                 </div>
                                 <div class="col-12 col-md-4">
@@ -408,7 +408,7 @@
                                 <div class="col-12 col-md-6">
                                     <label class="form-label small fw-semibold">Lương cơ sở đóng BHXH hiện hành</label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control" value="2.340.000">
+                                        <input type="text" class="form-control" name="base_insurance_salary" value="${not empty settings['base_insurance_salary'] ? settings['base_insurance_salary'] : '2.340.000'}">
                                         <span class="input-group-text">VNĐ</span>
                                     </div>
                                 </div>
@@ -419,14 +419,14 @@
                                 <div class="col-12 col-md-6">
                                     <label class="form-label small fw-semibold">Mức giảm trừ gia cảnh bản thân</label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control" value="11.000.000">
+                                        <input type="text" class="form-control" name="personal_tax_deduction" value="${not empty settings['personal_tax_deduction'] ? settings['personal_tax_deduction'] : '11.000.000'}">
                                         <span class="input-group-text">đ/tháng</span>
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label small fw-semibold">Mức giảm trừ mỗi người phụ thuộc</label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control" value="4.400.000">
+                                        <input type="text" class="form-control" name="dependent_tax_deduction" value="${not empty settings['dependent_tax_deduction'] ? settings['dependent_tax_deduction'] : '4.400.000'}">
                                         <span class="input-group-text">đ/người/tháng</span>
                                     </div>
                                 </div>

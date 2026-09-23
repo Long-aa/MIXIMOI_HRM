@@ -13,6 +13,10 @@ public class AppContextListener implements ServletContextListener {
         System.out.println("[AppContextListener] Ứng dụng MIXIMOI HRM đang khởi động...");
         try {
             DatabaseInitializer.initialize();
+            // Nạp cấu hình hệ thống vào applicationScope để toàn hệ thống đồng bộ
+            com.miximoi.hrm.dao.SystemSettingDAO settingDAO = new com.miximoi.hrm.dao.SystemSettingDAO();
+            sce.getServletContext().setAttribute("systemSettings", settingDAO.getAllSettings());
+            System.out.println("[AppContextListener] Đã nạp thành công cấu hình hệ thống vào ServletContext.");
         } catch (Exception e) {
             System.err.println("[AppContextListener] Lỗi khởi tạo cơ sở dữ liệu: " + e.getMessage());
         }

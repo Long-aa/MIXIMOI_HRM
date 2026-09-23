@@ -273,23 +273,35 @@
                                                 <div
                                                     class="profile-hero-card d-flex flex-column flex-sm-row align-items-center gap-3">
                                                     <div class="profile-avatar-box">
-                                                        NV
+                                                        <c:choose>
+                                                            <c:when test="${not empty sessionScope.currentUser.fullName}">
+                                                                ${sessionScope.currentUser.fullName.substring(0, 1).toUpperCase()}
+                                                            </c:when>
+                                                            <c:otherwise>A</c:otherwise>
+                                                        </c:choose>
                                                     </div>
                                                     <div class="text-center text-sm-start flex-grow-1">
                                                         <div
                                                             class="d-flex flex-wrap align-items-center justify-content-center justify-content-sm-start gap-2 mb-1">
-                                                            <h3 class="h5 fw-bold text-dark mb-0">Nguyễn Văn Admin</h3>
+                                                            <h3 class="h5 fw-bold text-dark mb-0">
+                                                                <c:choose>
+                                                                    <c:when test="${not empty sessionScope.currentUser.fullName}">
+                                                                        ${sessionScope.currentUser.fullName}
+                                                                    </c:when>
+                                                                    <c:otherwise>${sessionScope.currentUser.username}</c:otherwise>
+                                                                </c:choose>
+                                                            </h3>
                                                             <span
                                                                 class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
                                                                 <i class="bi bi-patch-check-fill"></i> Đã xác thực
                                                             </span>
                                                             <span class="role-badge-superadmin">
-                                                                <i class="bi bi-shield-shaded"></i> Super Admin
+                                                                <i class="bi bi-shield-shaded"></i> ${sessionScope.currentUser.roleDisplayName}
                                                             </span>
                                                         </div>
                                                         <div class="text-muted small mb-2">
-                                                            <span>admin@miximoi.vn</span> • <span>Mã NV:
-                                                                NV-2024-001</span> • <span>Ban Giám Đốc</span>
+                                                            <span>${sessionScope.currentUser.email}</span> • <span>Mã NV:
+                                                                ${sessionScope.currentUser.employeeCode}</span> • <span>${sessionScope.currentUser.departmentName}</span>
                                                         </div>
                                                         <div
                                                             class="d-flex flex-wrap gap-2 justify-content-center justify-content-sm-start">
@@ -313,7 +325,7 @@
                                                         <label class="form-label small fw-semibold text-dark">Họ và tên
                                                             <span class="text-danger">*</span></label>
                                                         <input type="text" class="form-control" name="fullName"
-                                                            value="Nguyễn Văn Admin" required>
+                                                            value="${sessionScope.currentUser.fullName}" required>
                                                     </div>
                                                     <div class="col-12 col-md-6">
                                                         <label class="form-label small fw-semibold text-dark">Email hệ
@@ -322,12 +334,12 @@
                                                             <span class="input-group-text bg-light"><i
                                                                     class="bi bi-envelope"></i></span>
                                                             <input type="email" class="form-control" name="email"
-                                                                value="admin@miximoi.vn" required>
+                                                                value="${sessionScope.currentUser.email}" required>
                                                         </div>
                                                     </div>
                                                     <div class="col-12 col-md-6">
                                                         <label class="form-label small fw-semibold text-dark">Số điện
-                                                            thoại OTP</label>
+                                                            thoại liên hệ</label>
                                                         <div class="input-group">
                                                             <span class="input-group-text bg-light">+84</span>
                                                             <input type="text" class="form-control" name="phone"
@@ -338,19 +350,17 @@
                                                         <label class="form-label small fw-semibold text-dark">Mã nhân
                                                             sự</label>
                                                         <input type="text" class="form-control bg-light font-monospace"
-                                                            value="NV-2024-001" readonly>
+                                                            value="${sessionScope.currentUser.employeeCode}" readonly>
                                                     </div>
                                                     <div class="col-12 col-md-6">
-                                                        <label class="form-label small fw-semibold text-dark">Phòng ban
-                                                            phụ trách</label>
-                                                        <input type="text" class="form-control" name="department"
-                                                            value="Ban Giám Đốc (Board of Directors)">
+                                                        <label class="form-label small fw-semibold text-dark">Phòng ban</label>
+                                                        <input type="text" class="form-control bg-light"
+                                                            value="${sessionScope.currentUser.departmentName}" readonly>
                                                     </div>
                                                     <div class="col-12 col-md-6">
-                                                        <label class="form-label small fw-semibold text-dark">Chức vụ /
-                                                            Chức danh</label>
-                                                        <input type="text" class="form-control" name="position"
-                                                            value="Giám đốc Kỹ thuật & Quản trị Hệ thống">
+                                                        <label class="form-label small fw-semibold text-dark">Chức vụ / Chức danh</label>
+                                                        <input type="text" class="form-control bg-light"
+                                                            value="${sessionScope.currentUser.positionName}" readonly>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1120,8 +1130,21 @@
                     function selectTheme(element, themeName) {
                         document.querySelectorAll('.theme-option-card').forEach(card => card.classList.remove('active'));
                         element.classList.add('active');
-                        console.log("Selected theme:", themeName);
+                        if (window.selectAppTheme) {
+                            window.selectAppTheme(themeName);
+                        }
                     }
+
+                    // Highlight active card on page load
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const curTheme = localStorage.getItem('miximoi_theme') || 'light';
+                        document.querySelectorAll('.theme-option-card').forEach(card => {
+                            if (card.getAttribute('onclick') && card.getAttribute('onclick').includes("'" + curTheme + "'")) {
+                                document.querySelectorAll('.theme-option-card').forEach(c => c.classList.remove('active'));
+                                card.classList.add('active');
+                            }
+                        });
+                    });
                 </script>
             </body>
 
