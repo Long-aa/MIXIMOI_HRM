@@ -131,6 +131,15 @@
                                 </div>
                             </div>
 
+                            <c:if test="${not empty leaveRequest.handoverPerson}">
+                                <div class="col-12">
+                                    <div class="detail-info-row">
+                                        <span class="detail-info-label">Người nhận bàn giao công việc</span>
+                                        <span class="detail-info-value"><i class="bi bi-person-check text-primary me-1"></i>${leaveRequest.handoverPerson}</span>
+                                    </div>
+                                </div>
+                            </c:if>
+
                             <div class="col-12">
                                 <div class="detail-info-row">
                                     <span class="detail-info-label">Lý do xin nghỉ</span>
@@ -144,7 +153,7 @@
                         <!-- Management Decision Buttons -->
                         <c:if test="${sessionScope.currentUser.role ne 'EMPLOYEE' and leaveRequest.status eq 'PENDING'}">
                             <div class="d-flex justify-content-end align-items-center gap-3 pt-4 mt-4 border-top">
-                                <button type="button" class="btn btn-outline-danger px-3 py-2 fw-semibold" onclick="openRejectModal()">
+                                <button type="button" class="btn btn-outline-danger px-3 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#rejectModal">
                                     <i class="bi bi-x-circle me-1"></i> Từ chối đơn
                                 </button>
                                 <form method="post" action="${pageContext.request.contextPath}/leave" class="d-inline">

@@ -140,7 +140,14 @@
                             <div>
                                 <div class="kpi-label">Lương TB nhân sự</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value text-dark">12.500.000</span>
+                                    <span class="kpi-value text-dark">
+                                        <c:choose>
+                                            <c:when test="${not empty avgSalary and avgSalary > 0}">
+                                                <fmt:formatNumber value="${avgSalary}" type="number" groupingUsed="true"/>
+                                            </c:when>
+                                            <c:otherwise>—</c:otherwise>
+                                        </c:choose>
+                                    </span>
                                     <span class="kpi-unit fw-bold">VNĐ</span>
                                 </div>
                             </div>
@@ -149,8 +156,8 @@
                             </div>
                         </div>
                         <div class="kpi-footer">
-                            <span class="text-muted">Định mức chuẩn/vị trí</span>
-                            <span class="badge bg-primary-subtle text-primary border-0 fw-bold">Chuẩn hóa KPI</span>
+                            <span class="text-muted">Lương thực lĩnh trung bình</span>
+                            <span class="badge bg-primary-subtle text-primary border-0 fw-bold">Kỳ ${selectedMonth}/${selectedYear}</span>
                         </div>
                     </div>
                 </div>
@@ -162,7 +169,7 @@
                             <div>
                                 <div class="kpi-label">Hồ sơ nhận lương</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value text-dark">245</span>
+                                    <span class="kpi-value text-dark">${totalEmpCount > 0 ? totalEmpCount : totalRecords}</span>
                                     <span class="kpi-unit">nhân viên</span>
                                 </div>
                             </div>
@@ -172,9 +179,9 @@
                         </div>
                         <div class="kpi-footer">
                             <span class="text-primary fw-semibold d-flex align-items-center gap-1">
-                                <i class="bi bi-check-circle"></i> 100% hồ sơ
+                                <i class="bi bi-check-circle"></i> Kỳ ${selectedMonth}/${selectedYear}
                             </span>
-                            <span class="text-muted">Không thiếu sót</span>
+                            <span class="text-muted">Đã tính lương</span>
                         </div>
                     </div>
                 </div>
@@ -186,8 +193,8 @@
                             <div>
                                 <div class="kpi-label">Đã chi trả thành công</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value text-dark">230</span>
-                                    <span class="kpi-unit">/ 245</span>
+                                    <span class="kpi-value text-dark">${countPaid}</span>
+                                    <span class="kpi-unit">/ ${totalEmpCount > 0 ? totalEmpCount : totalRecords}</span>
                                 </div>
                             </div>
                             <div class="kpi-icon-box purple">
@@ -197,13 +204,13 @@
                         <div class="kpi-footer flex-column align-items-stretch gap-2 pt-2">
                             <div class="d-flex justify-content-between align-items-center" style="font-size:0.75rem;">
                                 <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 93.8%;"></div>
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: ${empty paidRatio ? '0' : paidRatio}%;"></div>
                                 </div>
-                                <span class="fw-bold text-primary">93.8%</span>
+                                <span class="fw-bold text-primary">${empty paidRatio ? '0.0' : paidRatio}%</span>
                             </div>
                             <div class="d-flex justify-content-between align-items-center" style="font-size:0.75rem;">
-                                <span class="text-danger fw-semibold">● 15 chờ duyệt</span>
-                                <a href="#" class="text-primary text-decoration-none fw-semibold">Xem danh sách</a>
+                                <span class="text-warning fw-semibold">● ${pendingCount} chờ xử lý</span>
+                                <a href="${pageContext.request.contextPath}/payroll?month=${selectedMonth}&year=${selectedYear}" class="text-primary text-decoration-none fw-semibold">Xem danh sách</a>
                             </div>
                         </div>
                     </div>

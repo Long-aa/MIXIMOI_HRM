@@ -369,7 +369,7 @@
                 </c:otherwise>
             </c:choose>
 
-            <!-- Middle Section: 2 Thẻ biểu đồ & Lịch tuần (Matches Screenshot 1) -->
+                        <!-- Middle Section: 2 Thẻ biểu đồ & Lịch tuần -->
             <div class="leave-middle-grid">
                 <!-- Thẻ Trái: Cơ cấu loại nghỉ phép & Tần suất -->
                 <div class="middle-card">
@@ -379,32 +379,26 @@
                                 <h3 class="mcard-title">Cơ cấu loại nghỉ phép &amp; Tần suất</h3>
                                 <p class="mcard-sub">Tỷ lệ ngày nghỉ theo nhóm chế độ chính sách năm 2026</p>
                             </div>
-                            <span class="mcard-tag">${totalUsedDays} ng&#224;y s&#7917; d&#7909;ng</span>
+                            <span class="mcard-tag">${totalUsedDays} ngày sử dụng</span>
                         </div>
 
                         <!-- Segmented Progress Bar (Dynamic) -->
                         <div class="segmented-bar">
-                            <div class="seg-1" style="width:${annualPct}%" title="Ph&#233;p th&#432;&#7901;ng ni&#234;n: ${annualPct}%"></div>
-                            <div class="seg-2" style="width:${sickPct}%" title="Ngh&#7881; &#7889;m &amp; BHYT: ${sickPct}%"></div>
-                            <div class="seg-3" style="width:${personalPct}%" title="Vi&#7879;c ri&#234;ng c&#243; l&#432;&#417;ng: ${personalPct}%"></div>
-                            <div class="seg-4" style="width:${maternityPct}%" title="Ch&#7871; &#273;&#7897; Thai s&#7843;n: ${maternityPct}%"></div>
-                            <div class="seg-5" style="width:${unpaidPct}%" title="Ngh&#7881; kh&#244;ng h&#432;&#7903;ng l&#432;&#417;ng: ${unpaidPct}%"></div>
+                            <div class="seg-1" style="width:${annualPct}%" title="Phép thường niên: ${annualPct}%"></div>
+                            <div class="seg-2" style="width:${sickPct}%" title="Nghỉ ốm &amp; BHYT: ${sickPct}%"></div>
+                            <div class="seg-3" style="width:${personalPct}%" title="Việc riêng có lương: ${personalPct}%"></div>
+                            <div class="seg-4" style="width:${maternityPct}%" title="Chế độ Thai sản: ${maternityPct}%"></div>
+                            <div class="seg-5" style="width:${unpaidPct}%" title="Nghỉ không hưởng lương: ${unpaidPct}%"></div>
                         </div>
 
                         <!-- Legend Items (3x2 grid) - Dynamic -->
                         <div class="cat-legend-grid">
-                            <div><span class="cat-dot c1"></span> Ph&#233;p th&#432;&#7901;ng ni&#234;n: <strong>${annualDays} ng&#224;y (${annualPct}%)</strong></div>
-                            <div><span class="cat-dot c2"></span> Ngh&#7881; &#7889;m &amp; BHYT: <strong>${sickDays} ng&#224;y (${sickPct}%)</strong></div>
-                            <div><span class="cat-dot c3"></span> Vi&#7879;c ri&#234;ng c&#243; l&#432;&#417;ng: <strong>${personalDays} ng&#224;y (${personalPct}%)</strong></div>
-                            <div><span class="cat-dot c4"></span> Ch&#7871; &#273;&#7897; Thai s&#7843;n: <strong>${maternityDays} ng&#224;y (${maternityPct}%)</strong></div>
-                            <div><span class="cat-dot c5"></span> Ngh&#7881; kh&#244;ng h&#432;&#7903;ng l&#432;&#417;ng: <strong>${unpaidDays} ng&#224;y (${unpaidPct}%)</strong></div>
-                            <div><span class="cat-dot c6"></span> T&#7893;ng s&#7917; d&#7909;ng: <strong class="text-success">${totalUsedDays} ng&#224;y to&#224;n c&#244;ng ty</strong></div>
-                        </div>
-                            <div><span class="cat-dot c2"></span> Nghỉ ốm &amp; BHYT: <strong>68 ngày (14%)</strong></div>
-                            <div><span class="cat-dot c3"></span> Việc riêng có lương: <strong>38 ngày (8%)</strong></div>
-                            <div><span class="cat-dot c4"></span> Chế độ Thai sản: <strong>19 ngày (4%)</strong></div>
-                            <div><span class="cat-dot c5"></span> Nghỉ không hưởng lương: <strong>10 ngày (2%)</strong></div>
-                            <div><span class="cat-dot c6"></span> Tỷ lệ tuân thủ hạn mức: <strong class="text-success">98.4% đạt chuẩn</strong></div>
+                            <div><span class="cat-dot c1"></span> Phép thường niên: <strong>${annualDays} ngày (${annualPct}%)</strong></div>
+                            <div><span class="cat-dot c2"></span> Nghỉ ốm &amp; BHYT: <strong>${sickDays} ngày (${sickPct}%)</strong></div>
+                            <div><span class="cat-dot c3"></span> Việc riêng có lương: <strong>${personalDays} ngày (${personalPct}%)</strong></div>
+                            <div><span class="cat-dot c4"></span> Chế độ Thai sản: <strong>${maternityDays} ngày (${maternityPct}%)</strong></div>
+                            <div><span class="cat-dot c5"></span> Nghỉ không hưởng lương: <strong>${unpaidDays} ngày (${unpaidPct}%)</strong></div>
+                            <div><span class="cat-dot c6"></span> Tổng sử dụng: <strong class="text-success">${totalUsedDays} ngày toàn công ty</strong></div>
                         </div>
                     </div>
                 </div>
@@ -415,70 +409,65 @@
                         <div class="mcard-header">
                             <div>
                                 <h3 class="mcard-title">Lịch vắng mặt trong tuần</h3>
-                                <%@ page import="java.time.LocalDate, java.time.format.DateTimeFormatter, java.time.temporal.WeekFields, java.util.Locale" %>
-                                <%
-                                    java.time.LocalDate todayDate = java.time.LocalDate.now();
-                                    java.time.DayOfWeek firstDOW = java.time.DayOfWeek.MONDAY;
-                                    java.time.LocalDate weekStart = todayDate.with(java.time.temporal.TemporalAdjusters.previousOrSame(firstDOW));
-                                    java.time.LocalDate weekEnd = weekStart.plusDays(4);
-                                    int weekNum = todayDate.get(java.time.temporal.WeekFields.of(java.util.Locale.getDefault()).weekOfWeekBasedYear());
-                                    java.time.format.DateTimeFormatter df = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
-                                    request.setAttribute("weekStartFmt", weekStart.format(df));
-                                    request.setAttribute("weekEndFmt", weekEnd.format(df));
-                                    request.setAttribute("weekNum", weekNum);
-                                %>
                                 <p class="mcard-sub">${weekStartFmt} – ${weekEndFmt} (Tuần ${weekNum})</p>
                             </div>
                             <div class="d-flex align-items-center gap-1">
-                                <button class="btn btn-sm btn-outline-light text-muted border py-0 px-2">&lt;</button>
-                                <span class="badge bg-light text-dark border px-2 py-1" style="font-size:0.75rem;">Hiện tại</span>
-                                <button class="btn btn-sm btn-outline-light text-muted border py-0 px-2">&gt;</button>
+                                <span class="badge bg-light text-dark border px-2 py-1" style="font-size:0.75rem;">Tuần hiện tại</span>
                             </div>
                         </div>
 
-                        <!-- 3 Hàng ngày trong tuần (Dynamic) -->
-                        <%
-                            String[] dayNames = {"T2","T3","T4","T5","T6"};
-                            java.time.LocalDate wd = (java.time.LocalDate) request.getAttribute("weekStartFmt") != null
-                                ? java.time.LocalDate.now().with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
-                                : java.time.LocalDate.now();
-                            java.time.LocalDate todayRef = java.time.LocalDate.now();
-                            java.time.LocalDate weekStartRef = todayRef.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
-                        %>
-                        <c:forEach var="dayOffset" items="0,1,2,3,4" varStatus="loop">
-                        <%
-                            java.time.LocalDate dayDate = weekStartRef.plusDays(loop.index);
-                            boolean isToday = dayDate.equals(todayRef);
-                            String dayKey = new String[]{"T2","T3","T4","T5","T6"}[loop.index];
-                            request.setAttribute("_dayKey", dayKey);
-                            request.setAttribute("_dayNum", dayDate.getDayOfMonth());
-                            request.setAttribute("_isToday", isToday);
-                        %>
-                        <div class="week-item-row ${_isToday ? 'today' : ''}">
-                            <div class="d-flex align-items-center">
-                                <div class="wdate-box ${_isToday ? 'today' : ''}"><span class="wdate-day">${_dayKey}</span><span class="wdate-num">${_dayNum}</span></div>
-                                <div class="week-content">
-                                    <c:choose>
-                                        <c:when test="${_isToday}">
-                                            <div class="week-title text-primary">Hôm nay: ${todayOnLeaveCount} nhân sự nghỉ •</div>
-                                            <div class="week-sub">${annualDays > 0 ? annualDays : ''} Phép năm${sickDays > 0 ? ', '.concat(sickDays).concat(' Ốm đau') : ''}</div>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <div class="week-title">Dự kiến vắng mặt</div>
-                                            <div class="week-sub">Xem đơn nghỉ phép đã đăng ký</div>
-                                        </c:otherwise>
-                                    </c:choose>
+                        <!-- 5 Hàng ngày trong tuần (Dynamic) -->
+                        <c:forEach var="item" items="${weeklySchedule}">
+                            <div class="week-item-row ${item.isToday ? 'today' : ''}">
+                                <div class="d-flex align-items-center">
+                                    <div class="wdate-box ${item.isToday ? 'today' : ''}">
+                                        <span class="wdate-day">${item.dayLabel}</span>
+                                        <span class="wdate-num">${item.dayNum}</span>
+                                    </div>
+                                    <div class="week-content">
+                                        <c:choose>
+                                            <c:when test="${item.isToday}">
+                                                <div class="week-title text-primary">
+                                                    Hôm nay: ${todayOnLeaveCount} nhân sự vắng mặt
+                                                </div>
+                                                <div class="week-sub">
+                                                    <c:choose>
+                                                        <c:when test="${todayOnLeaveCount > 0}">
+                                                            ${annualDays > 0 ? annualDays : ''} Phép năm${sickDays > 0 ? ', '.concat(sickDays).concat(' Ốm đau') : ''}
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            Quân số hiện diện đầy đủ
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </div>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <div class="week-title">
+                                                    <c:choose>
+                                                        <c:when test="${item.absenceCount > 0}">
+                                                            ${item.absenceCount} nhân sự nghỉ dự kiến
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            Dự kiến làm việc bình thường
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </div>
+                                                <div class="week-sub">${item.dateStr}</div>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </div>
                                 </div>
+                                <span class="week-badge ${item.isToday ? 'today' : ''}">
+                                    ${item.isToday ? 'Hôm nay' : item.dayLabel}
+                                </span>
                             </div>
-                            <span class="week-badge ${_isToday ? 'today' : ''}">${_isToday ? 'Hôm nay' : _dayKey}</span>
-                        </div>
                         </c:forEach>
                     </div>
 
                     <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="font-size:0.78rem;">
                         <span class="text-muted"><i class="bi bi-calendar-event text-primary me-1"></i> Kỳ nghỉ lễ tiếp theo: Ngày 02/09/2026 (Nghỉ 04 ngày)</span>
-                        <a href="javascript:void(0);" onclick="alert('Đang mở Lịch nghỉ lễ và sự kiện toàn công ty năm 2026');" class="text-primary fw-bold text-decoration-none">
-                            Xem lịch toàn công ty
+                        <a href="${pageContext.request.contextPath}/leave?tab=policy" class="text-primary fw-bold text-decoration-none">
+                            Xem lịch &amp; quy định
                         </a>
                     </div>
                 </div>
@@ -863,10 +852,10 @@
 
                                 <div class="d-flex align-items-center gap-2">
                     <a href="${pageContext.request.contextPath}/leave?tab=policy" class="btn btn-sm btn-outline-primary fw-bold" style="height:36px; border-radius:8px;">
-                        Xem c&#7849;m nang nh&#226;n s&#7921;
+                        Xem cẩm nang nhân sự
                     </a>
                     <a href="${pageContext.request.contextPath}/leave?tab=balance" class="btn btn-sm btn-primary fw-bold" style="height:36px; border-radius:8px; background:#2563eb;">
-                        Ki&#7875;m tra s&#7889; d&#432; to&#224;n c&#244;ng ty
+                        Kiểm tra số dư toàn công ty
                     </a>
                 </div>
             </div>
@@ -874,34 +863,34 @@
             </c:if><%-- end tab: requests --%>
 
             <%-- ===============================================================
-                 Tab: Balance - B&#7843;ng theo d&#245;i t&#7891;n ph&#233;p nh&#226;n vi&#234;n
+                 Tab: Balance - Bảng theo dõi tồn phép nhân viên
                  =============================================================== --%>
             <c:if test="${activeTab eq 'balance'}">
             <div class="leave-table-card" style="margin-top:16px;">
                 <div class="table-card-header">
-                    <h3 class="table-card-title"><i class="bi bi-person-vcard me-2"></i>B&#7843;ng Theo D&#245;i T&#7891;n Ph&#233;p Nh&#226;n Vi&#234;n</h3>
-                    <span class="badge bg-primary-soft"><c:out value="${fn:length(leaveBalances)}"/> nh&#226;n vi&#234;n</span>
+                    <h3 class="table-card-title"><i class="bi bi-person-vcard me-2"></i>Bảng Theo Dõi Tồn Phép Nhân Viên</h3>
+                    <span class="badge bg-primary-soft"><c:out value="${fn:length(leaveBalances)}"/> nhân viên</span>
                 </div>
                 <div class="table-responsive">
                     <table class="leave-table" id="balanceTable">
                         <thead>
                             <tr>
-                                <th>M&#227; NV</th>
-                                <th>H&#7885; t&#234;n</th>
-                                <th>Ph&#242;ng ban</th>
-                                <th>Ch&#7913;c v&#7909;</th>
-                                <th>Th&#226;m ni&#234;n</th>
-                                <th>Ph&#233;p chu&#7849;n</th>
-                                <th>Th&#226;m ni&#234;n +</th>
-                                <th>T&#7891;n n&#259;m tr&#432;&#7899;c</th>
-                                <th>&#272;&#227; d&#249;ng</th>
-                                <th>Kh&#7843; d&#7909;ng</th>
+                                <th>Mã NV</th>
+                                <th>Họ tên</th>
+                                <th>Phòng ban</th>
+                                <th>Chức vụ</th>
+                                <th>Thâm niên</th>
+                                <th>Phép chuẩn</th>
+                                <th>Thâm niên +</th>
+                                <th>Tồn năm trước</th>
+                                <th>Đã dùng</th>
+                                <th>Khả dụng</th>
                             </tr>
                         </thead>
                         <tbody>
                             <c:choose>
                                 <c:when test="${empty leaveBalances}">
-                                    <tr><td colspan="10" class="text-center text-muted py-4">Kh&#244;ng c&#243; d&#7919; li&#7879;u</td></tr>
+                                    <tr><td colspan="10" class="text-center text-muted py-4">Không có dữ liệu</td></tr>
                                 </c:when>
                                 <c:otherwise>
                                     <c:forEach var="bal" items="${leaveBalances}">
@@ -910,7 +899,7 @@
                                             <td>${bal.fullName}</td>
                                             <td>${bal.departmentName}</td>
                                             <td>${bal.positionName}</td>
-                                            <td>${bal.yearsOfService} n&#259;m</td>
+                                            <td>${bal.yearsOfService} năm</td>
                                             <td>${bal.standardDays}</td>
                                             <td>+${bal.seniorityDays}</td>
                                             <td>${bal.carryOverDays}</td>
@@ -927,31 +916,31 @@
             </c:if><%-- end tab: balance --%>
 
             <%-- ===============================================================
-                 Tab: Policy - L&#7883;ch ngh&#7881; l&#7877; &amp; Quy &#273;&#7883;nh c&#244;ng ty
+                 Tab: Policy - Lịch nghỉ lễ &amp; Quy định công ty
                  =============================================================== --%>
             <c:if test="${activeTab eq 'policy'}">
             <div class="leave-table-card" style="margin-top:16px; padding:24px;">
-                <h3 class="table-card-title mb-4"><i class="bi bi-calendar-event me-2"></i>L&#7883;ch Ngh&#7881; L&#7877; &amp; Quy &#272;&#7883;nh 2026</h3>
-                <h5 class="mb-3" style="color:#1e40af;">&#127881; Ng&#224;y ngh&#7881; l&#7877; theo quy &#273;&#7883;nh (&#272;i&#7873;u 112 BLL&#272; 2019)</h5>
+                <h3 class="table-card-title mb-4"><i class="bi bi-calendar-event me-2"></i>Lịch Nghỉ Lễ &amp; Quy Định 2026</h3>
+                <h5 class="mb-3" style="color:#1e40af;">&#127881; Ngày nghỉ lễ theo quy định (Điều 112 BLLĐ 2019)</h5>
                 <div class="table-responsive mb-4">
                     <table class="leave-table">
-                        <thead><tr><th>D&#7883;p l&#7877;</th><th>Ng&#224;y ngh&#7881;</th><th>S&#7889; ng&#224;y</th><th>Ghi ch&#250;</th></tr></thead>
+                        <thead><tr><th>Dịp lễ</th><th>Ngày nghỉ</th><th>Số ngày</th><th>Ghi chú</th></tr></thead>
                         <tbody>
-                            <tr><td>&#127761; T&#7871;t D&#432;&#417;ng l&#7883;ch</td><td>01/01/2026</td><td>1 ng&#224;y</td><td>B&#249; n&#7871;u tr&#249;ng cu&#7889;i tu&#7847;n</td></tr>
-                            <tr><td>&#127878; T&#7871;t Nguy&#234;n &#272;&#225;n</td><td>28/01 &#8211; 03/02/2026</td><td>7 ng&#224;y</td><td>Theo l&#7883;ch &#226;m d&#432;&#417;ng</td></tr>
-                            <tr><td>&#127802; Gi&#7895; T&#7893; H&#249;ng V&#432;&#417;ng</td><td>18/04/2026</td><td>1 ng&#224;y</td><td>10/3 &#226;m l&#7883;ch</td></tr>
-                            <tr><td>&#127894; Ng&#224;y Gi&#7843;i ph&#243;ng</td><td>30/04/2026</td><td>1 ng&#224;y</td><td>&#8211;</td></tr>
-                            <tr><td>&#128119; Ng&#224;y Qu&#7889;c t&#7871; Lao &#273;&#7897;ng</td><td>01/05/2026</td><td>1 ng&#224;y</td><td>Ngh&#7881; b&#249; 04/05</td></tr>
-                            <tr><td>&#127483; Qu&#7889;c Kh&#225;nh</td><td>02/09/2026</td><td>2 ng&#224;y</td><td>Bao g&#7891;m 1 ng&#224;y li&#7873;n k&#7873;</td></tr>
+                            <tr><td>&#127761; Tết Dương lịch</td><td>01/01/2026</td><td>1 ngày</td><td>Bù nếu trùng cuối tuần</td></tr>
+                            <tr><td>&#127878; Tết Nguyên Đán</td><td>28/01 &#8211; 03/02/2026</td><td>7 ngày</td><td>Theo lịch âm dương</td></tr>
+                            <tr><td>&#127802; Giỗ Tổ Hùng Vương</td><td>18/04/2026</td><td>1 ngày</td><td>10/3 &#226;m l&#7883;ch</td></tr>
+                            <tr><td>&#127894; Ngày Giải phóng</td><td>30/04/2026</td><td>1 ngày</td><td>&#8211;</td></tr>
+                            <tr><td>&#128119; Ngày Quốc tế Lao động</td><td>01/05/2026</td><td>1 ngày</td><td>Nghỉ bù 04/05</td></tr>
+                            <tr><td>&#127483; Quốc Khánh</td><td>02/09/2026</td><td>2 ngày</td><td>Bao gồm 1 ngày liền kề</td></tr>
                         </tbody>
                     </table>
                 </div>
-                <h5 class="mb-3" style="color:#1e40af;">&#128203; Quy &#273;&#7883;nh Ngh&#7881; ph&#233;p t&#7841;i MIXIMOI</h5>
+                <h5 class="mb-3" style="color:#1e40af;">&#128203; Quy định Nghỉ phép tại MIXIMOI</h5>
                 <div class="row g-3">
-                    <div class="col-md-6"><div class="card border-0 shadow-sm p-3" style="border-radius:12px;background:#f0f7ff;"><h6 class="fw-bold text-primary mb-2">Ph&#233;p th&#432;&#7901;ng ni&#234;n</h6><ul class="mb-0 ps-3" style="font-size:0.88rem;"><li>12 ng&#224;y / n&#259;m cho nh&#226;n vi&#234;n &#273;&#7911; 1 n&#259;m</li><li>Th&#234;m 1 ng&#224;y cho m&#7895;i 5 n&#259;m th&#226;m ni&#234;n</li><li>T&#7889;i &#273;a 5 ng&#224;y chuy&#7875;n sang n&#259;m sau (tr&#432;&#7899;c 31/03)</li><li>&#272;&#417;n ph&#7843;i n&#7897;p tr&#432;&#7899;c &#237;t nh&#7845;t 3 ng&#224;y l&#224;m vi&#7879;c</li></ul></div></div>
-                    <div class="col-md-6"><div class="card border-0 shadow-sm p-3" style="border-radius:12px;background:#f0fdf4;"><h6 class="fw-bold text-success mb-2">Ngh&#7881; &#7889;m &amp; Thai s&#7843;n</h6><ul class="mb-0 ps-3" style="font-size:0.88rem;"><li>Ngh&#7881; &#7889;m &#273;au: theo ch&#7871; &#273;&#7897; BHXH (t&#7889;i &#273;a 30-75 ng&#224;y/n&#259;m)</li><li>Thai s&#7843;n n&#7919;: 6 th&#225;ng theo Lu&#7853;t BHXH</li><li>Nu&#244;i con nh&#7887; d&#432;&#7899;i 12 th&#225;ng: 60 ph&#250;t/ng&#224;y</li><li>C&#7847;n gi&#7845;y t&#7901; y t&#7871; h&#7907;p l&#7879;</li></ul></div></div>
-                    <div class="col-md-6"><div class="card border-0 shadow-sm p-3" style="border-radius:12px;background:#fefce8;"><h6 class="fw-bold mb-2" style="color:#92400e;">Ngh&#7881; c&#243; l&#432;&#417;ng &#273;&#7863;c bi&#7879;t</h6><ul class="mb-0 ps-3" style="font-size:0.88rem;"><li>C&#432;&#7899;i h&#7887;i b&#7843;n th&#226;n: 3 ng&#224;y</li><li>C&#432;&#7899;i con: 1 ng&#224;y</li><li>Tang cha m&#7865;, v&#7907;/ch&#7891;ng, con: 3 ng&#224;y</li><li>Tang &#244;ng b&#224;, anh ch&#7883; em ru&#7897;t: 1 ng&#224;y</li></ul></div></div>
-                    <div class="col-md-6"><div class="card border-0 shadow-sm p-3" style="border-radius:12px;background:#fdf4ff;"><h6 class="fw-bold mb-2" style="color:#7e22ce;">Quy tr&#236;nh x&#233;t duy&#7879;t</h6><ul class="mb-0 ps-3" style="font-size:0.88rem;"><li>Nh&#226;n vi&#234;n n&#7897;p &#273;&#417;n qua h&#7879; th&#7889;ng</li><li>Qu&#7843;n l&#253; tr&#7921;c ti&#7871;p duy&#7879;t trong 24h</li><li>HR x&#225;c nh&#7853;n &amp; c&#7853;p nh&#7853;t ch&#7845;m c&#244;ng</li><li>&#272;&#417;n kh&#7849;n: li&#234;n h&#7879; tr&#7921;c ti&#7871;p Ph&#242;ng HR</li></ul></div></div>
+                    <div class="col-md-6"><div class="card border-0 shadow-sm p-3" style="border-radius:12px;background:#f0f7ff;"><h6 class="fw-bold text-primary mb-2">Phép thường niên</h6><ul class="mb-0 ps-3" style="font-size:0.88rem;"><li>12 ngày / năm cho nhân viên &#273;&#7911; 1 năm</li><li>Th&#234;m 1 ngày cho m&#7895;i 5 năm th&#226;m ni&#234;n</li><li>T&#7889;i &#273;a 5 ngày chuy&#7875;n sang năm sau (tr&#432;&#7899;c 31/03)</li><li>&#272;&#417;n ph&#7843;i n&#7897;p tr&#432;&#7899;c &#237;t nh&#7845;t 3 ngày l&#224;m vi&#7879;c</li></ul></div></div>
+                    <div class="col-md-6"><div class="card border-0 shadow-sm p-3" style="border-radius:12px;background:#f0fdf4;"><h6 class="fw-bold text-success mb-2">Nghỉ ốm &amp; Thai sản</h6><ul class="mb-0 ps-3" style="font-size:0.88rem;"><li>Ngh&#7881; &#7889;m &#273;au: theo ch&#7871; &#273;&#7897; BHXH (t&#7889;i &#273;a 30-75 ngày/n&#259;m)</li><li>Thai sản nữ: 6 tháng theo Luật BHXH</li><li>Nu&#244;i con nh&#7887; d&#432;&#7899;i 12 th&#225;ng: 60 ph&#250;t/ngày</li><li>Cần giấy tờ y tế hợp lệ</li></ul></div></div>
+                    <div class="col-md-6"><div class="card border-0 shadow-sm p-3" style="border-radius:12px;background:#fefce8;"><h6 class="fw-bold mb-2" style="color:#92400e;">Nghỉ có lương đặc biệt</h6><ul class="mb-0 ps-3" style="font-size:0.88rem;"><li>C&#432;&#7899;i h&#7887;i b&#7843;n th&#226;n: 3 ngày</li><li>C&#432;&#7899;i con: 1 ngày</li><li>Tang cha m&#7865;, v&#7907;/ch&#7891;ng, con: 3 ngày</li><li>Tang &#244;ng b&#224;, anh ch&#7883; em ru&#7897;t: 1 ngày</li></ul></div></div>
+                    <div class="col-md-6"><div class="card border-0 shadow-sm p-3" style="border-radius:12px;background:#fdf4ff;"><h6 class="fw-bold mb-2" style="color:#7e22ce;">Quy trình xét duyệt</h6><ul class="mb-0 ps-3" style="font-size:0.88rem;"><li>Nhân viên nộp đơn qua hệ thống</li><li>Quản lý trực tiếp duyệt trong 24h</li><li>HR xác nhận &amp; cập nhật chấm công</li><li>Đơn khẩn: liên hệ trực tiếp Phòng HR</li></ul></div></div>
                 </div>
             </div>
             </c:if><%-- end tab: policy --%>

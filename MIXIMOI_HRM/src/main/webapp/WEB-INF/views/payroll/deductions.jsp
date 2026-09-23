@@ -78,8 +78,83 @@
 
             <!-- 4 Metric KPI Cards -->
             <div class="row g-3 mb-4">
-                <!-- KPI 1 -->
+                <!-- KPI 1: Tổng khấu trừ -->
                 <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Tổng khấu trừ kỳ này</span>
+                            <div class="kpi-icon-box coral"><i class="bi bi-dash-circle"></i></div>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-1 mb-2">
+                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.7rem;"><fmt:formatNumber value="${totalAllDeductions}" pattern="#,##0"/></span>
+                            <span class="text-muted fw-semibold" style="font-size: 0.85rem;">đ</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="badge bg-danger-subtle text-danger fw-semibold" style="font-size: 0.73rem;">
+                                BH + Thuế + Tạm ứng
+                            </span>
+                            <span class="text-muted small">kỳ Tháng ${selectedMonth}/${selectedYear}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 2: Trích nộp BHXH/BHYT/BHTN -->
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Trích nộp BHXH / BHYT / BHTN</span>
+                            <div class="kpi-icon-box blue"><i class="bi bi-shield-shaded"></i></div>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-1 mb-2">
+                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.7rem;"><fmt:formatNumber value="${totalInsurance}" pattern="#,##0"/></span>
+                            <span class="text-muted fw-semibold" style="font-size: 0.85rem;">đ</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="badge bg-primary-subtle text-primary fw-semibold" style="font-size: 0.73rem;">
+                                ${bhxhRate}% + ${bhytRate}% + ${bhtnRate}% đóng BH
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 3: Thuế TNCN tạm khấu trừ -->
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Thuế TNCN tạm khấu trừ</span>
+                            <div class="kpi-icon-box amber"><i class="bi bi-percent"></i></div>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-1 mb-2">
+                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.7rem;">Ấn trong Khấu trừ</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="badge bg-warning-subtle text-warning-emphasis fw-semibold" style="font-size: 0.73rem;">
+                                Lũy tiến 7 bậc
+                            </span>
+                            <span class="text-muted small">Thông tư 111</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 4: Tạm ứng -->
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Thu hồi & Tạm ứng khác</span>
+                            <div class="kpi-icon-box purple"><i class="bi bi-arrow-left-right"></i></div>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-1 mb-2">
+                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.7rem;"><fmt:formatNumber value="${totalAdvance}" pattern="#,##0"/></span>
+                            <span class="text-muted fw-semibold" style="font-size: 0.85rem;">đ</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="badge fw-semibold" style="font-size: 0.73rem; background: #f3e8ff; color: #7e22ce;">
+                                ${advanceCases} trường hợp
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
                     <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Tổng khấu trừ kỳ này</span>
@@ -174,6 +249,38 @@
                         <div class="col-12 col-md-4">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" name="keyword" class="form-control border-start-0" placeholder="Tìm tên nhân viên, mã NV..." value="${keyword}">
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <select name="deptId" class="form-select form-select-sm">
+                                <option value="">Tất cả phòng ban</option>
+                                <c:forEach var="dept" items="${departments}">
+                                    <option value="${dept.id}" ${dept.id == selectedDeptId ? 'selected' : ''}>${dept.name}</option>
+                                </c:forEach>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <select name="month" class="form-select form-select-sm">
+                                <c:forEach var="m" begin="1" end="12">
+                                    <option value="${m}" ${m == selectedMonth ? 'selected' : ''}>Tháng ${m}/${selectedYear}</option>
+                                </c:forEach>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-sm btn-primary w-100 d-flex align-items-center justify-content-center gap-1">
+                                <i class="bi bi-funnel"></i> Lọc
+                            </button>
+                            <a href="${pageContext.request.contextPath}/deductions" class="btn btn-sm btn-outline-secondary" title="Đặt lại">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+                        <div class="col-12 col-md-4">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
                                 <input type="text" name="keyword" class="form-control border-start-0" placeholder="Tìm tên nhân viên, mã NV..." value="${param.keyword}">
                             </div>
                         </div>
@@ -207,6 +314,84 @@
 
             <!-- Deductions Detail Table -->
             <div class="card border-0 shadow-sm rounded-3 mb-4 overflow-hidden">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="h6 fw-bold mb-0 text-dark">Bảng khấu trừ phát sinh kỳ Tháng ${selectedMonth}/${selectedYear}</h2>
+                        <span class="text-muted small">Danh sách các khoản tạm ứng, thu hồi và khấu trừ phát sinh thêm</span>
+                    </div>
+                    <span class="badge bg-light text-dark border">Tổng cộng: ${deductionList.size()} khoản</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.83rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3 py-3">Mã NV</th>
+                                <th>Họ tên</th>
+                                <th>Phòng ban</th>
+                                <th>Loại khấu trừ</th>
+                                <th class="text-end">Số tiỀn</th>
+                                <th>Mô tả</th>
+                                <th class="text-center pe-3">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <c:choose>
+                                <c:when test="${empty deductionList}">
+                                    <tr>
+                                        <td colspan="7" class="text-center py-5 text-muted">
+                                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                            Chưa có khoản khấu trừ phát sinh nào trong tháng ${selectedMonth}/${selectedYear}
+                                        </td>
+                                    </tr>
+                                </c:when>
+                                <c:otherwise>
+                                    <c:forEach var="d" items="${deductionList}">
+                                        <tr>
+                                            <td class="ps-3 fw-bold text-primary">${d.employeeCode}</td>
+                                            <td>
+                                                <div class="fw-bold text-dark">${d.employeeName}</div>
+                                                <small class="text-muted">${d.departmentName}</small>
+                                            </td>
+                                            <td class="text-muted">${d.departmentName}</td>
+                                            <td>
+                                                <c:choose>
+                                                    <c:when test="${d.deductionType eq 'ADVANCE'}">
+                                                        <span class="badge bg-purple-subtle" style="background:#f3e8ff; color:#7e22ce;">Tạm ứng</span>
+                                                    </c:when>
+                                                    <c:when test="${d.deductionType eq 'DISCIPLINE'}">
+                                                        <span class="badge bg-danger-subtle text-danger">Kỷ luật</span>
+                                                    </c:when>
+                                                    <c:when test="${d.deductionType eq 'LOAN'}">
+                                                        <span class="badge bg-warning-subtle text-warning">Vay nội bộ</span>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <span class="badge bg-secondary-subtle text-secondary">${d.deductionType}</span>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="text-end fw-bold text-danger">
+                                                <fmt:formatNumber value="${d.amount}" pattern="#,##0"/> đ
+                                            </td>
+                                            <td class="text-muted" style="font-size:0.8rem;">${d.description}</td>
+                                            <td class="text-center pe-3">
+                                                <form method="post" action="${pageContext.request.contextPath}/deductions" style="display:inline;" onsubmit="return confirm('Xác nhận xóa khoản khấu trừ này?')">
+                                                    <input type="hidden" name="action" value="delete"/>
+                                                    <input type="hidden" name="id" value="${d.id}"/>
+                                                    <input type="hidden" name="month" value="${selectedMonth}"/>
+                                                    <input type="hidden" name="year" value="${selectedYear}"/>
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" title="Xóa">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </c:otherwise>
+                            </c:choose>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
                 <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                     <div>
                         <h2 class="h6 fw-bold mb-0 text-dark">Bảng chi tiết khấu trừ cá nhân kỳ Tháng 09/2026</h2>
@@ -544,12 +729,11 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Chọn Nhân viên</label>
-                        <select name="empId" class="form-select" required>
+                        <select name="employeeId" class="form-select" required>
                             <option value="">-- Chọn nhân viên --</option>
-                            <option value="1">MXM-0102 - Nguyễn Văn An</option>
-                            <option value="2">MXM-0245 - Trần Thị Mai</option>
-                            <option value="3">MXM-0311 - Lê Hoàng Nam</option>
-                            <option value="4">MXM-0089 - Phạm Thu Trang</option>
+                            <c:forEach var="emp" items="${employees}">
+                                <option value="${emp.id}">${emp.employeeCode} - ${emp.fullName}</option>
+                            </c:forEach>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -567,8 +751,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Lý do & Ghi chú</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="Ghi chú chi tiết lý do khấu trừ"></textarea>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Ghi chú chi tiết lý do khấu trừ"></textarea>
                     </div>
+                    <input type="hidden" name="action" value="add"/>
+                    <input type="hidden" name="month" value="${selectedMonth}"/>
+                    <input type="hidden" name="year" value="${selectedYear}"/>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>

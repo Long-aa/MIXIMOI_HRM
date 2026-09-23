@@ -90,6 +90,42 @@ public class ContractDAO {
         return list;
     }
 
+    /** Lấy lương cơ bản từ hợp đồng ACTIVE gần nhất của nhân viên */
+    public java.math.BigDecimal findActiveContractBaseSalary(int employeeId) {
+        String sql = "SELECT base_salary FROM contracts "
+                   + "WHERE employee_id = ? AND status = 'ACTIVE' "
+                   + "ORDER BY start_date DESC LIMIT 1";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    java.math.BigDecimal sal = rs.getBigDecimal(1);
+                    return sal != null ? sal : java.math.BigDecimal.ZERO;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.findActiveContractBaseSalary lỗi: " + e.getMessage());
+        }
+        return java.math.BigDecimal.ZERO;
+    }
+
+    /** Lấy hợp đồng mới nhất theo employeeId (dùng cho payslip) */
+    public Contract findLatestByEmployee(int employeeId) {
+        String sql = BASE_SELECT
+                   + "WHERE c.employee_id = ? ORDER BY c.start_date DESC LIMIT 1";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return mapRow(rs);
+            }
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.findLatestByEmployee lỗi: " + e.getMessage());
+        }
+        return null;
+    }
+
     public Contract findById(int id) {
         String sql = BASE_SELECT + "WHERE c.id = ?";
         try (Connection conn = DBConnection.getConnection();

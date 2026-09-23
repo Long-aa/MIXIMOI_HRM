@@ -476,3 +476,33 @@ CREATE TABLE IF NOT EXISTS interviews (
 
 CREATE INDEX IF NOT EXISTS idx_interview_date ON interviews(interview_date);
 CREATE INDEX IF NOT EXISTS idx_interview_cand ON interviews(candidate_id);
+
+-- =============================================================
+-- 24. CẤU HÌNH THANG BẢNG LƯƠNG & QUY CHẾ (Salary Configs)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS salary_configs (
+    id           SERIAL PRIMARY KEY,
+    config_key   VARCHAR(50) NOT NULL UNIQUE,
+    config_value VARCHAR(255) NOT NULL,
+    description  TEXT,
+    updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =============================================================
+-- 25. KHẤU TRỪ & TẠM ỨNG LƯƠNG (Salary Deductions)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS salary_deductions (
+    id             SERIAL PRIMARY KEY,
+    employee_id    INTEGER NOT NULL REFERENCES employees(id),
+    deduction_type VARCHAR(50) NOT NULL, -- ADVANCE | UNION_FEE | DISCIPLINE | OTHER
+    amount         NUMERIC(15,0) NOT NULL DEFAULT 0,
+    pay_month      INTEGER NOT NULL,
+    pay_year       INTEGER NOT NULL,
+    description    TEXT,
+    created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_deductions_employee ON salary_deductions(employee_id);
+CREATE INDEX IF NOT EXISTS idx_deductions_period   ON salary_deductions(pay_month, pay_year);

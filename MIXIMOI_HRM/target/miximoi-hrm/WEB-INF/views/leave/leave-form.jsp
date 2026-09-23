@@ -68,6 +68,28 @@
                                 </div>
 
                                 <div class="row g-3">
+                                    <!-- Nhân viên xin nghỉ -->
+                                    <div class="col-12">
+                                        <label class="form-label-custom">
+                                            Nhân viên xin nghỉ <span class="required-mark">*</span>
+                                        </label>
+                                        <c:choose>
+                                            <c:when test="${sessionScope.currentUser.employee and not sessionScope.currentUser.admin and not sessionScope.currentUser.hr and not sessionScope.currentUser.manager}">
+                                                <input type="hidden" name="employeeId" value="${sessionScope.currentUser.employeeId}">
+                                                <input type="text" class="form-control form-control-custom" value="${sessionScope.currentUser.fullName} (${sessionScope.currentUser.username})" readonly style="background:#f1f5f9;">
+                                            </c:when>
+                                            <c:otherwise>
+                                                <select name="employeeId" class="form-select form-select-custom" required>
+                                                    <c:forEach var="e" items="${employees}">
+                                                        <option value="${e.id}" ${e.id == sessionScope.currentUser.employeeId ? 'selected' : ''}>
+                                                            ${e.fullName} (${e.employeeCode}) — ${e.departmentName}
+                                                        </option>
+                                                    </c:forEach>
+                                                </select>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </div>
+
                                     <div class="col-12">
                                         <label class="form-label-custom">
                                             Loại nghỉ phép <span class="required-mark">*</span>
@@ -99,13 +121,24 @@
                                         <div class="invalid-feedback" style="font-size:0.75rem">Vui lòng chọn ngày kết thúc nghỉ.</div>
                                     </div>
 
+                                    <input type="hidden" name="days" id="leaveDaysInput" value="1">
+
                                     <div class="col-12">
                                         <div class="p-3 bg-light rounded-3 d-flex justify-content-between align-items-center border">
                                             <span class="text-secondary fw-semibold" style="font-size:0.86rem">
                                                 <i class="bi bi-clock-history text-primary me-1"></i> Ước tính số ngày nghỉ:
                                             </span>
-                                            <span id="estimatedDays" class="badge bg-primary fs-6 px-3 py-2 font-monospace">0 ngày</span>
+                                            <span id="estimatedDays" class="badge bg-primary fs-6 px-3 py-2 font-monospace">1 ngày</span>
                                         </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label-custom">
+                                            Người nhận bàn giao công việc <span class="required-mark">*</span>
+                                        </label>
+                                        <input type="text" class="form-control form-control-custom" name="handoverPerson" required
+                                               placeholder="Họ tên người nhận bàn giao công việc — Số điện thoại liên hệ...">
+                                        <div class="invalid-feedback" style="font-size:0.75rem">Vui lòng nhập người nhận bàn giao công việc.</div>
                                     </div>
 
                                     <div class="col-12">

@@ -14,8 +14,8 @@ public class PayrollDAO {
 
     private static final String BASE_SELECT =
         "SELECT pr.id, pr.employee_id, e.employee_code, e.full_name, "
-      + "d.name AS department_name, pr.pay_month, pr.pay_year, "
-      + "pr.base_salary, pr.working_days, pr.standard_days, "
+      + "d.name AS department_name, pos.name AS position_name, e.bank_account, e.bank_name, "
+      + "pr.pay_month, pr.pay_year, pr.base_salary, pr.working_days, pr.standard_days, "
       + "pr.overtime_amount, pr.allowance, pr.bonus, pr.deduction, pr.net_salary, "
       + "pr.status, pr.created_by_id, pr.approved_by_id, "
       + "COALESCE(approver.full_name,'') AS approved_by_name, "
@@ -23,6 +23,7 @@ public class PayrollDAO {
       + "FROM payroll pr "
       + "JOIN employees e ON pr.employee_id = e.id "
       + "LEFT JOIN departments d ON e.department_id = d.id "
+      + "LEFT JOIN positions pos ON e.position_id = pos.id "
       + "LEFT JOIN employees approver ON pr.approved_by_id = approver.id ";
 
     public List<Payroll> findByPeriod(int month, int year) {
@@ -132,6 +133,158 @@ public class PayrollDAO {
         return java.math.BigDecimal.ZERO;
     }
 
+    /** Đếm số bảng lương theo trạng thái trong kỳ */
+    public int countByStatus(int month, int year, String status) {
+        String sql = "SELECT COUNT(*) FROM payroll WHERE pay_month=? AND pay_year=? AND status=?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            ps.setString(3, status);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("PayrollDAO.countByStatus lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /** Lương thực lĩnh trung bình trong kỳ */
+    public java.math.BigDecimal avgNetSalaryByPeriod(int month, int year) {
+        String sql = "SELECT COALESCE(AVG(net_salary), 0) FROM payroll WHERE pay_month=? AND pay_year=? AND status != 'DRAFT'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getBigDecimal(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("PayrollDAO.avgNetSalaryByPeriod lỗi: " + e.getMessage());
+        }
+        return java.math.BigDecimal.ZERO;
+    }
+
+    /** Tổng số nhân viên có bảng lương trong kỳ */
+    public int countEmployeesByPeriod(int month, int year) {
+        String sql = "SELECT COUNT(DISTINCT employee_id) FROM payroll WHERE pay_month=? AND pay_year=?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("PayrollDAO.countEmployeesByPeriod lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public List<Payroll> search(int month, int year, Integer deptId, String status, String keyword, int offset, int limit) {
+        List<Payroll> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(BASE_SELECT + "WHERE pr.pay_month = ? AND pr.pay_year = ? ");
+
+        if (deptId != null && deptId > 0) {
+            sql.append("AND e.department_id = ? ");
+        }
+        if (status != null && !status.trim().isEmpty() && !"ALL".equalsIgnoreCase(status)) {
+            sql.append("AND pr.status = ? ");
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("AND (LOWER(e.full_name) LIKE ? OR LOWER(e.employee_code) LIKE ?) ");
+        }
+        sql.append("ORDER BY e.employee_code ASC ");
+        if (limit > 0) {
+            sql.append("OFFSET ? LIMIT ?");
+        }
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int idx = 1;
+            ps.setInt(idx++, month);
+            ps.setInt(idx++, year);
+            if (deptId != null && deptId > 0) {
+                ps.setInt(idx++, deptId);
+            }
+            if (status != null && !status.trim().isEmpty() && !"ALL".equalsIgnoreCase(status)) {
+                ps.setString(idx++, status.trim());
+            }
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                String kw = "%" + keyword.trim().toLowerCase() + "%";
+                ps.setString(idx++, kw);
+                ps.setString(idx++, kw);
+            }
+            if (limit > 0) {
+                ps.setInt(idx++, offset);
+                ps.setInt(idx++, limit);
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("PayrollDAO.search error: " + e.getMessage());
+        }
+        return list;
+    }
+
+    public int countSearch(int month, int year, Integer deptId, String status, String keyword) {
+        StringBuilder sql = new StringBuilder(
+            "SELECT COUNT(*) FROM payroll pr "
+          + "JOIN employees e ON pr.employee_id = e.id "
+          + "WHERE pr.pay_month = ? AND pr.pay_year = ? ");
+
+        if (deptId != null && deptId > 0) {
+            sql.append("AND e.department_id = ? ");
+        }
+        if (status != null && !status.trim().isEmpty() && !"ALL".equalsIgnoreCase(status)) {
+            sql.append("AND pr.status = ? ");
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("AND (LOWER(e.full_name) LIKE ? OR LOWER(e.employee_code) LIKE ?) ");
+        }
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int idx = 1;
+            ps.setInt(idx++, month);
+            ps.setInt(idx++, year);
+            if (deptId != null && deptId > 0) {
+                ps.setInt(idx++, deptId);
+            }
+            if (status != null && !status.trim().isEmpty() && !"ALL".equalsIgnoreCase(status)) {
+                ps.setString(idx++, status.trim());
+            }
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                String kw = "%" + keyword.trim().toLowerCase() + "%";
+                ps.setString(idx++, kw);
+                ps.setString(idx++, kw);
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("PayrollDAO.countSearch error: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public boolean deleteByPeriod(int month, int year) {
+        String sql = "DELETE FROM payroll WHERE pay_month = ? AND pay_year = ? AND status = 'DRAFT'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            return ps.executeUpdate() >= 0;
+        } catch (SQLException e) {
+            System.err.println("PayrollDAO.deleteByPeriod error: " + e.getMessage());
+        }
+        return false;
+    }
+
     private Payroll mapRow(ResultSet rs) throws SQLException {
         Payroll pr = new Payroll();
         pr.setId(rs.getInt("id"));
@@ -139,6 +292,11 @@ public class PayrollDAO {
         pr.setEmployeeCode(rs.getString("employee_code"));
         pr.setEmployeeName(rs.getString("full_name"));
         pr.setDepartmentName(rs.getString("department_name"));
+        try {
+            pr.setPositionName(rs.getString("position_name"));
+            pr.setBankAccount(rs.getString("bank_account"));
+            pr.setBankName(rs.getString("bank_name"));
+        } catch (SQLException ignored) {}
         pr.setPayMonth(rs.getInt("pay_month"));
         pr.setPayYear(rs.getInt("pay_year"));
         pr.setBaseSalary(rs.getBigDecimal("base_salary"));

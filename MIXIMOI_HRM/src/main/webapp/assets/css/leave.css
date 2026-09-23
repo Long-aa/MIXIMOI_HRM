@@ -220,10 +220,13 @@
             display: inline-block; padding: 4px 8px; border-radius: 6px;
             font-size: 0.73rem; font-weight: 600; line-height: 1.3; text-align: center;
         }
-        .badge-leave-annual  { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-        .badge-leave-sick    { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
-        .badge-leave-unpaid  { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
-        .badge-leave-wedding { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
+        .badge-leave-annual    { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+        .badge-leave-sick      { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+        .badge-leave-unpaid    { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+        .badge-leave-wedding   { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
+        .badge-leave-personal  { background: #fefce8; color: #b45309; border: 1px solid #fde68a; }
+        .badge-leave-maternity { background: #fdf4ff; color: #9333ea; border: 1px solid #f5d0fe; }
+        .badge-leave-default   { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
 
         /* Dates & Handover */
         .ldate-main { font-weight: 700; color: #1e293b; font-size: 0.82rem; }
@@ -270,6 +273,24 @@
         }
         .policy-title { font-size: 0.88rem; font-weight: 800; color: #0f172a; margin-bottom: 1px; }
         .policy-desc  { font-size: 0.77rem; color: #475569; margin: 0; }
+
+        /* Balance & Policy Tab Headers & Badges */
+        .table-card-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 1rem 1.25rem; border-bottom: 1.5px solid #f1f5f9;
+        }
+        .table-card-title {
+            font-size: 1rem; font-weight: 800; color: #0f172a; margin: 0;
+            display: flex; align-items: center;
+        }
+        .bg-primary-soft {
+            background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;
+            font-weight: 600; font-size: 0.78rem; padding: 4px 10px; border-radius: 999px;
+        }
+        .emp-code {
+            font-size: 0.78rem; font-weight: 700; color: #2563eb;
+            background: #eff6ff; padding: 2px 7px; border-radius: 6px; font-family: monospace;
+        }
 
         @media (max-width: 1200px) {
             .leave-middle-grid { grid-template-columns: 1fr; }

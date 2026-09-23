@@ -213,13 +213,35 @@ public class LeaveServlet extends HttpServlet {
                     }
                 }
 
-                // ===== Weekly Absences cho Lịch tuần =====
-                java.time.LocalDate weekStart = java.time.LocalDate.now()
+                // ===== Weekly Absences & Schedule cho Lịch tuần =====
+                java.time.LocalDate todayDate = java.time.LocalDate.now();
+                java.time.LocalDate weekStart = todayDate
                         .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
                 java.time.LocalDate weekEnd = weekStart.plusDays(4); // T2 -> T6
                 java.util.Map<java.time.LocalDate, Integer> weeklyAbsences =
                         leaveDAO.getWeeklyAbsences(weekStart, weekEnd);
                 request.setAttribute("weeklyAbsences", weeklyAbsences);
+
+                int weekNum = todayDate.get(java.time.temporal.WeekFields.of(java.util.Locale.getDefault()).weekOfWeekBasedYear());
+                java.time.format.DateTimeFormatter df = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                request.setAttribute("weekStartFmt", weekStart.format(df));
+                request.setAttribute("weekEndFmt", weekEnd.format(df));
+                request.setAttribute("weekNum", weekNum);
+
+                java.util.List<java.util.Map<String, Object>> weeklySchedule = new java.util.ArrayList<>();
+                String[] dayLabels = {"T2", "T3", "T4", "T5", "T6"};
+                for (int i = 0; i < 5; i++) {
+                    java.time.LocalDate curDate = weekStart.plusDays(i);
+                    java.util.Map<String, Object> dayMap = new java.util.HashMap<>();
+                    dayMap.put("dayLabel", dayLabels[i]);
+                    dayMap.put("dayNum", curDate.getDayOfMonth());
+                    dayMap.put("dateStr", curDate.format(df));
+                    dayMap.put("isToday", curDate.equals(todayDate));
+                    int count = (weeklyAbsences != null) ? weeklyAbsences.getOrDefault(curDate, 0) : 0;
+                    dayMap.put("absenceCount", count);
+                    weeklySchedule.add(dayMap);
+                }
+                request.setAttribute("weeklySchedule", weeklySchedule);
 
                 // ===== Tab Balance: Tồn phép nhân viên =====
                 if ("balance".equalsIgnoreCase(tab)) {

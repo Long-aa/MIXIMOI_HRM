@@ -37,6 +37,21 @@ public class DatabaseInitializer {
             // 5. Nạp dữ liệu Chấm công hôm nay (FaceID, Vân tay) nếu trống
             seedAttendanceIfEmpty(conn);
 
+            // 6. Nạp cấu hình thang bảng lương nếu trống
+            seedSalaryConfigsIfEmpty(conn);
+
+            // 7. Nạp phụ cấp mẫu nếu trống
+            seedAllowancesIfEmpty(conn);
+
+            // 8. Nạp thưởng mẫu nếu trống
+            seedBonusesIfEmpty(conn);
+
+            // 9. Nạp khấu trừ & tạm ứng mẫu nếu trống
+            seedSalaryDeductionsIfEmpty(conn);
+
+            // 10. Nạp bảng lương & lệnh chi mẫu nếu trống
+            seedPayrollAndPaymentsIfEmpty(conn);
+
             initialized = true;
             System.out.println("[DatabaseInitializer] Đồng bộ CSDL và dữ liệu mẫu thành công!");
         } catch (SQLException e) {
@@ -137,7 +152,28 @@ public class DatabaseInitializer {
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS emergency_contact_relation VARCHAR(50)",
             // Ngày kết thúc/thôi việc
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS end_date DATE",
-            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS termination_reason TEXT"
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS termination_reason TEXT",
+
+            // Bảng cấu hình lương & quy chế
+            "CREATE TABLE IF NOT EXISTS salary_configs ("
+            + "id SERIAL PRIMARY KEY, config_key VARCHAR(50) NOT NULL UNIQUE, "
+            + "config_value VARCHAR(255) NOT NULL, description TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)",
+
+            // Bảng khấu trừ & tạm ứng
+            "CREATE TABLE IF NOT EXISTS salary_deductions ("
+            + "id SERIAL PRIMARY KEY, employee_id INTEGER NOT NULL REFERENCES employees(id), "
+            + "deduction_type VARCHAR(50) NOT NULL, amount NUMERIC(15,0) NOT NULL DEFAULT 0, "
+            + "pay_month INTEGER NOT NULL, pay_year INTEGER NOT NULL, description TEXT, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+
+            // Bảng allowances: đảm bảo đủ các cột active, start_date, end_date
+            "ALTER TABLE allowances ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE",
+            "ALTER TABLE allowances ADD COLUMN IF NOT EXISTS start_date DATE DEFAULT CURRENT_DATE",
+            "ALTER TABLE allowances ADD COLUMN IF NOT EXISTS end_date DATE",
+
+            // Bảng bonuses: đảm bảo đủ các cột pay_month, pay_year, notes
+            "ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS pay_month INTEGER",
+            "ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS pay_year INTEGER",
+            "ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS notes TEXT"
         };
 
         for (String sql : alterSqls) {
@@ -508,6 +544,207 @@ public class DatabaseInitializer {
             ps.setDate(2, Date.valueOf(today));
             ps.executeUpdate();
         }
+    }
+
+    private static void seedSalaryConfigsIfEmpty(Connection conn) throws SQLException {
+        String countSql = "SELECT COUNT(*) FROM salary_configs";
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(countSql)) {
+            if (rs.next() && rs.getInt(1) > 0) return;
+        }
+
+        String insertSql = "INSERT INTO salary_configs (config_key, config_value, description) VALUES (?, ?, ?) "
+                         + "ON CONFLICT (config_key) DO NOTHING";
+        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            Object[][] configs = {
+                {"BASE_SALARY_LEVEL", "2340000", "Mức lương cơ sở hiện hành theo NĐ 73/2024/NĐ-CP (VNĐ/tháng)"},
+                {"PERSONAL_DEDUCTION", "11000000", "Mức giảm trừ gia cảnh cho bản thân người nộp thuế (VNĐ/tháng)"},
+                {"DEPENDENT_DEDUCTION", "4400000", "Mức giảm trừ gia cảnh cho mỗi người phụ thuộc (VNĐ/tháng)"},
+                {"BHXH_RATE", "0.08", "Tỷ lệ đóng BHXH của người lao động (8%)"},
+                {"BHYT_RATE", "0.015", "Tỷ lệ đóng BHYT của người lao động (1.5%)"},
+                {"BHTN_RATE", "0.01", "Tỷ lệ đóng BHTN của người lao động (1%)"},
+                {"MAX_INSURANCE_SALARY", "46800000", "Mức trần tiền lương đóng BHXH, BHYT (20 lần lương cơ sở)"},
+                {"STANDARD_WORKING_DAYS", "22", "Số ngày làm việc tiêu chuẩn trong tháng"}
+            };
+            for (Object[] c : configs) {
+                ps.setString(1, (String) c[0]);
+                ps.setString(2, (String) c[1]);
+                ps.setString(3, (String) c[2]);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            System.out.println("[DatabaseInitializer] Đã nạp cấu hình thang bảng lương mặc định!");
+        }
+    }
+
+    private static void seedAllowancesIfEmpty(Connection conn) throws SQLException {
+        String countSql = "SELECT COUNT(*) FROM allowances";
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(countSql)) {
+            if (rs.next() && rs.getInt(1) > 0) return;
+        }
+
+        String insertSql = "INSERT INTO allowances (employee_id, name, amount, start_date, active) VALUES (?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            Object[][] list = {
+                {1, "Phụ cấp trách nhiệm quản lý", new BigDecimal("3000000"), LocalDate.of(2026, 1, 1), true},
+                {1, "Phụ cấp ăn trưa", new BigDecimal("730000"), LocalDate.of(2026, 1, 1), true},
+                {2, "Phụ cấp trách nhiệm quản lý", new BigDecimal("2500000"), LocalDate.of(2026, 1, 1), true},
+                {2, "Phụ cấp ăn trưa", new BigDecimal("730000"), LocalDate.of(2026, 1, 1), true},
+                {3, "Phụ cấp ăn trưa", new BigDecimal("730000"), LocalDate.of(2026, 1, 1), true},
+                {3, "Xăng xe & đi lại", new BigDecimal("500000"), LocalDate.of(2026, 1, 1), true},
+                {4, "Phụ cấp ăn trưa", new BigDecimal("730000"), LocalDate.of(2026, 1, 1), true},
+                {4, "Xăng xe & đi lại", new BigDecimal("500000"), LocalDate.of(2026, 1, 1), true},
+                {4, "Điện thoại viễn thông", new BigDecimal("300000"), LocalDate.of(2026, 1, 1), true},
+                {5, "Phụ cấp ăn trưa", new BigDecimal("730000"), LocalDate.of(2026, 1, 1), true},
+                {5, "Xăng xe & đi lại", new BigDecimal("500000"), LocalDate.of(2026, 1, 1), true},
+                {6, "Phụ cấp ăn trưa", new BigDecimal("730000"), LocalDate.of(2026, 1, 1), true},
+                {7, "Phụ cấp ăn trưa", new BigDecimal("730000"), LocalDate.of(2026, 1, 1), true}
+            };
+            for (Object[] item : list) {
+                ps.setInt(1, (Integer) item[0]);
+                ps.setString(2, (String) item[1]);
+                ps.setBigDecimal(3, (BigDecimal) item[2]);
+                ps.setDate(4, Date.valueOf((LocalDate) item[3]));
+                ps.setBoolean(5, (Boolean) item[4]);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            System.out.println("[DatabaseInitializer] Đã nạp danh sách phụ cấp mẫu vào PostgreSQL!");
+        }
+    }
+
+    private static void seedBonusesIfEmpty(Connection conn) throws SQLException {
+        String countSql = "SELECT COUNT(*) FROM bonuses";
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(countSql)) {
+            if (rs.next() && rs.getInt(1) > 0) return;
+        }
+
+        String insertSql = "INSERT INTO bonuses (employee_id, name, amount, bonus_date, pay_month, pay_year, notes) "
+                         + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            Object[][] list = {
+                {1, "Thưởng hiệu suất KPI xuất sắc Q3", new BigDecimal("5000000"), LocalDate.of(2026, 9, 20), 9, 2026, "Hoàn thành vượt 130% chỉ tiêu OKR quý"},
+                {2, "Thưởng hoàn thành tuyển dụng trọng điểm", new BigDecimal("3000000"), LocalDate.of(2026, 9, 21), 9, 2026, "Tuyển dụng thành công 5 Senior Tech Leads"},
+                {3, "Thưởng KPI phòng Kế toán T9", new BigDecimal("2000000"), LocalDate.of(2026, 9, 22), 9, 2026, "Quyết toán thuế đúng tiến độ"},
+                {4, "Thưởng Dự án Core Banking v4.2", new BigDecimal("4500000"), LocalDate.of(2026, 9, 22), 9, 2026, "Hoàn thành sprint đúng hạn không lỗi"},
+                {5, "Thưởng Doanh số B2B tháng 9", new BigDecimal("6000000"), LocalDate.of(2026, 9, 23), 9, 2026, "Ký kết 3 hợp đồng giải pháp lớn"},
+                {6, "Thưởng Chiến dịch Marketing Viral", new BigDecimal("2500000"), LocalDate.of(2026, 9, 18), 9, 2026, "Đạt 200k lượt tương tác truyền thông"},
+                {7, "Thưởng tiến độ kiểm thử QA", new BigDecimal("1500000"), LocalDate.of(2026, 9, 20), 9, 2026, "Đạt 100% test coverage sprint 44"}
+            };
+            for (Object[] item : list) {
+                ps.setInt(1, (Integer) item[0]);
+                ps.setString(2, (String) item[1]);
+                ps.setBigDecimal(3, (BigDecimal) item[2]);
+                ps.setDate(4, Date.valueOf((LocalDate) item[3]));
+                ps.setInt(5, (Integer) item[4]);
+                ps.setInt(6, (Integer) item[5]);
+                ps.setString(7, (String) item[6]);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            System.out.println("[DatabaseInitializer] Đã nạp danh sách Khen thưởng mẫu vào PostgreSQL!");
+        }
+    }
+
+    private static void seedSalaryDeductionsIfEmpty(Connection conn) throws SQLException {
+        String countSql = "SELECT COUNT(*) FROM salary_deductions";
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(countSql)) {
+            if (rs.next() && rs.getInt(1) > 0) return;
+        }
+
+        String insertSql = "INSERT INTO salary_deductions (employee_id, deduction_type, amount, pay_month, pay_year, description) "
+                         + "VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            Object[][] list = {
+                {4, "ADVANCE", new BigDecimal("2000000"), 9, 2026, "Tạm ứng lương giữa tháng — Đơn duyệt ngày 15/09"},
+                {5, "ADVANCE", new BigDecimal("3000000"), 9, 2026, "Tạm ứng chi phí công tác đối tác Hà Nội"},
+                {7, "UNION_FEE", new BigDecimal("100000"), 9, 2026, "Đoàn phí Công đoàn kỳ T09/2026"}
+            };
+            for (Object[] item : list) {
+                ps.setInt(1, (Integer) item[0]);
+                ps.setString(2, (String) item[1]);
+                ps.setBigDecimal(3, (BigDecimal) item[2]);
+                ps.setInt(4, (Integer) item[3]);
+                ps.setInt(5, (Integer) item[4]);
+                ps.setString(6, (String) item[5]);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            System.out.println("[DatabaseInitializer] Đã nạp danh sách Khấu trừ/Tạm ứng mẫu vào PostgreSQL!");
+        }
+    }
+
+    private static void seedPayrollAndPaymentsIfEmpty(Connection conn) throws SQLException {
+        String countSql = "SELECT COUNT(*) FROM payroll WHERE pay_month = 9 AND pay_year = 2026";
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(countSql)) {
+            if (rs.next() && rs.getInt(1) > 0) return;
+        }
+
+        // Lấy danh sách nhân viên có hợp đồng
+        String empSql = "SELECT e.id, c.base_salary "
+                      + "FROM employees e "
+                      + "JOIN contracts c ON e.id = c.employee_id "
+                      + "WHERE e.status = 'ACTIVE' AND c.status = 'ACTIVE' "
+                      + "ORDER BY e.id LIMIT 10";
+
+        List<Object[]> activeEmps = new ArrayList<>();
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(empSql)) {
+            while (rs.next()) {
+                activeEmps.add(new Object[]{rs.getInt("id"), rs.getBigDecimal("base_salary")});
+            }
+        }
+
+        if (activeEmps.isEmpty()) return;
+
+        String insertPayrollSql = "INSERT INTO payroll (employee_id, pay_month, pay_year, base_salary, working_days, standard_days, "
+                                + "overtime_amount, allowance, bonus, deduction, net_salary, status, created_by_id, approved_by_id, approved_at) "
+                                + "VALUES (?, 9, 2026, ?, 22.0, 22.0, ?, ?, ?, ?, ?, ?, 1, 1, CURRENT_TIMESTAMP) "
+                                + "RETURNING id, employee_id, net_salary, status";
+
+        String insertPaymentSql = "INSERT INTO payments (payroll_id, employee_id, amount, payment_date, payment_method, status, notes) "
+                                + "VALUES (?, ?, ?, CURRENT_DATE, 'BANK_TRANSFER', 'COMPLETED', 'Thanh toán lương chuyển khoản H2H Napas')";
+
+        for (int i = 0; i < activeEmps.size(); i++) {
+            int empId = (Integer) activeEmps.get(i)[0];
+            BigDecimal base = (BigDecimal) activeEmps.get(i)[1];
+            BigDecimal ot = i % 2 == 0 ? new BigDecimal("1500000") : BigDecimal.ZERO;
+            BigDecimal allow = new BigDecimal("1230000");
+            BigDecimal bonus = (i == 0 || i == 3) ? new BigDecimal("3000000") : BigDecimal.ZERO;
+            BigDecimal bh = base.multiply(new BigDecimal("0.105")).setScale(0, java.math.RoundingMode.HALF_UP);
+            BigDecimal tax = base.compareTo(new BigDecimal("15000000")) > 0 ? new BigDecimal("750000") : BigDecimal.ZERO;
+            BigDecimal deduction = bh.add(tax);
+            BigDecimal net = base.add(ot).add(allow).add(bonus).subtract(deduction);
+            String status = i < 3 ? "PAID" : (i < 7 ? "APPROVED" : "DRAFT");
+
+            try (PreparedStatement psPr = conn.prepareStatement(insertPayrollSql)) {
+                psPr.setInt(1, empId);
+                psPr.setBigDecimal(2, base);
+                psPr.setBigDecimal(3, ot);
+                psPr.setBigDecimal(4, allow);
+                psPr.setBigDecimal(5, bonus);
+                psPr.setBigDecimal(6, deduction);
+                psPr.setBigDecimal(7, net);
+                psPr.setString(8, status);
+
+                try (ResultSet rsPr = psPr.executeQuery()) {
+                    if (rsPr.next() && "PAID".equals(status)) {
+                        int prId = rsPr.getInt("id");
+                        try (PreparedStatement psPay = conn.prepareStatement(insertPaymentSql)) {
+                            psPay.setInt(1, prId);
+                            psPay.setInt(2, empId);
+                            psPay.setBigDecimal(3, net);
+                            psPay.executeUpdate();
+                        }
+                    }
+                }
+            }
+        }
+        System.out.println("[DatabaseInitializer] Đã nạp dữ liệu Bảng lương và Lệnh chi kỳ T09/2026 mẫu!");
     }
 }
 

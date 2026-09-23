@@ -13,6 +13,9 @@ public class Payroll {
     private String employeeCode;      // Dùng cho hiển thị
     private String employeeName;      // Dùng cho hiển thị
     private String departmentName;    // Dùng cho hiển thị
+    private String positionName;      // Dùng cho hiển thị
+    private String bankAccount;       // Dùng cho lệnh chi & phiếu lương
+    private String bankName;          // Dùng cho lệnh chi & phiếu lương
     private int payMonth;             // Tháng kỳ lương (1-12)
     private int payYear;              // Năm kỳ lương
     private BigDecimal baseSalary;    // Lương cơ bản
@@ -49,6 +52,15 @@ public class Payroll {
 
     public String getDepartmentName() { return departmentName; }
     public void setDepartmentName(String departmentName) { this.departmentName = departmentName; }
+
+    public String getPositionName() { return positionName; }
+    public void setPositionName(String positionName) { this.positionName = positionName; }
+
+    public String getBankAccount() { return bankAccount; }
+    public void setBankAccount(String bankAccount) { this.bankAccount = bankAccount; }
+
+    public String getBankName() { return bankName; }
+    public void setBankName(String bankName) { this.bankName = bankName; }
 
     public int getPayMonth() { return payMonth; }
     public void setPayMonth(int payMonth) { this.payMonth = payMonth; }

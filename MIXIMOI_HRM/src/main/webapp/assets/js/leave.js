@@ -290,12 +290,13 @@ function confirmApprove(id, code) {
     }
 }
 
-// Auto calculate days in Leave Form
+// Auto calculate days in Leave Form & Modal
 function calculateLeaveDays() {
     var startInput = document.querySelector('input[name="startDate"]');
     var endInput = document.querySelector('input[name="endDate"]');
     var daysInput = document.querySelector('input[name="days"]');
-    if (startInput && endInput && daysInput && startInput.value && endInput.value) {
+    var estBadge = document.getElementById('estimatedDays');
+    if (startInput && endInput && startInput.value && endInput.value) {
         var d1 = new Date(startInput.value);
         var d2 = new Date(endInput.value);
         if (d2 >= d1) {
@@ -308,7 +309,11 @@ function calculateLeaveDays() {
                 }
                 cur.setDate(cur.getDate() + 1);
             }
-            daysInput.value = Math.max(1, count);
+            var days = Math.max(1, count);
+            if (daysInput) daysInput.value = days;
+            if (estBadge) estBadge.textContent = days + ' ngày';
+            var modalDays = document.getElementById('leaveDaysCalculated');
+            if (modalDays) modalDays.value = days;
         }
     }
 }
