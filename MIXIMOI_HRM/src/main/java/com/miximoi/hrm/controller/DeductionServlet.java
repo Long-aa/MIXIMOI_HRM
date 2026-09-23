@@ -6,7 +6,10 @@ import com.miximoi.hrm.dao.PayrollDAO;
 import com.miximoi.hrm.dao.SalaryDeductionDAO;
 import com.miximoi.hrm.model.Department;
 import com.miximoi.hrm.model.Employee;
+import com.miximoi.hrm.model.Payroll;
 import com.miximoi.hrm.model.SalaryDeduction;
+import com.miximoi.hrm.model.User;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -42,6 +45,12 @@ public class DeductionServlet extends HttpServlet {
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
 
+        User user = (User) request.getSession().getAttribute("currentUser");
+        if (!user.isAdmin() && !user.isAccountant() && !user.isHr()) {
+            response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+            return;
+        }
+
         LocalDate now = LocalDate.now();
         String mStr = request.getParameter("month");
         String yStr = request.getParameter("year");
@@ -55,6 +64,9 @@ public class DeductionServlet extends HttpServlet {
         // Danh sách khấu trừ (tạm ứng, vi phạm…)
         List<SalaryDeduction> deductionList = deductionDAO.findByPeriod(month, year, deptId, keyword);
 
+        // Danh sách bảng lương chi tiết cho tháng (để hiển thị bảng chi tiết khấu trừ từng nhân sự)
+        List<Payroll> payrolls = payrollDAO.search(month, year, deptId, null, keyword, 0, 0);
+
         // KPI: tính BHXH/BHYT/BHTN từ tổng lương cơ bản trong kỳ
         BigDecimal totalNetSalary = payrollDAO.sumNetSalaryByPeriod(month, year);
         // Ước tính BHXH/BHYT/BHTN: dùng tổng net salary làm proxy (đây là tổng đóng phía NLĐ)
@@ -67,14 +79,21 @@ public class DeductionServlet extends HttpServlet {
         BigDecimal totalAdvance = deductionDAO.sumAdvanceByPeriod(month, year);
         int        advanceCases = deductionDAO.countAdvanceCases(month, year);
 
-        // Tổng tất cả khoản khấu trừ trong kỳ
-        BigDecimal totalAllDeductions = totalInsurance.add(totalAdvance);
+        // Tổng tất cả khoản khấu trừ trong kỳ: ưu tiên lấy từ thực tế bảng lương nếu đã có
+        BigDecimal totalPayrollDeduction = payrollDAO.sumDeductionByPeriod(month, year);
+        BigDecimal totalAllDeductions;
+        if (totalPayrollDeduction != null && totalPayrollDeduction.compareTo(BigDecimal.ZERO) > 0) {
+            totalAllDeductions = totalPayrollDeduction;
+        } else {
+            totalAllDeductions = totalInsurance.add(totalAdvance);
+        }
 
         List<Department> departments = departmentDAO.findAll();
         List<Employee>   employees   = employeeDAO.findAll();
 
         request.setAttribute("activeMenu",        "deductions");
         request.setAttribute("deductionList",     deductionList);
+        request.setAttribute("payrolls",          payrolls);
         request.setAttribute("totalBhxh",         totalBhxh);
         request.setAttribute("totalBhyt",         totalBhyt);
         request.setAttribute("totalBhtn",         totalBhtn);
@@ -103,6 +122,13 @@ public class DeductionServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
+
+        User user = (User) request.getSession().getAttribute("currentUser");
+        if (!user.isAdmin() && !user.isAccountant() && !user.isHr()) {
+            response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+            return;
+        }
+
         request.setCharacterEncoding("UTF-8");
 
         String action = request.getParameter("action");
@@ -118,10 +144,25 @@ public class DeductionServlet extends HttpServlet {
 
         try {
             if ("add".equalsIgnoreCase(action)) {
+                String empIdStr = request.getParameter("employeeId");
+                String dtype = request.getParameter("deductionType");
+                String amtStr = request.getParameter("amount");
+
+                if (empIdStr == null || empIdStr.isEmpty() || dtype == null || dtype.trim().isEmpty() || amtStr == null) {
+                    response.sendRedirect(request.getContextPath() + "/deductions?month=" + month + "&year=" + year + "&error=missing_fields");
+                    return;
+                }
+
+                BigDecimal amount = new BigDecimal(amtStr.replaceAll("[^0-9]", ""));
+                if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                    response.sendRedirect(request.getContextPath() + "/deductions?month=" + month + "&year=" + year + "&error=invalid_amount");
+                    return;
+                }
+
                 SalaryDeduction d = new SalaryDeduction();
-                d.setEmployeeId(Integer.parseInt(request.getParameter("employeeId")));
-                d.setDeductionType(request.getParameter("deductionType"));
-                d.setAmount(new BigDecimal(request.getParameter("amount").replaceAll("[^0-9]", "")));
+                d.setEmployeeId(Integer.parseInt(empIdStr));
+                d.setDeductionType(dtype.trim());
+                d.setAmount(amount);
                 d.setPayMonth(month);
                 d.setPayYear(year);
                 d.setDescription(request.getParameter("description"));

@@ -27,6 +27,12 @@ public class SalaryConfigServlet extends HttpServlet {
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
 
+        User user = (User) request.getSession().getAttribute("currentUser");
+        if (!user.isAdmin() && !user.isAccountant()) {
+            response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+            return;
+        }
+
         // Đọc tất cả tham số cấu hình từ DB
         List<SalaryConfig> configs = configDAO.getAllConfigs();
 
@@ -38,6 +44,7 @@ public class SalaryConfigServlet extends HttpServlet {
         String bhytRate          = configDAO.getByKey("bhyt_rate",           "0.015");
         String bhtnRate          = configDAO.getByKey("bhtn_rate",           "0.01");
         String bhCeiling         = configDAO.getByKey("insurance_ceiling",   "46800000");
+        String standardDays      = configDAO.getByKey("standard_working_days", "22");
 
         request.setAttribute("activeMenu",         "salary-config");
         request.setAttribute("configs",            configs);
@@ -48,6 +55,7 @@ public class SalaryConfigServlet extends HttpServlet {
         request.setAttribute("bhytRate",           bhytRate);
         request.setAttribute("bhtnRate",           bhtnRate);
         request.setAttribute("bhCeiling",          bhCeiling);
+        request.setAttribute("standardDays",       standardDays);
 
         String success = request.getParameter("success");
         if (success != null) request.setAttribute("successMsg", success);
@@ -60,21 +68,47 @@ public class SalaryConfigServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
-        request.setCharacterEncoding("UTF-8");
 
-        // Cho phép ADMIN cập nhật bất kỳ config_key nào
+        User user = (User) request.getSession().getAttribute("currentUser");
+        if (!user.isAdmin() && !user.isAccountant()) {
+            response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+            return;
+        }
+
+        request.setCharacterEncoding("UTF-8");
+        String action = request.getParameter("action");
+
+        if ("delete".equalsIgnoreCase(action)) {
+            String key = request.getParameter("key");
+            if (key != null && !key.trim().isEmpty()) {
+                configDAO.deleteConfig(key.trim());
+            }
+            response.sendRedirect(request.getContextPath() + "/salary-config?success=deleted");
+            return;
+        }
+
+        if ("save_custom".equalsIgnoreCase(action)) {
+            String key = request.getParameter("configKey");
+            String val = request.getParameter("configValue");
+            String desc = request.getParameter("description");
+            if (key != null && !key.trim().isEmpty() && val != null) {
+                configDAO.updateConfig(key.trim(), val.trim(), desc);
+            }
+            response.sendRedirect(request.getContextPath() + "/salary-config?success=updated");
+            return;
+        }
+
+        // Cập nhật các tham số chính sách lương chuẩn
         String[] keys = {
             "base_salary", "personal_reduction", "dependent_reduction",
-            "bhxh_rate", "bhyt_rate", "bhtn_rate", "insurance_ceiling"
+            "bhxh_rate", "bhyt_rate", "bhtn_rate", "insurance_ceiling", "standard_working_days"
         };
 
         boolean updated = false;
         for (String key : keys) {
             String val = request.getParameter(key);
             if (val != null && !val.trim().isEmpty()) {
-                // Làm sạch: nếu là số tiền (có dấu chấm/phẩy), loại bỏ dấu phân cách ngàn
                 String cleanVal = val.trim().replaceAll(",", "").replaceAll("\\.", "");
-                // Nhưng nếu có dạng 0.08 (tỷ lệ) giữ nguyên dấu thập phân
                 if (val.trim().matches("0\\.\\d+")) cleanVal = val.trim();
                 configDAO.updateConfig(key, cleanVal);
                 updated = true;

@@ -34,10 +34,16 @@ public class SalaryConfigDAO {
     }
 
     public String getByKey(String key, String defaultValue) {
-        String sql = "SELECT config_value FROM salary_configs WHERE config_key = ?";
+        String alias = getAlias(key);
+        String sql = "SELECT config_value FROM salary_configs WHERE LOWER(config_key) = LOWER(?) "
+                   + (alias != null ? "OR LOWER(config_key) = LOWER(?) " : "")
+                   + "LIMIT 1";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, key);
+            if (alias != null) {
+                ps.setString(2, alias);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return rs.getString("config_value");
             }
@@ -45,6 +51,25 @@ public class SalaryConfigDAO {
             System.err.println("SalaryConfigDAO.getByKey error: " + e.getMessage());
         }
         return defaultValue;
+    }
+
+    private String getAlias(String key) {
+        if (key == null) return null;
+        switch (key.toLowerCase()) {
+            case "base_salary": return "BASE_SALARY_LEVEL";
+            case "base_salary_level": return "base_salary";
+            case "personal_reduction": return "PERSONAL_DEDUCTION";
+            case "personal_deduction": return "personal_reduction";
+            case "dependent_reduction": return "DEPENDENT_DEDUCTION";
+            case "dependent_deduction": return "dependent_reduction";
+            case "bhxh_rate": return "BHXH_RATE";
+            case "bhyt_rate": return "BHYT_RATE";
+            case "bhtn_rate": return "BHTN_RATE";
+            case "insurance_ceiling": return "MAX_INSURANCE_SALARY";
+            case "max_insurance_salary": return "insurance_ceiling";
+            case "standard_working_days": return "STANDARD_WORKING_DAYS";
+            default: return null;
+        }
     }
 
     public BigDecimal getBigDecimalByKey(String key, BigDecimal defaultValue) {
@@ -68,17 +93,51 @@ public class SalaryConfigDAO {
     }
 
     public boolean updateConfig(String key, String value) {
-        String sql = "INSERT INTO salary_configs (config_key, config_value, updated_at) "
-                   + "VALUES (?, ?, CURRENT_TIMESTAMP) "
+        return updateConfig(key, value, null);
+    }
+
+    public boolean updateConfig(String key, String value, String description) {
+        String sql = "INSERT INTO salary_configs (config_key, config_value, description, updated_at) "
+                   + "VALUES (?, ?, ?, CURRENT_TIMESTAMP) "
                    + "ON CONFLICT (config_key) DO UPDATE "
-                   + "SET config_value = EXCLUDED.config_value, updated_at = CURRENT_TIMESTAMP";
+                   + "SET config_value = EXCLUDED.config_value, "
+                   + "description = COALESCE(EXCLUDED.description, salary_configs.description), "
+                   + "updated_at = CURRENT_TIMESTAMP";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, key);
             ps.setString(2, value);
-            return ps.executeUpdate() > 0;
+            ps.setString(3, description);
+            int rows = ps.executeUpdate();
+
+            // Nếu có alias tương ứng thì cập nhật đồng bộ cả alias để tránh chênh lệch
+            String alias = getAlias(key);
+            if (alias != null) {
+                try (PreparedStatement psAlias = conn.prepareStatement(sql)) {
+                    psAlias.setString(1, alias);
+                    psAlias.setString(2, value);
+                    psAlias.setString(3, description);
+                    psAlias.executeUpdate();
+                } catch (Exception ignored) {}
+            }
+            return rows > 0;
         } catch (SQLException e) {
             System.err.println("SalaryConfigDAO.updateConfig error: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean deleteConfig(String key) {
+        String alias = getAlias(key);
+        String sql = "DELETE FROM salary_configs WHERE LOWER(config_key) = LOWER(?)"
+                   + (alias != null ? " OR LOWER(config_key) = LOWER(?)" : "");
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, key);
+            if (alias != null) ps.setString(2, alias);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("SalaryConfigDAO.deleteConfig error: " + e.getMessage());
         }
         return false;
     }

@@ -11,7 +11,9 @@
 
         <!-- Topbar Breadcrumb -->
         <nav class="topbar-breadcrumb d-none d-md-flex align-items-center" aria-label="breadcrumb">
-            <span class="breadcrumb-brand">MIXIMOI</span>
+            <span class="breadcrumb-brand">
+                ${not empty applicationScope.systemSettings['company_short_name'] ? applicationScope.systemSettings['company_short_name'] : 'MIXIMOI'}
+            </span>
             <i class="bi bi-chevron-right breadcrumb-separator"></i>
             <c:choose>
                 <c:when test="${activeMenu eq 'employees'}">

@@ -6,15 +6,21 @@ import com.miximoi.hrm.dao.BonusDAO;
 import com.miximoi.hrm.dao.ContractDAO;
 import com.miximoi.hrm.dao.EmployeeDAO;
 import com.miximoi.hrm.dao.OvertimeDAO;
+import com.miximoi.hrm.dao.PaymentDAO;
 import com.miximoi.hrm.dao.PayrollDAO;
 import com.miximoi.hrm.dao.SalaryConfigDAO;
 import com.miximoi.hrm.dao.SalaryDeductionDAO;
 import com.miximoi.hrm.model.Employee;
 import com.miximoi.hrm.model.Overtime;
+import com.miximoi.hrm.model.Payment;
 import com.miximoi.hrm.model.Payroll;
+import com.miximoi.hrm.util.DBConnection;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 
@@ -39,6 +45,7 @@ public class PayrollService {
     private final BonusDAO           bonusDAO        = new BonusDAO();
     private final SalaryDeductionDAO deductionDAO    = new SalaryDeductionDAO();
     private final SalaryConfigDAO    configDAO       = new SalaryConfigDAO();
+    private final PaymentDAO         paymentDAO      = new PaymentDAO();
 
     // Hằng số fallback (khi bảng salary_configs chưa có dữ liệu)
     private static final double BHXH_RATE_DEFAULT  = 0.08;
@@ -165,8 +172,100 @@ public class PayrollService {
         return payrollDAO.updateStatus(id, "APPROVED", approvedById);
     }
 
+    public int approveAll(int month, int year, int approvedById) {
+        return payrollDAO.approveAll(month, year, approvedById);
+    }
+
     public boolean markAsPaid(int id, int approvedById) {
         return payrollDAO.updateStatus(id, "PAID", approvedById);
+    }
+
+    /**
+     * Thực hiện thanh toán cho 1 bản ghi lương có giao dịch CSDL (Transaction & Rollback).
+     * Chặn chi trả trùng và lưu bản ghi vào bảng payments.
+     */
+    public boolean payPayrollSingle(int payrollId, int approvedById, String paymentMethod, String notes) {
+        Payroll pr = payrollDAO.findById(payrollId);
+        if (pr == null) return false;
+        // Chặn thanh toán trùng nếu đã PAID hoặc có giao dịch COMPLETED
+        if ("PAID".equals(pr.getStatus()) || paymentDAO.existsByPayrollId(pr.getId())) {
+            return false;
+        }
+
+        try (Connection conn = DBConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // 1. Tạo bản ghi giao dịch thanh toán
+                Payment payment = new Payment();
+                payment.setPayrollId(pr.getId());
+                payment.setEmployeeId(pr.getEmployeeId());
+                payment.setAmount(pr.getNetSalary() != null ? pr.getNetSalary() : BigDecimal.ZERO);
+                payment.setPaymentDate(LocalDate.now());
+                payment.setPaymentMethod(paymentMethod != null && !paymentMethod.isEmpty() ? paymentMethod : "BANK_TRANSFER");
+                payment.setStatus("COMPLETED");
+                String memo = notes != null && !notes.trim().isEmpty() ? notes : ("Chi lương T" + pr.getPayMonth() + "/" + pr.getPayYear() + " - " + pr.getEmployeeCode());
+                payment.setNotes(memo);
+                paymentDAO.insertWithConnection(conn, payment);
+
+                // 2. Cập nhật trạng thái bảng lương sang PAID
+                payrollDAO.updateStatusWithConnection(conn, pr.getId(), "PAID", approvedById);
+
+                conn.commit();
+                return true;
+            } catch (Exception e) {
+                conn.rollback();
+                System.err.println("PayrollService.payPayrollSingle lỗi, đã rollback: " + e.getMessage());
+                return false;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            System.err.println("PayrollService.payPayrollSingle lỗi kết nối DB: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Thực hiện thanh toán hàng loạt (Batch Disburse) tất cả bản ghi APPROVED trong kỳ.
+     * Sử dụng JDBC Transaction để đảm bảo tính toàn vẹn dữ liệu.
+     */
+    public int batchDisburse(int month, int year, int approvedById) {
+        List<Payroll> list = payrollDAO.findByPeriod(month, year);
+        if (list == null || list.isEmpty()) return 0;
+
+        int count = 0;
+        try (Connection conn = DBConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                for (Payroll pr : list) {
+                    if ("APPROVED".equals(pr.getStatus()) && !paymentDAO.existsByPayrollId(pr.getId())) {
+                        Payment payment = new Payment();
+                        payment.setPayrollId(pr.getId());
+                        payment.setEmployeeId(pr.getEmployeeId());
+                        payment.setAmount(pr.getNetSalary() != null ? pr.getNetSalary() : BigDecimal.ZERO);
+                        payment.setPaymentDate(LocalDate.now());
+                        payment.setPaymentMethod("BANK_TRANSFER");
+                        payment.setStatus("COMPLETED");
+                        payment.setNotes("Chi lương tự động kỳ T" + pr.getPayMonth() + "/" + pr.getPayYear() + " qua Napas");
+                        paymentDAO.insertWithConnection(conn, payment);
+
+                        payrollDAO.updateStatusWithConnection(conn, pr.getId(), "PAID", approvedById);
+                        count++;
+                    }
+                }
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                System.err.println("PayrollService.batchDisburse lỗi, đã rollback: " + e.getMessage());
+                return 0;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            System.err.println("PayrollService.batchDisburse lỗi kết nối: " + e.getMessage());
+            return 0;
+        }
+        return count;
     }
 
     public BigDecimal getTotalPayroll(int month, int year) {

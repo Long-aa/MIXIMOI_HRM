@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -141,7 +142,7 @@
                                             <span class="sys-info-label">Ngày khởi tạo</span>
                                             <span class="sys-info-val" id="sideCreatedDate">
                                                 <c:choose>
-                                                    <c:when test="${not empty employee and not empty employee.createdAt}"><fmt:formatDate value="${employee.createdAt}" pattern="dd/MM/yyyy"/></c:when>
+                                                    <c:when test="${not empty employee and not empty employee.createdAt}"><c:out value="${employee.createdAt.toLocalDate()}"/></c:when>
                                                     <c:otherwise>Hôm nay</c:otherwise>
                                                 </c:choose>
                                             </span>
@@ -464,11 +465,11 @@
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Dân tộc</label>
                                             <select class="form-select form-select-custom" name="ethnicity" id="ethnicity">
-                                                <option value="Kinh" selected>Kinh</option>
-                                                <option value="Tày">Tày</option>
-                                                <option value="Thái">Thái</option>
-                                                <option value="Mường">Mường</option>
-                                                <option value="Khác">Khác</option>
+                                                <option value="Kinh" ${empty employee.ethnicity or employee.ethnicity eq 'Kinh' ? 'selected' : ''}>Kinh</option>
+                                                <option value="Tày" ${employee.ethnicity eq 'Tày' ? 'selected' : ''}>Tày</option>
+                                                <option value="Thái" ${employee.ethnicity eq 'Thái' ? 'selected' : ''}>Thái</option>
+                                                <option value="Mường" ${employee.ethnicity eq 'Mường' ? 'selected' : ''}>Mường</option>
+                                                <option value="Khác" ${employee.ethnicity eq 'Khác' ? 'selected' : ''}>Khác</option>
                                             </select>
                                         </div>
 
@@ -476,23 +477,23 @@
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Tôn giáo</label>
                                             <input type="text" class="form-control form-control-custom" name="religion"
-                                                   id="religion" placeholder="Không" value="Không">
+                                                   id="religion" placeholder="Không" value="<c:out value='${not empty employee.religion ? employee.religion : \"Không\"}'/>">
                                         </div>
 
                                         <!-- Quốc tịch -->
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Quốc tịch</label>
                                             <input type="text" class="form-control form-control-custom" name="nationality"
-                                                   id="nationality" value="${not empty employee.nationality ? employee.nationality : 'Việt Nam'}">
+                                                   id="nationality" value="<c:out value='${not empty employee.nationality ? employee.nationality : \"Việt Nam\"}'/>">
                                         </div>
 
                                         <!-- Tình trạng hôn nhân -->
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Tình trạng hôn nhân</label>
-                                            <select class="form-select form-select-custom" name="maritalStatus">
-                                                <option value="SINGLE" selected>Độc thân</option>
-                                                <option value="MARRIED">Đã kết hôn</option>
-                                                <option value="OTHER">Khác</option>
+                                            <select class="form-select form-select-custom" name="maritalStatus" id="maritalStatus">
+                                                <option value="SINGLE" ${empty employee.maritalStatus or employee.maritalStatus eq 'SINGLE' ? 'selected' : ''}>Độc thân</option>
+                                                <option value="MARRIED" ${employee.maritalStatus eq 'MARRIED' ? 'selected' : ''}>Đã kết hôn</option>
+                                                <option value="OTHER" ${employee.maritalStatus eq 'OTHER' ? 'selected' : ''}>Khác</option>
                                             </select>
                                         </div>
                                     </div>
@@ -527,11 +528,22 @@
                                                  <span>Email công ty dự kiến</span>
                                                 <span class="badge bg-primary-subtle text-primary" style="font-size:0.65rem;">Tự động tạo</span>
                                             </label>
+                                            <c:set var="empEmailPrefix" value="" />
+                                            <c:if test="${not empty employee.email}">
+                                                <c:choose>
+                                                    <c:when test="${employee.email.contains('@')}">
+                                                        <c:set var="empEmailPrefix" value="${employee.email.substring(0, employee.email.indexOf('@'))}" />
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <c:set var="empEmailPrefix" value="${employee.email}" />
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </c:if>
                                             <div class="input-group">
                                                 <input type="text" class="form-control form-control-custom"
                                                        name="companyEmailPrefix" id="companyEmailPrefix"
                                                        placeholder="vd: an.nv" style="border-radius:10px 0 0 10px; border-right:none;"
-                                                       value="">
+                                                       value="<c:out value='${empEmailPrefix}'/>">
                                                 <span class="input-group-text" style="border-radius:0 10px 10px 0; background:#f1f5f9; font-size:0.85rem; font-weight:700; color:#2563eb; border-color:#e2e8f0;">@miximoi.vn</span>
                                             </div>
                                         </div>
@@ -591,7 +603,7 @@
                                             <input type="text" class="form-control form-control-custom"
                                                    name="tempAddress" id="tempAddress"
                                                    placeholder="Nơi ở hiện tại (nếu khác địa chỉ thường trú)"
-                                                   value="">
+                                                   value="<c:out value='${employee.tempAddress}'/>">
                                         </div>
                                     </div>
                                 </div>
@@ -649,6 +661,15 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Panel Step 1 Navigation Footer -->
+                            <div class="step-nav-footer mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                                <span class="text-muted small"><i class="bi bi-info-circle text-primary me-1"></i> Điền các thông tin cơ bản để tiếp tục chuyển bước.</span>
+                                <button type="button" class="btn btn-primary px-4 py-2 fw-bold d-inline-flex align-items-center gap-2" onclick="nextStep()">
+                                    <span>Tiếp tục: Bước 2 (Công việc &amp; Định biên)</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
                             </div>
 
                         </div><!-- END PANEL STEP 1 -->
@@ -741,7 +762,11 @@
                                             <select class="form-select form-select-custom" name="positionId" id="positionId" required
                                                     onchange="handlePositionChange(this.value)">
                                                 <option value="">— Chọn chức vụ phù hợp —</option>
-                                                <!-- Populated dynamically via JS matching department -->
+                                                <c:forEach var="p" items="${positions}">
+                                                    <option value="${p.id}" ${employee.positionId == p.id ? 'selected' : ''} data-department-id="${p.departmentId}">
+                                                        <c:out value="${p.name}"/>
+                                                    </option>
+                                                </c:forEach>
                                             </select>
                                             <div id="positionVacantAlert" class="position-vacant-info d-none">
                                                 <i class="bi bi-bell-fill"></i>
@@ -848,8 +873,22 @@
                                             </div>
                                         </div>
 
-                                        <!-- Trạng thái ẩn -->
-                                        <input type="hidden" name="status" id="empStatus" value="ACTIVE">
+                                        <!-- Trạng thái nhân sự -->
+                                        <div class="col-md-6">
+                                            <label class="form-label-custom">Trạng thái hồ sơ nhân sự <span class="req">*</span></label>
+                                            <select class="form-select form-select-custom" name="status" id="empStatus" onchange="handleStatusChange(this.value)">
+                                                <option value="ACTIVE" ${empty employee.status or employee.status eq 'ACTIVE' ? 'selected' : ''}>Đang làm việc (Active)</option>
+                                                <option value="ON_LEAVE" ${employee.status eq 'ON_LEAVE' ? 'selected' : ''}>Nghỉ tạm thời / Thai sản (On Leave)</option>
+                                                <option value="INACTIVE" ${employee.status eq 'INACTIVE' ? 'selected' : ''}>Đã thôi việc (Inactive)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 ${employee.status eq 'INACTIVE' ? '' : 'd-none'}" id="terminationFields">
+                                            <label class="form-label-custom">Ngày thôi việc &amp; Lý do</label>
+                                            <div class="input-group">
+                                                <input type="date" class="form-control form-control-custom" name="endDate" id="endDate" value="${employee.endDate}" style="max-width:160px;">
+                                                <input type="text" class="form-control form-control-custom" name="terminationReason" id="terminationReason" placeholder="Lý do thôi việc..." value="<c:out value='${employee.terminationReason}'/>">
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -918,6 +957,17 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Panel Step 2 Navigation Footer -->
+                            <div class="step-nav-footer mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                                <button type="button" class="btn btn-outline-secondary px-3 py-2 d-inline-flex align-items-center gap-1" onclick="prevStep()">
+                                    <i class="bi bi-arrow-left"></i> <span>Quay lại Bước 1</span>
+                                </button>
+                                <button type="button" class="btn btn-primary px-4 py-2 fw-bold d-inline-flex align-items-center gap-2" onclick="nextStep()">
+                                    <span>Tiếp tục: Bước 3 (Lương &amp; Phúc lợi)</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
                             </div>
 
                         </div><!-- END PANEL STEP 2 -->
@@ -1081,6 +1131,17 @@
                                 </div>
                             </div>
 
+                            <!-- Panel Step 3 Navigation Footer -->
+                            <div class="step-nav-footer mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                                <button type="button" class="btn btn-outline-secondary px-3 py-2 d-inline-flex align-items-center gap-1" onclick="prevStep()">
+                                    <i class="bi bi-arrow-left"></i> <span>Quay lại Bước 2</span>
+                                </button>
+                                <button type="button" class="btn btn-primary px-4 py-2 fw-bold d-inline-flex align-items-center gap-2" onclick="nextStep()">
+                                    <span>Tiếp tục: Bước 4 (Hợp đồng &amp; Bảo hiểm)</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+
                         </div><!-- END PANEL STEP 3 -->
 
 
@@ -1228,11 +1289,20 @@
                                                     <option value="TCB" ${employee.bankName eq 'TCB' ? 'selected' : ''}>Techcombank</option>
                                                     <option value="MB" ${employee.bankName eq 'MB' ? 'selected' : ''}>MB Bank</option>
                                                     <option value="ACB" ${employee.bankName eq 'ACB' ? 'selected' : ''}>ACB</option>
+                                                    <option value="BIDV" ${employee.bankName eq 'BIDV' ? 'selected' : ''}>BIDV</option>
+                                                    <option value="CTG" ${employee.bankName eq 'CTG' ? 'selected' : ''}>VietinBank</option>
                                                 </select>
                                                 <input type="text" class="form-control form-control-custom" name="bankAccount"
-                                                       id="bankAccount" placeholder="VD: 1029384829" value="<c:out value='${employee.bankAccount}'/>">
+                                                       id="bankAccount" placeholder="Số tài khoản ngân hàng" value="<c:out value='${employee.bankAccount}'/>">
                                             </div>
                                         </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label-custom">Chi nhánh ngân hàng mở tài khoản</label>
+                                            <input type="text" class="form-control form-control-custom" name="bankBranch"
+                                                   id="bankBranch" placeholder="VD: Chi nhánh TP. Hồ Chí Minh" value="<c:out value='${employee.bankBranch}'/>">
+                                        </div>
+                                        <input type="hidden" name="avatarUrl" id="avatarUrlHidden" value="<c:out value='${employee.avatarUrl}'/>">
 
                                         <!-- Final Confirmation Box -->
                                         <div class="col-12 mt-2">
@@ -1257,6 +1327,115 @@
                                 </div>
                             </div>
 
+                            <!-- Section 4.3: Liên hệ khẩn cấp -->
+                            <div class="form-section-card">
+                                <div class="form-section-header">
+                                    <div class="form-section-title-wrap">
+                                        <div class="form-section-icon orange"><i class="bi bi-telephone-inbound"></i></div>
+                                        <div>
+                                            <h3 class="form-section-title">3. Liên hệ khẩn cấp</h3>
+                                            <div class="form-section-desc">Người thân liên lạc khi có sự cố khẩn cấp tại nơi làm việc</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-section-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label-custom">Họ tên người liên hệ</label>
+                                            <input type="text" class="form-control form-control-custom"
+                                                   name="emergencyContactName" id="emergencyContactName"
+                                                   placeholder="VD: Nguyễn Thị Bình"
+                                                   value="<c:out value='${employee.emergencyContactName}'/>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label-custom">Số điện thoại liên hệ</label>
+                                            <input type="tel" class="form-control form-control-custom"
+                                                   name="emergencyContactPhone" id="emergencyContactPhone"
+                                                   placeholder="VD: 0901234567"
+                                                   value="<c:out value='${employee.emergencyContactPhone}'/>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label-custom">Mối quan hệ</label>
+                                            <select class="form-select form-select-custom" name="emergencyContactRelation" id="emergencyContactRelation">
+                                                <option value="">— Chọn mối quan hệ —</option>
+                                                <option value="Vợ/Chồng" ${employee.emergencyContactRelation eq 'Vợ/Chồng' ? 'selected' : ''}>Vợ / Chồng</option>
+                                                <option value="Bố/Mẹ" ${employee.emergencyContactRelation eq 'Bố/Mẹ' ? 'selected' : ''}>Bố / Mẹ</option>
+                                                <option value="Con" ${employee.emergencyContactRelation eq 'Con' ? 'selected' : ''}>Con</option>
+                                                <option value="Anh/Chị/Em" ${employee.emergencyContactRelation eq 'Anh/Chị/Em' ? 'selected' : ''}>Anh / Chị / Em</option>
+                                                <option value="Bạn bè" ${employee.emergencyContactRelation eq 'Bạn bè' ? 'selected' : ''}>Bạn bè</option>
+                                                <option value="Khác" ${employee.emergencyContactRelation eq 'Khác' ? 'selected' : ''}>Khác</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section 4.4: Trạng thái nhân viên (chỉ hiện khi chỉnh sửa) -->
+                            <c:if test="${not empty employee and employee.id > 0}">
+                            <div class="form-section-card">
+                                <div class="form-section-header">
+                                    <div class="form-section-title-wrap">
+                                        <div class="form-section-icon orange"><i class="bi bi-toggle-on"></i></div>
+                                        <div>
+                                            <h3 class="form-section-title">4. Trạng thái nhân viên</h3>
+                                            <div class="form-section-desc">Cập nhật tình trạng công tác hiện tại của nhân viên</div>
+                                        </div>
+                                    </div>
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:0.72rem;">Chỉ HR / Admin</span>
+                                </div>
+                                <div class="form-section-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label-custom">Trạng thái công tác <span class="req">*</span></label>
+                                            <select class="form-select form-select-custom" name="status" id="employeeStatus"
+                                                    onchange="toggleStatusFields(this.value)">
+                                                <option value="ACTIVE"   ${employee.status eq 'ACTIVE'   ? 'selected' : ''}>✅ Đang làm việc (Active)</option>
+                                                <option value="ON_LEAVE" ${employee.status eq 'ON_LEAVE' ? 'selected' : ''}>🟡 Nghỉ tạm thời (On Leave)</option>
+                                                <option value="INACTIVE" ${employee.status eq 'INACTIVE' ? 'selected' : ''}>🔴 Đã nghỉ việc (Inactive)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4" id="endDateField" style="${employee.status eq 'INACTIVE' or employee.status eq 'ON_LEAVE' ? '' : 'display:none;'}">
+                                            <label class="form-label-custom">Ngày nghỉ việc / Ngày kết thúc</label>
+                                            <input type="date" class="form-control form-control-custom"
+                                                   name="endDate" id="endDate"
+                                                   value="${not empty employee.endDate ? employee.endDate : ''}">
+                                        </div>
+                                        <div class="col-md-4" id="terminationField" style="${employee.status eq 'INACTIVE' ? '' : 'display:none;'}">
+                                            <label class="form-label-custom">Lý do nghỉ việc</label>
+                                            <select class="form-select form-select-custom" name="terminationReason" id="terminationReason">
+                                                <option value="">— Chọn lý do —</option>
+                                                <option value="Tự nguyện xin nghỉ" ${employee.terminationReason eq 'Tự nguyện xin nghỉ' ? 'selected' : ''}>Tự nguyện xin nghỉ</option>
+                                                <option value="Hết hạn hợp đồng" ${employee.terminationReason eq 'Hết hạn hợp đồng' ? 'selected' : ''}>Hết hạn hợp đồng</option>
+                                                <option value="Sa thải" ${employee.terminationReason eq 'Sa thải' ? 'selected' : ''}>Sa thải</option>
+                                                <option value="Nghỉ hưu" ${employee.terminationReason eq 'Nghỉ hưu' ? 'selected' : ''}>Nghỉ hưu</option>
+                                                <option value="Chuyển công tác" ${employee.terminationReason eq 'Chuyển công tác' ? 'selected' : ''}>Chuyển công tác</option>
+                                                <option value="Khác" ${employee.terminationReason eq 'Khác' ? 'selected' : ''}>Khác</option>
+                                            </select>
+                                        </div>
+                                        <c:if test="${not empty employee.terminationReason and employee.terminationReason ne 'Tự nguyện xin nghỉ' and employee.terminationReason ne 'Hết hạn hợp đồng' and employee.terminationReason ne 'Sa thải' and employee.terminationReason ne 'Nghỉ hưu' and employee.terminationReason ne 'Chuyển công tác'}">
+                                        <div class="col-12" id="terminationNoteField">
+                                            <label class="form-label-custom">Ghi chú lý do nghỉ việc</label>
+                                            <input type="text" class="form-control form-control-custom"
+                                                   name="terminationNote" placeholder="Mô tả thêm lý do nghỉ..."
+                                                   value="<c:out value='${employee.terminationReason}'/>">
+                                        </div>
+                                        </c:if>
+                                    </div>
+                                </div>
+                            </div>
+                            </c:if>
+
+
+                            <div class="step-nav-footer mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                                <button type="button" class="btn btn-outline-secondary px-3 py-2 d-inline-flex align-items-center gap-1" onclick="prevStep()">
+                                    <i class="bi bi-arrow-left"></i> <span>Quay lại Bước 3</span>
+                                </button>
+                                <button type="submit" class="btn btn-success px-4 py-2 fw-bold fs-6 d-inline-flex align-items-center gap-2">
+                                    <i class="bi bi-check2-all fs-5"></i>
+                                    <span>${empty employee or employee.id == 0 ? 'Hoàn tất &amp; Lưu hồ sơ' : 'Lưu cập nhật hồ sơ'}</span>
+                                </button>
+                            </div>
+
                         </div><!-- END PANEL STEP 4 -->
 
                     </div><!-- END RIGHT COLUMN -->
@@ -1278,16 +1457,25 @@
                         <button type="button" class="btn-prev-step" id="btnPrev" onclick="prevStep()" disabled>
                             <i class="bi bi-arrow-left"></i> Quay lại
                         </button>
-                        <button type="button" class="btn btn-outline-secondary" style="height:42px; border-radius:10px; font-weight:600; font-size:0.85rem;" onclick="saveDraft()">
-                            <i class="bi bi-floppy me-1"></i> Lưu bản nháp
-                        </button>
+                        <c:choose>
+                            <c:when test="${not empty employee and employee.id > 0}">
+                                <button type="submit" class="btn btn-primary" style="height:42px; border-radius:10px; font-weight:700; font-size:0.85rem; padding: 0 1.25rem;">
+                                    <i class="bi bi-check2-all me-1"></i> Lưu thay đổi ngay
+                                </button>
+                            </c:when>
+                            <c:otherwise>
+                                <button type="button" class="btn btn-outline-secondary" style="height:42px; border-radius:10px; font-weight:600; font-size:0.85rem;" onclick="saveDraft()">
+                                    <i class="bi bi-floppy me-1"></i> Lưu bản nháp
+                                </button>
+                            </c:otherwise>
+                        </c:choose>
                         <button type="button" class="btn-next-step" id="btnNext" onclick="nextStep()">
                             <span id="btnNextText">Tiếp tục: Bước 2 (Công việc &amp; Vị trí)</span>
                             <i class="bi bi-arrow-right"></i>
                         </button>
                         <button type="submit" class="btn-submit-step" id="btnSubmit" style="display:none;">
                             <i class="bi bi-check2-all fs-5"></i>
-                            <span>Hoàn tất &amp; Lưu hồ sơ</span>
+                            <span>${empty employee or employee.id == 0 ? 'Hoàn tất & Lưu hồ sơ' : 'Lưu thay đổi'}</span>
                         </button>
                     </div>
                 </div>
@@ -1300,6 +1488,29 @@
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
 
+<script>
+    window.IS_EDIT_MODE = ${not empty employee and employee.id > 0 ? 'true' : 'false'};
+    window.CURRENT_EMP_POS_ID = "${not empty employee ? employee.positionId : ''}";
+    window.CURRENT_EMP_SALARY = "${formattedBaseSalary}";
+    window.CURRENT_EMP_NAME = "<c:out value='${employee.fullName}'/>";
+    window.CURRENT_EMP_CODE = "<c:out value='${employee.employeeCode}'/>";
+
+    function toggleStatusFields(status) {
+        const endDateField = document.getElementById('endDateField');
+        const terminationField = document.getElementById('terminationField');
+        if (!endDateField || !terminationField) return;
+        if (status === 'INACTIVE' || status === 'ON_LEAVE') {
+            endDateField.style.display = '';
+        } else {
+            endDateField.style.display = 'none';
+        }
+        if (status === 'INACTIVE') {
+            terminationField.style.display = '';
+        } else {
+            terminationField.style.display = 'none';
+        }
+    }
+</script>
 <script src="${pageContext.request.contextPath}/assets/js/employee-form.js"></script>
 </body>
 </html>

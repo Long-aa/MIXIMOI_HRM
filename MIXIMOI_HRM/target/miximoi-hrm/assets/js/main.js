@@ -287,9 +287,37 @@ window.initLeaveDurationCalculator = function(startSelector, endSelector, result
 };
 
 /* ============================================================
+   11. THEME MODE SYSTEM (Light / Dark / System)
+   ============================================================ */
+function initAppTheme() {
+  const savedTheme = localStorage.getItem('miximoi_theme') || 'light';
+  applyTheme(savedTheme);
+}
+
+function applyTheme(theme) {
+  if (theme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  } else if (theme === 'system') {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+}
+
+window.selectAppTheme = function(themeName) {
+  localStorage.setItem('miximoi_theme', themeName);
+  applyTheme(themeName);
+};
+
+/* ============================================================
    KHỞI ĐỘNG — Theo thứ tự ưu tiên
    ============================================================ */
 // Khởi động ngay (không chờ DOMContentLoaded)
+initAppTheme();
 initPageLoadAnimation();
 initNavigationInterceptor();
 

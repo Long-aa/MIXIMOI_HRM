@@ -52,6 +52,9 @@ public class DatabaseInitializer {
             // 10. Nạp bảng lương & lệnh chi mẫu nếu trống
             seedPayrollAndPaymentsIfEmpty(conn);
 
+            // 11. Nạp dữ liệu Tuyển dụng mẫu nếu trống
+            seedRecruitmentIfEmpty(conn);
+
             initialized = true;
             System.out.println("[DatabaseInitializer] Đồng bộ CSDL và dữ liệu mẫu thành công!");
         } catch (SQLException e) {
@@ -173,7 +176,59 @@ public class DatabaseInitializer {
             // Bảng bonuses: đảm bảo đủ các cột pay_month, pay_year, notes
             "ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS pay_month INTEGER",
             "ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS pay_year INTEGER",
-            "ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS notes TEXT"
+            "ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS notes TEXT",
+
+            // Bảng payments: Lưu lịch sử chi trả lương
+            "CREATE TABLE IF NOT EXISTS payments ("
+            + "id SERIAL PRIMARY KEY, payroll_id INTEGER NOT NULL REFERENCES payroll(id), "
+            + "employee_id INTEGER NOT NULL REFERENCES employees(id), amount NUMERIC(15,0) NOT NULL, "
+            + "payment_date DATE NOT NULL, payment_method VARCHAR(50) NOT NULL DEFAULT 'BANK_TRANSFER', "
+            + "status VARCHAR(30) NOT NULL DEFAULT 'COMPLETED', notes TEXT, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+
+            // ===== Module Tuyển Dụng =====
+            // Bảng recruitment_requests
+            "CREATE TABLE IF NOT EXISTS recruitment_requests ("
+            + "id SERIAL PRIMARY KEY, request_code VARCHAR(50) NOT NULL UNIQUE, "
+            + "title VARCHAR(250) NOT NULL, department_id INTEGER REFERENCES departments(id), "
+            + "position_id INTEGER REFERENCES positions(id), target_headcount INTEGER NOT NULL DEFAULT 1, "
+            + "hired_count INTEGER NOT NULL DEFAULT 0, salary_min NUMERIC(15,0) DEFAULT 0, "
+            + "salary_max NUMERIC(15,0) DEFAULT 0, salary_negotiable BOOLEAN DEFAULT FALSE, "
+            + "deadline DATE NOT NULL, priority VARCHAR(20) NOT NULL DEFAULT 'NORMAL', "
+            + "status VARCHAR(30) NOT NULL DEFAULT 'OPEN', quarter VARCHAR(20) NOT NULL DEFAULT 'Q3/2026', "
+            + "assignee_id INTEGER REFERENCES employees(id), description TEXT, requirements TEXT, benefits TEXT, "
+            + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP)",
+
+            "CREATE INDEX IF NOT EXISTS idx_rec_req_status ON recruitment_requests(status)",
+            "CREATE INDEX IF NOT EXISTS idx_rec_req_quarter ON recruitment_requests(quarter)",
+            "CREATE INDEX IF NOT EXISTS idx_rec_req_dept ON recruitment_requests(department_id)",
+
+            // Bảng candidates
+            "CREATE TABLE IF NOT EXISTS candidates ("
+            + "id SERIAL PRIMARY KEY, candidate_code VARCHAR(50) NOT NULL UNIQUE, "
+            + "full_name VARCHAR(200) NOT NULL, email VARCHAR(150), phone VARCHAR(20), "
+            + "recruitment_request_id INTEGER NOT NULL REFERENCES recruitment_requests(id) ON DELETE CASCADE, "
+            + "source VARCHAR(50) NOT NULL DEFAULT 'LinkedIn', "
+            + "stage VARCHAR(50) NOT NULL DEFAULT 'NEW', "
+            + "experience_years NUMERIC(4,1) DEFAULT 0, expected_salary NUMERIC(15,0) DEFAULT 0, "
+            + "cv_url VARCHAR(255), notes TEXT, applied_date DATE NOT NULL DEFAULT CURRENT_DATE, "
+            + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+
+            "CREATE INDEX IF NOT EXISTS idx_cand_request ON candidates(recruitment_request_id)",
+            "CREATE INDEX IF NOT EXISTS idx_cand_stage ON candidates(stage)",
+            "CREATE INDEX IF NOT EXISTS idx_cand_source ON candidates(source)",
+
+            // Bảng interviews
+            "CREATE TABLE IF NOT EXISTS interviews ("
+            + "id SERIAL PRIMARY KEY, candidate_id INTEGER NOT NULL REFERENCES candidates(id) ON DELETE CASCADE, "
+            + "recruitment_request_id INTEGER REFERENCES recruitment_requests(id) ON DELETE CASCADE, "
+            + "interviewer_id INTEGER REFERENCES employees(id), round_name VARCHAR(150) NOT NULL, "
+            + "interview_date DATE NOT NULL, interview_time TIME NOT NULL, "
+            + "location_or_link VARCHAR(255) DEFAULT 'Phòng họp Tầng 3 (HQ)', "
+            + "status VARCHAR(30) NOT NULL DEFAULT 'SCHEDULED', feedback TEXT, score NUMERIC(3,1), "
+            + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+
+            "CREATE INDEX IF NOT EXISTS idx_interview_date ON interviews(interview_date)",
+            "CREATE INDEX IF NOT EXISTS idx_interview_cand ON interviews(candidate_id)"
         };
 
         for (String sql : alterSqls) {
@@ -564,7 +619,16 @@ public class DatabaseInitializer {
                 {"BHYT_RATE", "0.015", "Tỷ lệ đóng BHYT của người lao động (1.5%)"},
                 {"BHTN_RATE", "0.01", "Tỷ lệ đóng BHTN của người lao động (1%)"},
                 {"MAX_INSURANCE_SALARY", "46800000", "Mức trần tiền lương đóng BHXH, BHYT (20 lần lương cơ sở)"},
-                {"STANDARD_WORKING_DAYS", "22", "Số ngày làm việc tiêu chuẩn trong tháng"}
+                {"STANDARD_WORKING_DAYS", "22", "Số ngày làm việc tiêu chuẩn trong tháng"},
+                // Đồng bộ key viết thường dùng trong Servlet / Service / JSP
+                {"base_salary", "2340000", "Lương cơ sở hiện hành (VNĐ)"},
+                {"personal_reduction", "11000000", "Mức giảm trừ gia cảnh bản thân (VNĐ)"},
+                {"dependent_reduction", "4400000", "Mức giảm trừ gia cảnh người phụ thuộc (VNĐ)"},
+                {"bhxh_rate", "0.08", "Tỷ lệ đóng BHXH người lao động (8%)"},
+                {"bhyt_rate", "0.015", "Tỷ lệ đóng BHYT người lao động (1.5%)"},
+                {"bhtn_rate", "0.01", "Tỷ lệ đóng BHTN người lao động (1%)"},
+                {"insurance_ceiling", "46800000", "Mức trần tiền lương đóng BHXH/BHYT (VNĐ)"},
+                {"standard_working_days", "22", "Số ngày làm việc tiêu chuẩn"}
             };
             for (Object[] c : configs) {
                 ps.setString(1, (String) c[0]);
@@ -745,6 +809,283 @@ public class DatabaseInitializer {
             }
         }
         System.out.println("[DatabaseInitializer] Đã nạp dữ liệu Bảng lương và Lệnh chi kỳ T09/2026 mẫu!");
+    }
+
+    // ==========================================================================
+    //  Module Tuyển Dụng — Seed dữ liệu mẫu
+    // ==========================================================================
+
+    private static void seedRecruitmentIfEmpty(Connection conn) throws SQLException {
+        // Kiểm tra xem đã có dữ liệu tuyển dụng chưa
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM recruitment_requests")) {
+            if (rs.next() && rs.getInt(1) >= 12) return; // Đã đủ dữ liệu
+        } catch (SQLException e) {
+            // Bảng chưa tồn tại — bỏ qua, sẽ được tạo bởi migrateSchema
+            return;
+        }
+
+        // ---- Bước 0: Đảm bảo nhân viên phụ trách NV011..NV015 tồn tại ----
+        String insertEmpSql = "INSERT INTO employees "
+            + "(employee_code, full_name, date_of_birth, gender, phone, email, address, department_id, position_id, employee_type_id, start_date, status) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (employee_code) DO NOTHING";
+        Object[][] hrEmps = {
+            {"NV011", "Phạm Phương Thảo", java.sql.Date.valueOf("1993-04-12"), "FEMALE", "0912111222", "thao.pp@miximoi.vn", "Hà Nội", 2, 8, 1, java.sql.Date.valueOf("2022-03-01"), "ACTIVE"},
+            {"NV012", "Nguyễn Minh Tuấn", java.sql.Date.valueOf("1989-08-25"), "MALE",   "0913222333", "tuan.nm@miximoi.vn", "Hà Nội", 6, 7, 1, java.sql.Date.valueOf("2021-05-15"), "ACTIVE"},
+            {"NV013", "Trần Thị Mai",     java.sql.Date.valueOf("1994-11-09"), "FEMALE", "0914333444", "mai.tt@miximoi.vn",  "Hà Nội", 2, 8, 1, java.sql.Date.valueOf("2022-08-01"), "ACTIVE"},
+            {"NV014", "Lê Trọng",         java.sql.Date.valueOf("1991-02-18"), "MALE",   "0915444555", "trong.l@miximoi.vn",  "Hà Nội", 5, 5, 1, java.sql.Date.valueOf("2023-01-10"), "ACTIVE"},
+            {"NV015", "Đặng Quốc Việt",   java.sql.Date.valueOf("1990-10-30"), "MALE",   "0916555666", "viet.dq@miximoi.vn",  "Hà Nội", 3, 9, 1, java.sql.Date.valueOf("2022-02-20"), "ACTIVE"}
+        };
+        try (PreparedStatement ps = conn.prepareStatement(insertEmpSql)) {
+            for (Object[] row : hrEmps) {
+                ps.setString(1, (String) row[0]);
+                ps.setString(2, (String) row[1]);
+                ps.setDate(3, (java.sql.Date) row[2]);
+                ps.setString(4, (String) row[3]);
+                ps.setString(5, (String) row[4]);
+                ps.setString(6, (String) row[5]);
+                ps.setString(7, (String) row[6]);
+                ps.setInt(8, (Integer) row[7]);
+                ps.setInt(9, (Integer) row[8]);
+                ps.setInt(10, (Integer) row[9]);
+                ps.setDate(11, (java.sql.Date) row[10]);
+                ps.setString(12, (String) row[11]);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+
+        // Lấy id nhân viên phụ trách
+        java.util.Map<String, Integer> empIdByCode = new java.util.HashMap<>();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT id, employee_code FROM employees WHERE employee_code IN ('NV011','NV012','NV013','NV014','NV015')")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) empIdByCode.put(rs.getString(2), rs.getInt(1));
+            }
+        }
+        int nv011 = empIdByCode.getOrDefault("NV011", 1);
+        int nv012 = empIdByCode.getOrDefault("NV012", 2);
+        int nv013 = empIdByCode.getOrDefault("NV013", 3);
+        int nv014 = empIdByCode.getOrDefault("NV014", 4);
+        int nv015 = empIdByCode.getOrDefault("NV015", 5);
+
+        // ---- Bước 1: Xóa & nạp lại 12 Yêu cầu tuyển dụng ----
+        // Xóa theo thứ tự FK
+        try (Statement st = conn.createStatement()) {
+            st.execute("DELETE FROM interviews");
+            st.execute("DELETE FROM candidates");
+            st.execute("DELETE FROM recruitment_requests");
+        }
+
+        String insertReqSql = "INSERT INTO recruitment_requests "
+            + "(id, request_code, title, department_id, position_id, target_headcount, hired_count, "
+            + "salary_min, salary_max, deadline, priority, status, quarter, assignee_id, description, requirements, benefits) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        // id, code, title, dept, pos, target, hired, salMin, salMax, deadline, priority, status, quarter, assignee, desc, req, ben
+        Object[][] requests = {
+            {1,  "YCTD-2026-081", "Senior Fullstack Engineer (React/Go)",           6, 7, 3, 2, 35000000L, 55000000L, "2026-10-15", "HOT",    "OPEN",   "Q3/2026", nv011, "Phát triển hệ thống Microservices quy mô lớn và giao diện Frontend ReactJS hiện đại.", "Tối thiểu 4 năm kinh nghiệm ReactJS, Go/NodeJS. Thành thạo PostgreSQL, Docker.", "Lương thưởng cạnh tranh, bảo hiểm sức khỏe cao cấp, hỗ trợ thiết bị Macbook Pro M-series."},
+            {2,  "YCTD-2026-082", "Trưởng nhóm Kinh doanh B2B (Sales Lead)",        4, 10, 1, 1, 25000000L, 45000000L, "2026-09-30", "NORMAL", "FILLED", "Q3/2026", nv013, "Dẫn dắt đội ngũ kinh doanh tiếp cận khách hàng doanh nghiệp khối B2B SaaS.", "3+ năm kinh nghiệm Sales Lead mảng dịch vụ doanh nghiệp, kỹ năng đàm phán xuất sắc.", "Hoa hồng theo doanh số không giới hạn, lộ trình thăng tiến Giám đốc kinh doanh."},
+            {3,  "YCTD-2026-083", "Product Designer (UI/UX Senior)",                6, 7, 2, 1, 28000000L, 42000000L, "2026-10-20", "NORMAL", "OPEN",   "Q3/2026", nv011, "Thiết kế trải nghiệm người dùng và hệ thống Design System cho sản phẩm HRM & Payroll.", "3+ năm thiết kế sản phẩm Web/App B2B phức tạp. Nắm vững Figma, Design Token.", "Môi trường Agile năng động, tự chủ quyết định thiết kế sản phẩm."},
+            {4,  "YCTD-2026-084", "Content Marketing Specialist",                    5, 5, 2, 0, 16000000L, 24000000L, "2026-10-05", "URGENT", "OPEN",   "Q3/2026", nv014, "Sáng tạo nội dung truyền thông đa kênh, bài viết chuyên sâu về chuyển đổi số nhân sự.", "2+ năm viết nội dung B2B, kỹ năng SEO, am hiểu truyền thông mạng xã hội.", "Phụ cấp đào tạo kỹ năng hàng quý, tham gia các chiến dịch Marketing quốc tế."},
+            {5,  "YCTD-2026-085", "Kế toán Thuế & Kiểm toán nội bộ",                3, 9, 1, 1, 20000000L, 30000000L, "2026-09-15", "NORMAL", "CLOSED", "Q3/2026", nv015, "Quyết toán thuế doanh nghiệp, soát xét hồ sơ tài chính và làm việc với cơ quan thuế.", "Tốt nghiệp ĐH chuyên ngành Kế toán - Kiểm toán, 3+ năm làm kế toán thuế tổng hợp.", "Thưởng lương tháng 13++, chế độ du lịch nghỉ dưỡng hàng năm."},
+            {6,  "YCTD-2026-086", "DevOps / Cloud Security Specialist",              6, 7, 1, 0, 35000000L, 50000000L, "2026-10-25", "URGENT", "PAUSED", "Q3/2026", nv011, "Vận hành hạ tầng AWS/GCP, bảo mật mạng nội bộ và hệ thống CI/CD.", "Có chứng chỉ AWS/CKS, kinh nghiệm Kubernetes production, quản trị hạ tầng IaC.", "Gói cổ phần ESOP cho nhân sự chủ chốt, làm việc Hybrid linh hoạt."},
+            {7,  "YCTD-2026-087", "Chuyên viên Nhân sự C&B",                        2, 8, 1, 0, 18000000L, 26000000L, "2026-10-12", "NORMAL", "OPEN",   "Q3/2026", nv015, "Tính lương, quản lý bảo hiểm xã hội, thuế TNCN và các chế độ đãi ngộ toàn công ty.", "2+ năm kinh nghiệm C&B chuyên sâu quy mô 200+ nhân sự, nắm chắc luật lao động.", "Thưởng hiệu suất tháng, phụ cấp ăn trưa và gửi xe miễn phí."},
+            {8,  "YCTD-2026-088", "Frontend Developer (VueJS / NuxtJS)",             6, 7, 2, 0, 22000000L, 32000000L, "2026-10-18", "NORMAL", "OPEN",   "Q3/2026", nv011, "Phát triển ứng dụng Web portal cho nhân viên và cổng quản lý chấm công.", "2+ năm VueJS/NuxtJS, CSS3/Tailwind, tối ưu hóa Web Performance.", "Thưởng dự án theo tiến độ sprint, môi trường làm việc trẻ trung."},
+            {9,  "YCTD-2026-089", "Chuyên viên Quản lý Khách hàng Doanh nghiệp (Account Manager)", 4, 10, 2, 0, 18000000L, 30000000L, "2026-10-22", "NORMAL", "OPEN",   "Q3/2026", nv013, "Chăm sóc và duy trì mối quan hệ lâu dài với các khách hàng doanh nghiệp trọng điểm.", "Kinh nghiệm CSKH/Account mảng dịch vụ B2B, khả năng giao tiếp và xử lý vấn đề tốt.", "Thưởng hoa hồng gia hạn hợp đồng, tham gia các hội thảo doanh nghiệp lớn."},
+            {10, "YCTD-2026-090", "QA/QC Engineer (Automation Test)",               6, 7, 2, 0, 20000000L, 30000000L, "2026-10-28", "NORMAL", "OPEN",   "Q3/2026", nv011, "Viết kịch bản kiểm thử tự động API và Web UI, đảm bảo chất lượng phát hành phiên bản.", "Kinh nghiệm Selenium, Playwright, Postman, kiểm thử tải JMeter.", "Được đào tạo nâng cao kiến trúc hệ thống và quy trình CI/CD testing."},
+            {11, "YCTD-2026-091", "Chuyên viên Tuyển dụng Kỹ thuật (Tech Recruiter)",2, 8, 1, 0, 16000000L, 25000000L, "2026-10-08", "URGENT", "OPEN",   "Q3/2026", nv011, "Săn đầu người và tiếp cận các kỹ sư công nghệ chất lượng cao cho các vị trí trọng điểm.", "2+ năm tuyển dụng IT, mạng lưới quan hệ rộng trong cộng đồng lập trình viên.", "Thưởng tuyển dụng theo từng case thành công, cơ hội thăng tiến Talent Lead."},
+            {12, "YCTD-2026-092", "Nhân viên Hành chính Tổng hợp",                 2, 5, 1, 0, 12000000L, 16000000L, "2026-11-05", "NORMAL", "PAUSED", "Q3/2026", nv013, "Quản lý văn phòng phẩm, cơ sở vật chất văn phòng và lễ tân đón tiếp đối tác.", "Nhanh nhẹn, cẩn thận, có kỹ năng giao tiếp và quản lý hồ sơ tốt.", "Môi trường thân thiện, hỗ trợ cơm trưa văn phòng và trà nước miễn phí."}
+        };
+        try (PreparedStatement ps = conn.prepareStatement(insertReqSql)) {
+            for (Object[] r : requests) {
+                ps.setInt(1, (Integer) r[0]);
+                ps.setString(2, (String) r[1]);
+                ps.setString(3, (String) r[2]);
+                ps.setInt(4, (Integer) r[3]);
+                ps.setInt(5, (Integer) r[4]);
+                ps.setInt(6, (Integer) r[5]);
+                ps.setInt(7, (Integer) r[6]);
+                ps.setLong(8, (Long) r[7]);
+                ps.setLong(9, (Long) r[8]);
+                ps.setDate(10, java.sql.Date.valueOf((String) r[9]));
+                ps.setString(11, (String) r[10]);
+                ps.setString(12, (String) r[11]);
+                ps.setString(13, (String) r[12]);
+                ps.setInt(14, (Integer) r[13]);
+                ps.setString(15, (String) r[14]);
+                ps.setString(16, (String) r[15]);
+                ps.setString(17, (String) r[16]);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+        // Reset sequence
+        try (Statement st = conn.createStatement()) {
+            st.execute("SELECT setval('recruitment_requests_id_seq', 12, true)");
+        }
+
+        // ---- Bước 2: Nạp 86 Ứng viên ----
+        // Nhóm: 5 ONBOARDED, 3 OFFER, 16 INTERVIEW, 30 SCREENING, 32 NEW
+        java.time.LocalDate today = java.time.LocalDate.now();
+        String insertCandSql = "INSERT INTO candidates "
+            + "(candidate_code, full_name, email, phone, recruitment_request_id, source, stage, experience_years, expected_salary, applied_date) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        // Dữ liệu cố định: 5 ONBOARDED + 3 OFFER + 16 INTERVIEW
+        Object[][] fixedCands = {
+            // ONBOARDED
+            {"UV-2026-001", "Nguyễn Tiến Dũng",   "dung.nt@gmail.com",  "0901112233", 1,  "LinkedIn",       "ONBOARDED", 4.5, 42000000L, today.minusDays(54)},
+            {"UV-2026-002", "Trần Hữu Nam",        "nam.th@gmail.com",   "0902223344", 1,  "TopCV/VNW",      "ONBOARDED", 5.0, 45000000L, today.minusDays(50)},
+            {"UV-2026-003", "Đặng Thùy Trang",     "trang.dt@gmail.com", "0903334455", 2,  "Nội bộ (Ref)",   "ONBOARDED", 4.0, 30000000L, today.minusDays(45)},
+            {"UV-2026-004", "Vũ Tuấn Kiệt",        "kiet.vt@gmail.com",  "0904445566", 3,  "LinkedIn",       "ONBOARDED", 3.5, 32000000L, today.minusDays(43)},
+            {"UV-2026-005", "Lê Thị Thu",           "thu.lt@gmail.com",   "0905556677", 5,  "Khác",           "ONBOARDED", 4.0, 22000000L, today.minusDays(40)},
+            // OFFER
+            {"UV-2026-006", "Phan Văn Hải",         "hai.pv@gmail.com",   "0906667788", 1,  "LinkedIn",       "OFFER",     4.0, 40000000L, today.minusDays(35)},
+            {"UV-2026-007", "Ngô Bảo Châu",         "chau.nb@gmail.com",  "0907778899", 3,  "TopCV/VNW",      "OFFER",     3.0, 28000000L, today.minusDays(33)},
+            {"UV-2026-008", "Hoàng Minh Quân",      "quan.hm@gmail.com",  "0908889900", 4,  "Nội bộ (Ref)",   "OFFER",     2.5, 20000000L, today.minusDays(30)},
+            // INTERVIEW (3 có lịch hôm nay: UV-009, UV-010, UV-011)
+            {"UV-2026-009", "Vũ Hoàng Nam",         "nam.vh@gmail.com",   "0910001122", 1,  "LinkedIn",       "INTERVIEW", 4.5, 42000000L, today.minusDays(23)},
+            {"UV-2026-010", "Phạm Khánh Linh",      "linh.pk@gmail.com",  "0911112233", 3,  "TopCV/VNW",      "INTERVIEW", 3.2, 30000000L, today.minusDays(22)},
+            {"UV-2026-011", "Trương Bá Đạt",        "dat.tb@gmail.com",   "0912223344", 6,  "LinkedIn",       "INTERVIEW", 3.8, 38000000L, today.minusDays(21)},
+            {"UV-2026-012", "Nguyễn Hữu Tài",       "tai.nh@gmail.com",   "0913334455", 1,  "TopCV/VNW",      "INTERVIEW", 4.0, 38000000L, today.minusDays(20)},
+            {"UV-2026-013", "Lê Diệu Hương",        "huong.ld@gmail.com", "0914445566", 4,  "Nội bộ (Ref)",   "INTERVIEW", 2.0, 18000000L, today.minusDays(19)},
+            {"UV-2026-014", "Đỗ Thành Long",        "long.dt@gmail.com",  "0915556677", 7,  "Khác",           "INTERVIEW", 3.0, 20000000L, today.minusDays(19)},
+            {"UV-2026-015", "Trịnh Bích Ngọc",      "ngoc.tb@gmail.com",  "0916667788", 8,  "LinkedIn",       "INTERVIEW", 2.8, 24000000L, today.minusDays(18)},
+            {"UV-2026-016", "Bùi Văn Hưng",         "hung.bv@gmail.com",  "0917778899", 9,  "TopCV/VNW",      "INTERVIEW", 3.5, 22000000L, today.minusDays(18)},
+            {"UV-2026-017", "Vương Đình Toàn",      "toan.vd@gmail.com",  "0918889900", 10, "LinkedIn",       "INTERVIEW", 3.0, 23000000L, today.minusDays(17)},
+            {"UV-2026-018", "Mai Phương Thảo",      "thao.mp@gmail.com",  "0919990011", 11, "Nội bộ (Ref)",   "INTERVIEW", 2.5, 19000000L, today.minusDays(17)},
+            {"UV-2026-019", "Lương Thế Vinh",       "vinh.lt@gmail.com",  "0920001122", 1,  "TopCV/VNW",      "INTERVIEW", 5.0, 48000000L, today.minusDays(16)},
+            {"UV-2026-020", "Phùng Gia Bảo",        "bao.pg@gmail.com",   "0921112233", 3,  "LinkedIn",       "INTERVIEW", 4.0, 35000000L, today.minusDays(16)},
+            {"UV-2026-021", "Cao Thị Yến",          "yen.ct@gmail.com",   "0922223344", 4,  "TopCV/VNW",      "INTERVIEW", 2.0, 17000000L, today.minusDays(15)},
+            {"UV-2026-022", "Dương Quốc Anh",       "anh.dq@gmail.com",   "0923334455", 8,  "LinkedIn",       "INTERVIEW", 3.0, 26000000L, today.minusDays(15)},
+            {"UV-2026-023", "Hà Thảo Ly",           "ly.ht@gmail.com",    "0924445566", 9,  "Khác",           "INTERVIEW", 2.5, 18000000L, today.minusDays(14)},
+            {"UV-2026-024", "Lâm Văn Phước",        "phuoc.lv@gmail.com", "0925556677", 10, "Nội bộ (Ref)",   "INTERVIEW", 3.2, 24000000L, today.minusDays(14)}
+        };
+        try (PreparedStatement ps = conn.prepareStatement(insertCandSql)) {
+            for (Object[] c : fixedCands) {
+                ps.setString(1, (String) c[0]);
+                ps.setString(2, (String) c[1]);
+                ps.setString(3, (String) c[2]);
+                ps.setString(4, (String) c[3]);
+                ps.setInt(5, (Integer) c[4]);
+                ps.setString(6, (String) c[5]);
+                ps.setString(7, (String) c[6]);
+                ps.setDouble(8, (Double) c[7]);
+                ps.setLong(9, (Long) c[8]);
+                ps.setDate(10, java.sql.Date.valueOf((java.time.LocalDate) c[9]));
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+
+        // 30 SCREENING (id 25..54)
+        String[] sources = {"LinkedIn", "TopCV/VNW", "Nội bộ (Ref)", "Khác"};
+        try (PreparedStatement ps = conn.prepareStatement(insertCandSql)) {
+            for (int i = 25; i <= 54; i++) {
+                int sIdx = (i * 3) % 4;  // 0-based
+                int reqId = 1 + (i % 12);
+                String code = String.format("UV-2026-%03d", i);
+                ps.setString(1, code);
+                ps.setString(2, "Ứng viên Sàng lọc " + i);
+                ps.setString(3, "cand" + i + "@test.com");
+                ps.setString(4, "093" + String.format("%07d", i));
+                ps.setInt(5, reqId);
+                ps.setString(6, sources[sIdx]);
+                ps.setString(7, "SCREENING");
+                ps.setDouble(8, 2.5);
+                ps.setLong(9, 22000000L);
+                ps.setDate(10, java.sql.Date.valueOf(today.minusDays(i % 15)));
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+
+        // 32 NEW (id 55..86)
+        try (PreparedStatement ps = conn.prepareStatement(insertCandSql)) {
+            for (int i = 55; i <= 86; i++) {
+                int sIdx = (i * 5) % 4;  // 0-based
+                int reqId = 1 + (i % 12);
+                String code = String.format("UV-2026-%03d", i);
+                ps.setString(1, code);
+                ps.setString(2, "Ứng viên Mới " + i);
+                ps.setString(3, "cand" + i + "@test.com");
+                ps.setString(4, "094" + String.format("%07d", i));
+                ps.setInt(5, reqId);
+                ps.setString(6, sources[sIdx]);
+                ps.setString(7, "NEW");
+                ps.setDouble(8, 1.5);
+                ps.setLong(9, 18000000L);
+                ps.setDate(10, java.sql.Date.valueOf(today.minusDays(i % 7)));
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+
+        // Cập nhật phân bổ nguồn đúng tỷ lệ: LinkedIn=36, TopCV/VNW=30, Nội bộ=13, Khác=7
+        try (Statement st = conn.createStatement()) {
+            st.execute("UPDATE candidates SET source = 'LinkedIn' WHERE id IN (SELECT id FROM candidates ORDER BY id LIMIT 36)");
+            st.execute("UPDATE candidates SET source = 'TopCV/VNW' WHERE id IN (SELECT id FROM candidates WHERE id NOT IN (SELECT id FROM candidates ORDER BY id LIMIT 36) ORDER BY id LIMIT 30)");
+            st.execute("UPDATE candidates SET source = 'Nội bộ (Ref)' WHERE id IN (SELECT id FROM candidates WHERE id NOT IN (SELECT id FROM candidates ORDER BY id LIMIT 66) ORDER BY id LIMIT 13)");
+            st.execute("UPDATE candidates SET source = 'Khác' WHERE id IN (SELECT id FROM candidates WHERE id NOT IN (SELECT id FROM candidates ORDER BY id LIMIT 79))");
+        }
+
+        // ---- Bước 3: Nạp 9 ca Phỏng vấn ----
+        // Lấy id của các ứng viên cần lịch
+        java.util.Map<String, Integer> candIdByCode = new java.util.HashMap<>();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT id, candidate_code FROM candidates WHERE candidate_code IN "
+                + "('UV-2026-009','UV-2026-010','UV-2026-011','UV-2026-012','UV-2026-013',"
+                + "'UV-2026-014','UV-2026-015','UV-2026-016','UV-2026-017')")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) candIdByCode.put(rs.getString(2), rs.getInt(1));
+            }
+        }
+
+        String insertIntSql = "INSERT INTO interviews "
+            + "(candidate_id, recruitment_request_id, interviewer_id, round_name, interview_date, interview_time, location_or_link, status) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        // cand_code, req_id, interviewer_id, round, date_offset, time, location, status
+        Object[][] interviews = {
+            // 3 ca HÔM NAY
+            {"UV-2026-009", 1,  nv012, "Vòng Chuyên môn",               0, "09:30:00", "Phòng họp Kỹ thuật (Tầng 4) & Google Meet", "SCHEDULED"},
+            {"UV-2026-010", 3,  nv012, "Vòng Portfolio",                 0, "14:00:00", "Phòng Sáng tạo UI/UX & Google Meet",          "SCHEDULED"},
+            {"UV-2026-011", 6,  nv013, "Vòng 1 (HR Fit)",                0, "16:15:00", "Phòng Phỏng vấn Nhân sự 2",                   "SCHEDULED"},
+            // 6 ca trong tuần
+            {"UV-2026-012", 1,  nv012, "Vòng 1 (Kỹ thuật)",             1, "10:00:00", "Google Meet: meet.google.com/mix-hrm-tech",    "SCHEDULED"},
+            {"UV-2026-013", 4,  nv014, "Vòng Đánh giá Năng lực Viết",   1, "15:30:00", "Phòng Họp Marketing Tầng 3",                  "SCHEDULED"},
+            {"UV-2026-014", 7,  nv015, "Vòng Nghiệp vụ C&B",            2, "09:00:00", "Phòng Hội thảo Nhân sự",                      "SCHEDULED"},
+            {"UV-2026-015", 8,  nv011, "Vòng Phỏng vấn Frontend Vue",   2, "14:30:00", "Google Meet: meet.google.com/frontend-vue",    "SCHEDULED"},
+            {"UV-2026-016", 9,  nv013, "Vòng Đàm phán Doanh nghiệp",    3, "10:30:00", "Phòng Khách VIP B2B",                         "SCHEDULED"},
+            {"UV-2026-017", 10, nv012, "Vòng Kiểm thử Tự động",         3, "16:00:00", "Phòng Lab Kỹ thuật",                          "SCHEDULED"}
+        };
+        try (PreparedStatement ps = conn.prepareStatement(insertIntSql)) {
+            for (Object[] iv : interviews) {
+                String candCode = (String) iv[0];
+                int candId = candIdByCode.getOrDefault(candCode, -1);
+                if (candId < 0) continue;
+                int reqId   = (Integer) iv[1];
+                int interId = (Integer) iv[2];
+                String round = (String) iv[3];
+                int dayOffset = (Integer) iv[4];
+                java.time.LocalDate iDate = today.plusDays(dayOffset);
+                java.sql.Time iTime = java.sql.Time.valueOf((String) iv[5]);
+                String loc    = (String) iv[6];
+                String status = (String) iv[7];
+
+                ps.setInt(1, candId);
+                ps.setInt(2, reqId);
+                ps.setInt(3, interId);
+                ps.setString(4, round);
+                ps.setDate(5, java.sql.Date.valueOf(iDate));
+                ps.setTime(6, iTime);
+                ps.setString(7, loc);
+                ps.setString(8, status);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+
+        System.out.println("[DatabaseInitializer] Đã nạp dữ liệu Tuyển dụng mẫu (12 YCTD, 86 ứng viên, 9 lịch phỏng vấn)!");
     }
 }
 

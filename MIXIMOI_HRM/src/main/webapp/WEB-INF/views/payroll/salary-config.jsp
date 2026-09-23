@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -21,6 +22,21 @@
 
         <!-- Salary Config Page Body -->
         <div class="app-content">
+
+            <!-- Toast notification if success -->
+            <c:if test="${not empty param.success or not empty successMsg}">
+                <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-3 border-0 shadow-sm" role="alert">
+                    <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                    <div>
+                        <c:choose>
+                            <c:when test="${param.success eq 'updated' or successMsg eq 'updated'}">Đã lưu và cập nhật chính sách tham số lương thành công!</c:when>
+                            <c:when test="${param.success eq 'deleted' or successMsg eq 'deleted'}">Đã xóa tham số cấu hình thành công!</c:when>
+                            <c:otherwise>Thao tác cấu hình tiền lương hoàn tất!</c:otherwise>
+                        </c:choose>
+                    </div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            </c:if>
             
             <!-- Page Header Area -->
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
@@ -41,15 +57,17 @@
 
                 <!-- Action Toolbar -->
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    <button type="button" class="btn-action-light" onclick="alert('Đang tải xuống tài liệu Quy chế lương định dạng PDF...');">
-                        <i class="bi bi-file-earmark-pdf"></i>
-                        <span>Xuất quy chế (PDF)</span>
+                    <button type="button" class="btn-action-light" onclick="window.print();">
+                        <i class="bi bi-printer"></i>
+                        <span>In quy chế</span>
                     </button>
 
-                    <button type="button" class="btn-action-primary" onclick="alert('Mở form tạo mới chính sách thang bảng lương...');">
-                        <i class="bi bi-plus-circle"></i>
-                        <span>Tạo chính sách lương mới</span>
-                    </button>
+                    <c:if test="${sessionScope.currentUser.role eq 'ADMIN' or sessionScope.currentUser.role eq 'ACCOUNTANT'}">
+                        <button type="button" class="btn-action-primary" data-bs-toggle="modal" data-bs-target="#addConfigModal">
+                            <i class="bi bi-plus-circle"></i>
+                            <span>+ Thêm tham số mới</span>
+                        </button>
+                    </c:if>
                 </div>
             </div>
 
@@ -60,10 +78,10 @@
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
-                                <div class="kpi-label">Tổng khung chính sách</div>
+                                <div class="kpi-label">Tổng tham số cấu hình</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value text-dark">6</span>
-                                    <span class="kpi-unit">khung chuẩn</span>
+                                    <span class="kpi-value text-dark">${configs != null ? configs.size() : 0}</span>
+                                    <span class="kpi-unit">tham số</span>
                                 </div>
                             </div>
                             <div class="kpi-icon-box blue">
@@ -72,7 +90,7 @@
                         </div>
                         <div class="kpi-footer">
                             <span class="text-primary fw-semibold" style="font-size: 0.78rem;">
-                                <i class="bi bi-check-circle-fill me-1"></i> 100% đáp ứng chuẩn Luật LĐ 2024
+                                <i class="bi bi-check-circle-fill me-1"></i> 100% chuẩn Luật LĐ & BHXH
                             </span>
                         </div>
                     </div>
@@ -85,7 +103,9 @@
                             <div>
                                 <div class="kpi-label">Lương cơ sở hiện hành</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value text-dark">2.340.000</span>
+                                    <span class="kpi-value text-dark">
+                                        <fmt:formatNumber value="${baseSalary}" pattern="#,###"/>
+                                    </span>
                                     <span class="kpi-unit fw-bold">VNĐ</span>
                                 </div>
                             </div>
@@ -100,15 +120,17 @@
                     </div>
                 </div>
 
-                <!-- Card 3: Tỷ lệ BHXH Doanh nghiệp -->
+                <!-- Card 3: Giảm trừ bản thân & Phụ thuộc -->
                 <div class="col-xl-3 col-md-6">
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
-                                <div class="kpi-label">Tỷ lệ BHXH Doanh nghiệp</div>
+                                <div class="kpi-label">Giảm trừ thuế TNCN</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value text-dark">21.5%</span>
-                                    <span class="kpi-unit">(Quỹ lương trần)</span>
+                                    <span class="kpi-value text-dark">
+                                        <fmt:formatNumber value="${personalReduction}" pattern="#,###"/>
+                                    </span>
+                                    <span class="kpi-unit">đ/tháng</span>
                                 </div>
                             </div>
                             <div class="kpi-icon-box blue">
@@ -116,8 +138,7 @@
                             </div>
                         </div>
                         <div class="kpi-footer">
-                            <span class="text-muted" style="font-size: 0.75rem;">HT 14% • ÔB-TS 3% • YT...</span>
-                            <span class="badge bg-primary-subtle text-primary">+0.5%</span>
+                            <span class="text-muted" style="font-size: 0.75rem;">Phụ thuộc: <fmt:formatNumber value="${dependentReduction}" pattern="#,###"/> đ/người</span>
                         </div>
                     </div>
                 </div>
@@ -127,10 +148,10 @@
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
-                                <div class="kpi-label">Tỷ lệ BHXH Người lao động</div>
+                                <div class="kpi-label">Tỷ lệ BHXH NLĐ trích nộp</div>
                                 <div class="kpi-value-row">
                                     <span class="kpi-value text-dark">10.5%</span>
-                                    <span class="kpi-unit">(Khấu trừ Gross)</span>
+                                    <span class="kpi-unit">(Gross)</span>
                                 </div>
                             </div>
                             <div class="kpi-icon-box purple">
@@ -138,289 +159,162 @@
                             </div>
                         </div>
                         <div class="kpi-footer">
-                            <span class="text-muted" style="font-size: 0.74rem;">Khấu trừ lương: 8% Hưu trí • 1.5% BHYT • 1% BHTN</span>
+                            <span class="text-muted" style="font-size: 0.74rem;">BHXH: ${(bhxhRate != null ? bhxhRate * 100 : 8.0)}% • BHYT: ${(bhytRate != null ? bhytRate * 100 : 1.5)}% • BHTN: ${(bhtnRate != null ? bhtnRate * 100 : 1.0)}%</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Filter & Search Toolbar -->
-            <div class="dashboard-filter-card mb-4">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                    <div class="d-flex flex-wrap align-items-center gap-2 flex-grow-1">
-                        <!-- Search Box -->
-                        <div class="position-relative" style="min-width: 280px;">
-                            <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.85rem;"></i>
-                            <input type="text" class="form-control ps-5 py-2 bg-light border-0" placeholder="Tìm theo mã ngạch, tên cấp bậc hoặc mã chức danh..." style="font-size: 0.83rem; border-radius: 10px;">
+            <!-- Form: Thiết lập tham số lương chuẩn (Statutory Payroll Rules) -->
+            <c:if test="${sessionScope.currentUser.role eq 'ADMIN' or sessionScope.currentUser.role eq 'ACCOUNTANT'}">
+                <div class="app-card mb-4">
+                    <div class="app-card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="app-card-title">
+                                <i class="bi bi-gear-wide-connected text-primary me-2"></i>
+                                Cấu hình Tham số Quy chế Lương & Khấu trừ Pháp định
+                            </div>
+                            <p class="app-card-subtitle">
+                                Cập nhật trực tiếp các mốc lương tối thiểu, hạn mức giảm trừ gia cảnh và tỷ lệ trích nộp BHXH vào hệ thống tính lương tự động.
+                            </p>
                         </div>
-
-                        <!-- Level Filter -->
-                        <div class="d-flex align-items-center gap-1">
-                            <span class="text-muted fw-bold" style="font-size: 0.75rem;">KHỐI:</span>
-                            <select class="filter-select">
-                                <option selected>Tất cả nhóm ngạch (All Levels)</option>
-                                <option>Khối Lãnh đạo & Quản lý</option>
-                                <option>Khối Chuyên gia Kỹ thuật</option>
-                                <option>Khối Nghiệp vụ Tiêu chuẩn</option>
-                                <option>Khối Thử việc & Thực tập</option>
-                            </select>
-                        </div>
-
-                        <!-- Department Filter -->
-                        <div class="d-flex align-items-center gap-1">
-                            <span class="text-muted fw-bold" style="font-size: 0.75rem;">BỘ PHẬN:</span>
-                            <select class="filter-select">
-                                <option selected>Mọi phòng ban</option>
-                                <option>Khối Công nghệ & IT</option>
-                                <option>Khối Vận hành & Sản xuất</option>
-                                <option>Khối Kinh doanh</option>
-                            </select>
-                        </div>
-
-                        <!-- Status Filter -->
-                        <select class="filter-select">
-                            <option selected>Đang áp dụng (Active)</option>
-                            <option>Bản dự thảo</option>
-                            <option>Đã hết hiệu lực</option>
-                        </select>
                     </div>
 
-                    <!-- Right Buttons -->
-                    <div class="d-flex align-items-center gap-2">
-                        <button class="btn btn-sm btn-light border py-2 px-3 fw-semibold text-secondary" style="font-size: 0.8rem;">
-                            <i class="bi bi-layout-three-columns me-1"></i> Cột hiển thị
-                        </button>
-                        <button class="btn btn-sm btn-light border py-2 px-3" title="Làm mới"><i class="bi bi-arrow-clockwise"></i></button>
-                    </div>
+                    <form method="post" action="${pageContext.request.contextPath}/salary-config" class="p-3">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">MỨC LƯƠNG CƠ SỞ (VNĐ)</label>
+                                <input type="number" step="any" name="base_salary" value="${baseSalary}" class="form-control fw-bold text-primary" required>
+                                <div class="form-text" style="font-size:0.72rem;">Chuẩn hiện hành: 2.340.000 VNĐ</div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">GIẢM TRỪ BẢN THÂN (VNĐ)</label>
+                                <input type="number" step="any" name="personal_reduction" value="${personalReduction}" class="form-control fw-bold" required>
+                                <div class="form-text" style="font-size:0.72rem;">Quy định thuế: 11.000.000 VNĐ/tháng</div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">GIẢM TRỪ PHỤ THUỘC (VNĐ)</label>
+                                <input type="number" step="any" name="dependent_reduction" value="${dependentReduction}" class="form-control fw-bold" required>
+                                <div class="form-text" style="font-size:0.72rem;">Mỗi người phụ thuộc: 4.400.000 VNĐ</div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">TRẦN ĐÓNG BẢO HIỂM (VNĐ)</label>
+                                <input type="number" step="any" name="insurance_ceiling" value="${bhCeiling}" class="form-control fw-bold" required>
+                                <div class="form-text" style="font-size:0.72rem;">Tối đa 20 lần lương cơ sở: 46.800.000 VNĐ</div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">TỶ LỆ BHXH NLĐ (0.08 = 8%)</label>
+                                <input type="text" name="bhxh_rate" value="${bhxhRate}" class="form-control fw-bold font-monospace" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">TỶ LỆ BHYT NLĐ (0.015 = 1.5%)</label>
+                                <input type="text" name="bhyt_rate" value="${bhytRate}" class="form-control fw-bold font-monospace" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">TỶ LỆ BHTN NLĐ (0.01 = 1%)</label>
+                                <input type="text" name="bhtn_rate" value="${bhtnRate}" class="form-control fw-bold font-monospace" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">CÔNG CHUẨN TRONG THÁNG</label>
+                                <input type="number" name="standard_working_days" value="${standardDays}" class="form-control fw-bold" required>
+                                <div class="form-text" style="font-size:0.72rem;">Mặc định: 22 ngày công chuẩn</div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top d-flex justify-content-end gap-2">
+                            <button type="reset" class="btn btn-sm btn-light border px-3">Đặt lại ban đầu</button>
+                            <button type="submit" class="btn btn-sm btn-primary px-4 fw-bold">
+                                <i class="bi bi-save me-1"></i> Lưu thiết lập chính sách
+                            </button>
+                        </div>
+                    </form>
                 </div>
-            </div>
+            </c:if>
 
             <!-- Main Salary Scale Table Card -->
             <div class="table-custom-container mb-4">
                 <!-- Card Header with Scale Name & Period -->
                 <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div class="d-flex align-items-center gap-2">
-                        <span class="fw-bold text-dark" style="font-size: 1rem;">Thang bậc lương & Ngạch chức danh</span>
-                        <span class="badge bg-primary-subtle text-primary border-0 fw-bold">5 ngạch tiêu chuẩn</span>
+                        <span class="fw-bold text-dark" style="font-size: 1rem;">Danh mục tham số & Thang bảng cấu hình trong Hệ thống</span>
+                        <span class="badge bg-primary-subtle text-primary border-0 fw-bold">${configs != null ? configs.size() : 0} tham số hoạt động</span>
                     </div>
-                    <span class="text-muted" style="font-size: 0.8rem;">
-                        Chu kỳ tái cấu trúc bảng lương: <strong>01/01/2025 - 31/12/2025</strong>
-                    </span>
+                    <div class="position-relative" style="min-width: 260px;">
+                        <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.85rem;"></i>
+                        <input type="text" id="configSearchInput" onkeyup="filterConfigTable()" class="form-control ps-5 py-2 bg-light border-0" placeholder="Tìm theo mã tham số, mô tả..." style="font-size: 0.83rem; border-radius: 10px;">
+                    </div>
                 </div>
 
                 <div class="table-responsive">
-                    <table class="table-custom">
+                    <table class="table-custom" id="configTable">
                         <thead>
                             <tr>
-                                <th style="width: 40px;" class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </th>
-                                <th>MÃ NGẠCH</th>
-                                <th>TÊN NGẠCH / VỊ TRÍ ÁP DỤNG</th>
-                                <th class="text-center">BẬC THANG (1 - 7)</th>
-                                <th class="text-center">HỆ SỐ CHUẨN</th>
-                                <th class="text-center">MỨC SÀN GROSS (MIN - MAX)</th>
-                                <th class="text-center">PHỤ CẤP CHỨC VỤ</th>
-                                <th class="text-center">HIỆU LỰC</th>
-                                <th class="text-center">TRẠNG THÁI</th>
+                                <th style="width: 50px;" class="text-center">#</th>
+                                <th>MÃ THAM SỐ (KEY)</th>
+                                <th>MÔ TẢ / QUY CHẾ ÁP DỤNG</th>
+                                <th class="text-end">GIÁ TRỊ THIẾT LẬP</th>
+                                <th class="text-center">CẬP NHẬT GẦN NHẤT</th>
                                 <th class="text-end pe-4">THAO TÁC</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Row 1: DIR-01 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <span class="fw-bold text-primary">DIR-01</span>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark" style="font-size: 0.86rem;">Giám đốc Khối / Giám đốc Kỹ thuật</div>
-                                    <div class="text-muted" style="font-size: 0.74rem;">Khối Công nghệ & Khối Vận hành</div>
-                                </td>
-                                <td class="text-center">
-                                    <div class="grade-bracket-box">
-                                        <span>Bậc 7/7</span>
-                                        <span class="grade-bracket-sub">Cấp cao</span>
-                                    </div>
-                                </td>
-                                <td class="text-center font-monospace fw-bold">7.85 - 10.20</td>
-                                <td class="text-center">
-                                    <span class="font-monospace fw-bold text-dark">55.000.000 - 90.000.000</span><br>
-                                    <small class="text-muted" style="font-size:0.7rem;">VNĐ / tháng</small>
-                                </td>
-                                <td class="text-center font-monospace fw-bold text-primary">12.000.000 đ</td>
-                                <td class="text-center text-muted" style="font-size: 0.8rem;">01/01/2024</td>
-                                <td class="text-center">
-                                    <span class="status-badge-applied">
-                                        <i class="bi bi-circle-fill" style="font-size: 0.45rem;"></i> Áp dụng
-                                    </span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-light border-0" title="Chỉnh sửa"><i class="bi bi-pencil"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="Chi tiết"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="Sơ đồ ngạch"><i class="bi bi-diagram-2"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- Row 2: MGR-02 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <span class="fw-bold text-primary">MGR-02</span>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark" style="font-size: 0.86rem;">Trưởng phòng / Trưởng nhóm Nghiệp vụ</div>
-                                    <div class="text-muted" style="font-size: 0.74rem;">Tất cả các phòng ban nội bộ</div>
-                                </td>
-                                <td class="text-center">
-                                    <div class="grade-bracket-box">
-                                        <span>Bậc 5/7</span>
-                                        <span class="grade-bracket-sub">Quản trị</span>
-                                    </div>
-                                </td>
-                                <td class="text-center font-monospace fw-bold">4.50 - 6.80</td>
-                                <td class="text-center">
-                                    <span class="font-monospace fw-bold text-dark">32.000.000 - 52.000.000</span><br>
-                                    <small class="text-muted" style="font-size:0.7rem;">VNĐ / tháng</small>
-                                </td>
-                                <td class="text-center font-monospace fw-bold text-primary">6.500.000 đ</td>
-                                <td class="text-center text-muted" style="font-size: 0.8rem;">01/01/2024</td>
-                                <td class="text-center">
-                                    <span class="status-badge-applied">
-                                        <i class="bi bi-circle-fill" style="font-size: 0.45rem;"></i> Áp dụng
-                                    </span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-light border-0" title="Chỉnh sửa"><i class="bi bi-pencil"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="Chi tiết"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="Sơ đồ ngạch"><i class="bi bi-diagram-2"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- Row 3: SPE-03 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <span class="fw-bold text-primary">SPE-03</span>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark" style="font-size: 0.86rem;">Chuyên viên Cao cấp / Senior Tech Lead</div>
-                                    <div class="text-muted" style="font-size: 0.74rem;">Phát triển phần mềm & Phân tích DL</div>
-                                </td>
-                                <td class="text-center">
-                                    <div class="grade-bracket-box">
-                                        <span>Bậc 4/7</span>
-                                        <span class="grade-bracket-sub">Chuyên gia</span>
-                                    </div>
-                                </td>
-                                <td class="text-center font-monospace fw-bold">3.20 - 4.80</td>
-                                <td class="text-center">
-                                    <span class="font-monospace fw-bold text-dark">24.000.000 - 38.000.000</span><br>
-                                    <small class="text-muted" style="font-size:0.7rem;">VNĐ / tháng</small>
-                                </td>
-                                <td class="text-center font-monospace fw-bold text-primary">3.000.000 đ</td>
-                                <td class="text-center text-muted" style="font-size: 0.8rem;">15/06/2024</td>
-                                <td class="text-center">
-                                    <span class="status-badge-applied">
-                                        <i class="bi bi-circle-fill" style="font-size: 0.45rem;"></i> Áp dụng
-                                    </span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-light border-0" title="Chỉnh sửa"><i class="bi bi-pencil"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="Chi tiết"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="Sơ đồ ngạch"><i class="bi bi-diagram-2"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- Row 4: EXE-04 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <span class="fw-bold text-primary">EXE-04</span>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark" style="font-size: 0.86rem;">Chuyên viên Nghiệp vụ / Kỹ sư chính</div>
-                                    <div class="text-muted" style="font-size: 0.74rem;">Nhân sự, Kế toán, Kinh doanh, CSKH</div>
-                                </td>
-                                <td class="text-center">
-                                    <div class="grade-bracket-box">
-                                        <span>Bậc 2/7</span>
-                                        <span class="grade-bracket-sub">Tiêu chuẩn</span>
-                                    </div>
-                                </td>
-                                <td class="text-center font-monospace fw-bold">1.80 - 2.80</td>
-                                <td class="text-center">
-                                    <span class="font-monospace fw-bold text-dark">14.000.000 - 22.000.000</span><br>
-                                    <small class="text-muted" style="font-size:0.7rem;">VNĐ / tháng</small>
-                                </td>
-                                <td class="text-center font-monospace fw-bold text-primary">1.200.000 đ</td>
-                                <td class="text-center text-muted" style="font-size: 0.8rem;">01/01/2024</td>
-                                <td class="text-center">
-                                    <span class="status-badge-applied">
-                                        <i class="bi bi-circle-fill" style="font-size: 0.45rem;"></i> Áp dụng
-                                    </span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-light border-0" title="Chỉnh sửa"><i class="bi bi-pencil"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="Chi tiết"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="Sơ đồ ngạch"><i class="bi bi-diagram-2"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- Row 5: INT-05 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <span class="fw-bold text-primary">INT-05</span>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark" style="font-size: 0.86rem;">Nhân viên Thử việc & Thực tập sinh dự án</div>
-                                    <div class="text-muted" style="font-size: 0.74rem;">Khối Kinh doanh và Tiếp thị tăng trưởng</div>
-                                </td>
-                                <td class="text-center">
-                                    <div class="grade-bracket-box">
-                                        <span>Bậc 1/7</span>
-                                        <span class="grade-bracket-sub">Khởi điểm</span>
-                                    </div>
-                                </td>
-                                <td class="text-center font-monospace fw-bold">1.00 - 1.40</td>
-                                <td class="text-center">
-                                    <span class="font-monospace fw-bold text-dark">6.000.000 - 10.500.000</span><br>
-                                    <small class="text-muted" style="font-size:0.7rem;">VNĐ / tháng</small>
-                                </td>
-                                <td class="text-center font-monospace fw-bold text-muted">0 đ</td>
-                                <td class="text-center text-muted" style="font-size: 0.8rem;">01/04/2025</td>
-                                <td class="text-center">
-                                    <span class="status-badge-draft">
-                                        <i class="bi bi-circle-fill" style="font-size: 0.45rem;"></i> Bản dự thảo
-                                    </span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-light border-0" title="Chỉnh sửa"><i class="bi bi-pencil"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="Chi tiết"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="Sơ đồ ngạch"><i class="bi bi-diagram-2"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
+                            <c:choose>
+                                <c:when test="${not empty configs}">
+                                    <c:forEach var="cfg" items="${configs}" varStatus="status">
+                                        <tr>
+                                            <td class="text-center text-muted">${status.count}</td>
+                                            <td>
+                                                <span class="fw-bold text-primary font-monospace">${cfg.configKey}</span>
+                                            </td>
+                                            <td>
+                                                <div class="fw-semibold text-dark" style="font-size: 0.86rem;">
+                                                    <c:out value="${not empty cfg.description ? cfg.description : 'Cấu hình tham số hệ thống tính lương'}"/>
+                                                </div>
+                                            </td>
+                                            <td class="text-end">
+                                                <span class="font-monospace fw-bold text-dark fs-6">
+                                                    <c:out value="${cfg.configValue}"/>
+                                                </span>
+                                            </td>
+                                            <td class="text-center text-muted small">
+                                                <c:choose>
+                                                    <c:when test="${not empty cfg.updatedAt}">
+                                                        ${cfg.updatedAt}
+                                                    </c:when>
+                                                    <c:otherwise>Mặc định hệ thống</c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <c:if test="${sessionScope.currentUser.role eq 'ADMIN' or sessionScope.currentUser.role eq 'ACCOUNTANT'}">
+                                                    <div class="btn-group">
+                                                        <button type="button" class="btn btn-sm btn-light border-0" title="Chỉnh sửa tham số"
+                                                                onclick="openEditConfigModal('${cfg.configKey}', '${cfg.configValue}', '${cfg.description}')">
+                                                            <i class="bi bi-pencil text-primary"></i>
+                                                        </button>
+                                                        <form method="post" action="${pageContext.request.contextPath}/salary-config" class="d-inline"
+                                                              onsubmit="return confirm('Bạn có chắc muốn xóa tham số: ${cfg.configKey}?');">
+                                                            <input type="hidden" name="action" value="delete">
+                                                            <input type="hidden" name="key" value="${cfg.configKey}">
+                                                            <button type="submit" class="btn btn-sm btn-light border-0 text-danger" title="Xóa tham số">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </c:if>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </c:when>
+                                <c:otherwise>
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5 text-muted">
+                                            <i class="bi bi-gear-fill fs-2 d-block mb-2"></i>
+                                            Chưa có tham số cấu hình nào trong database.
+                                        </td>
+                                    </tr>
+                                </c:otherwise>
+                            </c:choose>
                         </tbody>
                     </table>
                 </div>
@@ -428,13 +322,8 @@
                 <!-- Table Footer -->
                 <div class="p-3 border-top d-flex justify-content-between align-items-center" style="font-size:0.82rem;">
                     <span class="text-muted">
-                        Hiển thị <strong>5 / 5 bản ghi</strong> danh mục cấu hình lương
+                        Hiển thị <strong>${configs != null ? configs.size() : 0} bản ghi</strong> tham số cấu hình
                     </span>
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                        </ul>
-                    </nav>
                 </div>
             </div>
 
@@ -442,7 +331,7 @@
             <div class="row g-3">
                 <!-- Card 1: Cấu hình chu kỳ tính lương (Payroll Cycle) -->
                 <div class="col-lg-6">
-                    <div class="app-card d-flex flex-column justify-content-between">
+                    <div class="app-card d-flex flex-column justify-content-between h-100">
                         <div>
                             <div class="app-card-header">
                                 <div>
@@ -480,9 +369,9 @@
                                 <div class="col-4">
                                     <div class="p-3 bg-light rounded-3 text-center border">
                                         <div class="text-muted fw-bold text-uppercase mb-1" style="font-size: 0.68rem;">CÔNG CHUẨN THÁNG</div>
-                                        <div class="fw-extrabold text-dark" style="font-size: 1.35rem; font-weight: 800;">22 công</div>
+                                        <div class="fw-extrabold text-dark" style="font-size: 1.35rem; font-weight: 800;">${standardDays} công</div>
                                         <div class="text-muted" style="font-size: 0.72rem;">Nghỉ T7 & CN cố định</div>
-                                        <div class="text-secondary mt-1" style="font-size: 0.68rem;">Lương 1 công = Lương cơ bản / 22</div>
+                                        <div class="text-secondary mt-1" style="font-size: 0.68rem;">Lương 1 công = Lương CB / ${standardDays}</div>
                                     </div>
                                 </div>
                             </div>
@@ -494,26 +383,27 @@
                                 <i class="bi bi-info-circle text-primary me-1"></i>
                                 Nếu ngày 05 rơi vào ngày lễ hoặc cuối tuần, tiền lương sẽ được giải ngân vào ngày làm việc liền trước.
                             </span>
-                            <a href="#" class="text-primary fw-bold text-decoration-none">Sửa chu kỳ</a>
                         </div>
                     </div>
                 </div>
 
                 <!-- Card 2: Hệ số OT & Làm tròn -->
                 <div class="col-lg-6">
-                    <div class="app-card d-flex flex-column justify-content-between">
+                    <div class="app-card d-flex flex-column justify-content-between h-100">
                         <div>
                             <div class="app-card-header">
                                 <div>
                                     <div class="app-card-title">
                                         <i class="bi bi-calculator text-primary me-1"></i>
-                                        Hệ số OT & Làm tròn
+                                        Hệ số OT & Quy tắc làm tròn
                                     </div>
                                     <p class="app-card-subtitle">
                                         Quy tắc tính hệ số lương ngoài giờ (Overtime) căn cứ theo Điều 98 Bộ Luật Lao động Việt Nam.
                                     </p>
                                 </div>
-                                <a href="#" class="text-primary fw-bold text-decoration-none" style="font-size: 0.8rem;">Điều chỉnh</a>
+                                <span class="badge bg-success-subtle text-success px-2 py-1 fw-bold" style="font-size: 0.75rem;">
+                                    Chuẩn Luật LĐ
+                                </span>
                             </div>
 
                             <!-- Overtime Bullets -->
@@ -556,8 +446,114 @@
     </main>
 </div>
 
+<!-- Modal: Thêm tham số cấu hình mới -->
+<div class="modal fade" id="addConfigModal" tabindex="-1" aria-labelledby="addConfigModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold text-dark" id="addConfigModalLabel">
+                    <i class="bi bi-plus-circle text-primary me-2"></i>Thêm Tham Số / Quy Chế Mới
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="${pageContext.request.contextPath}/salary-config">
+                <input type="hidden" name="action" value="save_custom">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">MÃ THAM SỐ (CONFIG KEY) <span class="text-danger">*</span></label>
+                        <input type="text" name="configKey" class="form-control font-monospace text-uppercase" placeholder="VD: OVERTIME_WEEKEND_RATE" required>
+                        <div class="form-text" style="font-size: 0.75rem;">Chữ hoa không dấu, viết liền hoặc phân cách bởi dấu gạch dưới.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">GIÁ TRỊ THIẾT LẬP (CONFIG VALUE) <span class="text-danger">*</span></label>
+                        <input type="text" name="configValue" class="form-control font-monospace" placeholder="VD: 2.0 hoặc 1500000" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">MÔ TẢ / DIỄN GIẢI CHÍNH SÁCH</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Ghi chú mục đích áp dụng của tham số này..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-sm btn-primary fw-bold px-3">
+                        <i class="bi bi-check2-circle me-1"></i> Lưu tham số
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Chỉnh sửa tham số cấu hình -->
+<div class="modal fade" id="editConfigModal" tabindex="-1" aria-labelledby="editConfigModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold text-dark" id="editConfigModalLabel">
+                    <i class="bi bi-pencil-square text-primary me-2"></i>Chỉnh Sửa Tham Số Cấu Hình
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="${pageContext.request.contextPath}/salary-config">
+                <input type="hidden" name="action" value="save_custom">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">MÃ THAM SỐ (CONFIG KEY)</label>
+                        <input type="text" id="editConfigKey" name="configKey" class="form-control font-monospace bg-light" readonly required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">GIÁ TRỊ THIẾT LẬP (CONFIG VALUE) <span class="text-danger">*</span></label>
+                        <input type="text" id="editConfigValue" name="configValue" class="form-control font-monospace" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">MÔ TẢ / DIỄN GIẢI CHÍNH SÁCH</label>
+                        <textarea id="editDescription" name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-sm btn-primary fw-bold px-3">
+                        <i class="bi bi-save me-1"></i> Cập nhật
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Shared JavaScript dependencies -->
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
+
+<script>
+function filterConfigTable() {
+    const input = document.getElementById("configSearchInput");
+    const filter = input.value.toUpperCase();
+    const table = document.getElementById("configTable");
+    const tr = table.getElementsByTagName("tr");
+
+    for (let i = 1; i < tr.length; i++) {
+        const tdKey = tr[i].getElementsByTagName("td")[1];
+        const tdDesc = tr[i].getElementsByTagName("td")[2];
+        if (tdKey || tdDesc) {
+            const keyText = tdKey ? (tdKey.textContent || tdKey.innerText) : "";
+            const descText = tdDesc ? (tdDesc.textContent || tdDesc.innerText) : "";
+            if (keyText.toUpperCase().indexOf(filter) > -1 || descText.toUpperCase().indexOf(filter) > -1) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+    }
+}
+
+function openEditConfigModal(key, val, desc) {
+    document.getElementById("editConfigKey").value = key;
+    document.getElementById("editConfigValue").value = val;
+    document.getElementById("editDescription").value = (desc && desc !== 'null') ? desc : '';
+    const modal = new bootstrap.Modal(document.getElementById('editConfigModal'));
+    modal.show();
+}
+</script>
 
 </body>
 </html>

@@ -6,6 +6,7 @@ import com.miximoi.hrm.dao.EmployeeDAO;
 import com.miximoi.hrm.model.Bonus;
 import com.miximoi.hrm.model.Department;
 import com.miximoi.hrm.model.Employee;
+import com.miximoi.hrm.model.User;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -34,6 +35,12 @@ public class BonusServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
+
+        User user = (User) request.getSession().getAttribute("currentUser");
+        if (!user.isAdmin() && !user.isAccountant() && !user.isHr()) {
+            response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+            return;
+        }
 
         LocalDate now = LocalDate.now();
         int year  = now.getYear();
@@ -84,6 +91,13 @@ public class BonusServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
+
+        User user = (User) request.getSession().getAttribute("currentUser");
+        if (!user.isAdmin() && !user.isAccountant() && !user.isHr()) {
+            response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+            return;
+        }
+
         request.setCharacterEncoding("UTF-8");
 
         String action = request.getParameter("action");
@@ -99,10 +113,25 @@ public class BonusServlet extends HttpServlet {
 
         try {
             if ("add".equalsIgnoreCase(action)) {
+                String empIdStr = request.getParameter("employeeId");
+                String name = request.getParameter("name");
+                String amtStr = request.getParameter("amount");
+
+                if (empIdStr == null || empIdStr.isEmpty() || name == null || name.trim().isEmpty() || amtStr == null) {
+                    response.sendRedirect(request.getContextPath() + "/bonuses?month=" + month + "&year=" + year + "&error=missing_fields");
+                    return;
+                }
+
+                BigDecimal amount = new BigDecimal(amtStr.replaceAll("[^0-9]", ""));
+                if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                    response.sendRedirect(request.getContextPath() + "/bonuses?month=" + month + "&year=" + year + "&error=invalid_amount");
+                    return;
+                }
+
                 Bonus b = new Bonus();
-                b.setEmployeeId(Integer.parseInt(request.getParameter("employeeId")));
-                b.setName(request.getParameter("name"));
-                b.setAmount(new BigDecimal(request.getParameter("amount").replaceAll("[^0-9]", "")));
+                b.setEmployeeId(Integer.parseInt(empIdStr));
+                b.setName(name.trim());
+                b.setAmount(amount);
                 String dateStr = request.getParameter("bonusDate");
                 b.setBonusDate(dateStr != null && !dateStr.isEmpty() ? LocalDate.parse(dateStr) : LocalDate.now());
                 b.setPayMonth(month);

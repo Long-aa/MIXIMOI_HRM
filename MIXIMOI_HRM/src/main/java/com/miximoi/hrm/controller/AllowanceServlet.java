@@ -6,6 +6,7 @@ import com.miximoi.hrm.dao.EmployeeDAO;
 import com.miximoi.hrm.model.Allowance;
 import com.miximoi.hrm.model.Department;
 import com.miximoi.hrm.model.Employee;
+import com.miximoi.hrm.model.User;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -29,6 +30,12 @@ public class AllowanceServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
+
+        User user = (User) request.getSession().getAttribute("currentUser");
+        if (!user.isAdmin() && !user.isAccountant() && !user.isHr()) {
+            response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+            return;
+        }
 
         LocalDate now = LocalDate.now();
         int month = now.getMonthValue();
@@ -69,6 +76,13 @@ public class AllowanceServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
+
+        User user = (User) request.getSession().getAttribute("currentUser");
+        if (!user.isAdmin() && !user.isAccountant() && !user.isHr()) {
+            response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+            return;
+        }
+
         request.setCharacterEncoding("UTF-8");
 
         String action = request.getParameter("action");
@@ -76,10 +90,25 @@ public class AllowanceServlet extends HttpServlet {
 
         try {
             if ("add".equalsIgnoreCase(action)) {
+                String empIdStr = request.getParameter("employeeId");
+                String name = request.getParameter("name");
+                String amtStr = request.getParameter("amount");
+
+                if (empIdStr == null || empIdStr.isEmpty() || name == null || name.trim().isEmpty() || amtStr == null) {
+                    response.sendRedirect(request.getContextPath() + "/allowances?error=missing_fields");
+                    return;
+                }
+
+                BigDecimal amount = new BigDecimal(amtStr.replaceAll("[^0-9]", ""));
+                if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                    response.sendRedirect(request.getContextPath() + "/allowances?error=invalid_amount");
+                    return;
+                }
+
                 Allowance a = new Allowance();
-                a.setEmployeeId(Integer.parseInt(request.getParameter("employeeId")));
-                a.setName(request.getParameter("name"));
-                a.setAmount(new BigDecimal(request.getParameter("amount").replaceAll("[^0-9]", "")));
+                a.setEmployeeId(Integer.parseInt(empIdStr));
+                a.setName(name.trim());
+                a.setAmount(amount);
                 String startStr = request.getParameter("startDate");
                 a.setStartDate(startStr != null && !startStr.isEmpty() ? LocalDate.parse(startStr) : LocalDate.now());
                 String endStr = request.getParameter("endDate");

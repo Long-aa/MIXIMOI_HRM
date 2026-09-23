@@ -53,6 +53,20 @@ public class PaymentDAO {
         return BigDecimal.ZERO;
     }
 
+    public boolean existsByPayrollId(int payrollId) {
+        String sql = "SELECT 1 FROM payments WHERE payroll_id = ? AND status = 'COMPLETED' LIMIT 1";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, payrollId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            System.err.println("PaymentDAO.existsByPayrollId error: " + e.getMessage());
+        }
+        return false;
+    }
+
     public boolean insert(Payment p) {
         String sql = "INSERT INTO payments (payroll_id, employee_id, amount, payment_date, payment_method, status, notes) "
                    + "VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -70,6 +84,21 @@ public class PaymentDAO {
             System.err.println("PaymentDAO.insert error: " + e.getMessage());
         }
         return false;
+    }
+
+    public boolean insertWithConnection(Connection conn, Payment p) throws SQLException {
+        String sql = "INSERT INTO payments (payroll_id, employee_id, amount, payment_date, payment_method, status, notes) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, p.getPayrollId());
+            ps.setInt(2, p.getEmployeeId());
+            ps.setBigDecimal(3, p.getAmount());
+            ps.setDate(4, p.getPaymentDate() != null ? Date.valueOf(p.getPaymentDate()) : Date.valueOf(java.time.LocalDate.now()));
+            ps.setString(5, p.getPaymentMethod() != null ? p.getPaymentMethod() : "BANK_TRANSFER");
+            ps.setString(6, p.getStatus() != null ? p.getStatus() : "COMPLETED");
+            ps.setString(7, p.getNotes());
+            return ps.executeUpdate() > 0;
+        }
     }
 
     private Payment mapRow(ResultSet rs) throws SQLException {

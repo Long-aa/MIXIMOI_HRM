@@ -116,6 +116,33 @@ public class PayrollDAO {
         return false;
     }
 
+    public boolean updateStatusWithConnection(Connection conn, int id, String status, int approvedById) throws SQLException {
+        String sql = "UPDATE payroll SET status=?, approved_by_id=?, "
+                   + "approved_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setInt(2, approvedById);
+            ps.setInt(3, id);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    public int approveAll(int month, int year, int approvedById) {
+        String sql = "UPDATE payroll SET status='APPROVED', approved_by_id=?, "
+                   + "approved_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP "
+                   + "WHERE pay_month=? AND pay_year=? AND status IN ('DRAFT', 'PENDING')";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, approvedById);
+            ps.setInt(2, month);
+            ps.setInt(3, year);
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("PayrollDAO.approveAll lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
     /** Tổng quỹ lương tháng (dùng cho dashboard) */
     public java.math.BigDecimal sumNetSalaryByPeriod(int month, int year) {
         String sql = "SELECT COALESCE(SUM(net_salary), 0) FROM payroll "
@@ -129,6 +156,23 @@ public class PayrollDAO {
             }
         } catch (SQLException e) {
             System.err.println("PayrollDAO.sumNetSalaryByPeriod lỗi: " + e.getMessage());
+        }
+        return java.math.BigDecimal.ZERO;
+    }
+
+    /** Tổng tiền khấu trừ tháng (dùng cho deductions & dashboard) */
+    public java.math.BigDecimal sumDeductionByPeriod(int month, int year) {
+        String sql = "SELECT COALESCE(SUM(deduction), 0) FROM payroll "
+                   + "WHERE pay_month = ? AND pay_year = ? AND status != 'DRAFT'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getBigDecimal(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("PayrollDAO.sumDeductionByPeriod lỗi: " + e.getMessage());
         }
         return java.math.BigDecimal.ZERO;
     }

@@ -3,6 +3,7 @@ package com.miximoi.hrm.controller;
 import com.miximoi.hrm.dao.PayrollDAO;
 import com.miximoi.hrm.model.Payroll;
 import com.miximoi.hrm.model.User;
+import com.miximoi.hrm.service.PayrollService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -16,18 +17,25 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Servlet quản lý thanh toán &amp; lệnh chi lương.
+ * Servlet quản lý thanh toán & lệnh chi lương.
  * URL: /payment
  */
 @WebServlet("/payment")
 public class PaymentServlet extends HttpServlet {
 
-    private final PayrollDAO payrollDAO = new PayrollDAO();
+    private final PayrollDAO     payrollDAO     = new PayrollDAO();
+    private final PayrollService payrollService = new PayrollService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
+
+        User user = (User) request.getSession().getAttribute("currentUser");
+        if (!user.isAdmin() && !user.isAccountant()) {
+            response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+            return;
+        }
 
         LocalDate now = LocalDate.now();
         String mStr = request.getParameter("month");
@@ -73,11 +81,17 @@ public class PaymentServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
+
+        User user = (User) request.getSession().getAttribute("currentUser");
+        if (!user.isAdmin() && !user.isAccountant()) {
+            response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+            return;
+        }
+
         request.setCharacterEncoding("UTF-8");
         String action = request.getParameter("action");
         if (action == null) action = "";
 
-        User user = (User) request.getSession().getAttribute("currentUser");
         int userId = user.getId();
 
         LocalDate now = LocalDate.now();
@@ -90,24 +104,21 @@ public class PaymentServlet extends HttpServlet {
 
         switch (action) {
             case "batch_disburse": {
-                // Đánh dấu tất cả APPROVED → PAID
-                List<Payroll> list = payrollDAO.findByPeriod(month, year);
-                if (list != null) {
-                    for (Payroll pr : list) {
-                        if ("APPROVED".equals(pr.getStatus())) {
-                            payrollDAO.updateStatus(pr.getId(), "PAID", userId);
-                        }
-                    }
-                }
+                int count = payrollService.batchDisburse(month, year, userId);
                 response.sendRedirect(request.getContextPath()
-                        + "/payment?month=" + month + "&year=" + year + "&success=batch_disbursed");
+                        + "/payment?month=" + month + "&year=" + year + "&success=batch_disbursed&count=" + count);
                 return;
             }
             case "pay_single": {
                 int id = Integer.parseInt(request.getParameter("id"));
-                payrollDAO.updateStatus(id, "PAID", userId);
-                response.sendRedirect(request.getContextPath()
-                        + "/payment?month=" + month + "&year=" + year + "&success=paid");
+                boolean ok = payrollService.payPayrollSingle(id, userId, "BANK_TRANSFER", null);
+                if (ok) {
+                    response.sendRedirect(request.getContextPath()
+                            + "/payment?month=" + month + "&year=" + year + "&success=paid");
+                } else {
+                    response.sendRedirect(request.getContextPath()
+                            + "/payment?month=" + month + "&year=" + year + "&error=pay_failed");
+                }
                 return;
             }
             default:

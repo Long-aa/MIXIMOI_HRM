@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -70,7 +71,6 @@
                     <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
                 </div>
             </c:if>
-            </div>
 
             <!-- 4 Stat KPI Cards -->
             <div class="row g-3 mb-4">
@@ -440,232 +440,10 @@
                         </tbody>
                     </table>
                 </div>
-
-                <div class="p-3 border-top d-flex justify-content-between align-items-center" style="font-size:0.82rem;">
-                    <span class="text-muted">Tổng cộng <strong>${bonusList.size()}</strong> quyết định khen thưởng trong kỳ</span>
-                    <span class="text-muted">Tháng ${selectedMonth}/${selectedYear}</span>
-                </div>
-            </div>
-
-                <div class="table-responsive">
-                    <table class="table-custom">
-                        <thead>
-                            <tr>
-                                <th style="width: 40px;" class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </th>
-                                <th>MÃ QĐ</th>
-                                <th>TÊN CHƯƠNG TRÌNH / ĐỢT THƯỞNG</th>
-                                <th>ĐỐI TƯỢNG THỤ HƯỞNG</th>
-                                <th>LÝ DO KHEN THƯỞNG</th>
-                                <th class="text-end">SỐ TIỀN THƯỞNG</th>
-                                <th class="text-center">NGÀY QUYẾT ĐỊNH</th>
-                                <th class="text-center">TRẠNG THÁI</th>
-                                <th class="text-end pe-4">THAO TÁC</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Row 1 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <a href="#" class="code-link">QĐ-TH2026-09/01</a>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark" style="font-size: 0.86rem;">Thưởng Dự án ERP Phân hệ Lương</div>
-                                    <div class="text-muted" style="font-size: 0.72rem;">Dự án chuyển đổi số 2026</div>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="user-initials-avatar" style="background:#eff6ff; color:#2563eb;">P</div>
-                                        <div>
-                                            <div class="fw-semibold text-dark" style="font-size: 0.84rem;">Phòng Công nghệ & IT</div>
-                                            <div class="text-muted" style="font-size: 0.72rem;">Tập thể (12 thành viên)</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-muted" style="font-size: 0.82rem;">Hoàn thành ERP đúng tiến độ vượt cam kết</td>
-                                <td class="text-end font-monospace fw-bold text-dark">25.000.000 đ</td>
-                                <td class="text-center text-muted" style="font-size: 0.8rem;">15/09/2026</td>
-                                <td class="text-center">
-                                    <span class="badge bg-success-subtle text-success border-0 fw-bold">Đã duyệt</span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-light border-0" title="Chi tiết"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="In quyết định"><i class="bi bi-printer"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- Row 2 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <a href="#" class="code-link">QĐ-TH2026-09/02</a>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark" style="font-size: 0.86rem;">Vượt chỉ tiêu Doanh thu Q3</div>
-                                    <div class="text-muted" style="font-size: 0.72rem;">Khen thưởng chiến dịch Bán lẻ</div>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="user-initials-avatar" style="background:#fdf2f8; color:#db2777;">MA</div>
-                                        <div>
-                                            <div class="fw-semibold text-dark" style="font-size: 0.84rem;">Lê Thị Mai Anh</div>
-                                            <div class="text-muted" style="font-size: 0.72rem;">Trưởng nhóm Bán hàng KV1</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-muted" style="font-size: 0.82rem;">Đạt 150% KPI doanh số tháng 08 & 09</td>
-                                <td class="text-end font-monospace fw-bold text-dark">15.000.000 đ</td>
-                                <td class="text-center text-muted" style="font-size: 0.8rem;">16/09/2026</td>
-                                <td class="text-center">
-                                    <span class="badge bg-success-subtle text-success border-0 fw-bold">Đã duyệt</span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-light border-0" title="Chi tiết"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="In quyết định"><i class="bi bi-printer"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- Row 3 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <a href="#" class="code-link">QĐ-TH2026-09/03</a>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark" style="font-size: 0.86rem;">Sáng kiến Tối ưu Hóa Đơn Lương</div>
-                                    <div class="text-muted" style="font-size: 0.72rem;">Khen thưởng Đột xuất</div>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="user-initials-avatar" style="background:#ecfdf5; color:#059669;">HN</div>
-                                        <div>
-                                            <div class="fw-semibold text-dark" style="font-size: 0.84rem;">Đặng Hoàng Nam</div>
-                                            <div class="text-muted" style="font-size: 0.72rem;">Chuyên viên Nhân sự C&B</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-muted" style="font-size: 0.82rem;">Rút ngắn 40% thời gian xử lý phiếu lương</td>
-                                <td class="text-end font-monospace fw-bold text-dark">8.000.000 đ</td>
-                                <td class="text-center text-muted" style="font-size: 0.8rem;">18/09/2026</td>
-                                <td class="text-center">
-                                    <span class="badge bg-warning-subtle text-warning border-0 fw-bold">Chờ duyệt</span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-light border-0" title="Chi tiết"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="In quyết định"><i class="bi bi-printer"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- Row 4 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <a href="#" class="code-link">QĐ-TH2026-09/04</a>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark" style="font-size: 0.86rem;">Thưởng Thâm Niên Cống Hiến 5 Năm</div>
-                                    <div class="text-muted" style="font-size: 0.72rem;">Chương trình Gắn kết Đồng hành</div>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="user-initials-avatar" style="background:#f5f3ff; color:#7c3aed;">KT</div>
-                                        <div>
-                                            <div class="fw-semibold text-dark" style="font-size: 0.84rem;">Phòng Tài Chính - Kế Toán</div>
-                                            <div class="text-muted" style="font-size: 0.72rem;">2 Nhân sự đạt mốc</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-muted" style="font-size: 0.82rem;">Mốc kỷ niệm ngày gia nhập tổ chức</td>
-                                <td class="text-end font-monospace fw-bold text-dark">10.000.000 đ</td>
-                                <td class="text-center text-muted" style="font-size: 0.8rem;">20/09/2026</td>
-                                <td class="text-center">
-                                    <span class="badge bg-success-subtle text-success border-0 fw-bold">Đã duyệt</span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-light border-0" title="Chi tiết"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="In quyết định"><i class="bi bi-printer"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- Row 5 -->
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
-                                <td>
-                                    <a href="#" class="code-link">QĐ-TH2026-09/05</a>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark" style="font-size: 0.86rem;">Khen thưởng Nhân viên Xuất sắc Tháng</div>
-                                    <div class="text-muted" style="font-size: 0.72rem;">Chương trình Star of the Month</div>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="user-initials-avatar" style="background:#fffbeb; color:#d97706;">ĐT</div>
-                                        <div>
-                                            <div class="fw-semibold text-dark" style="font-size: 0.84rem;">Ngô Đức Trọng</div>
-                                            <div class="text-muted" style="font-size: 0.72rem;">DevOps Engineer</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-muted" style="font-size: 0.82rem;">Xử lý sự cố hạ tầng máy chủ không gián đoạn</td>
-                                <td class="text-end font-monospace fw-bold text-dark">4.000.000 đ</td>
-                                <td class="text-center text-muted" style="font-size: 0.8rem;">21/09/2026</td>
-                                <td class="text-center">
-                                    <span class="badge bg-warning-subtle text-warning border-0 fw-bold">Chờ duyệt</span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-light border-0" title="Chi tiết"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-sm btn-light border-0" title="In quyết định"><i class="bi bi-printer"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Pagination Footer -->
-                <div class="p-3 border-top d-flex justify-content-between align-items-center" style="font-size:0.82rem;">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="text-muted">Hiển thị</span>
-                        <select class="form-select form-select-sm d-inline-block w-auto">
-                            <option selected>10</option>
-                            <option>25</option>
-                            <option>50</option>
-                        </select>
-                        <span class="text-muted">trên tổng số 45 quyết định khen thưởng</span>
-                    </div>
-
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a></li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                            <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
-                            <li class="page-item"><a class="page-link" href="#">5</a></li>
-                            <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
-                        </ul>
-                    </nav>
+                <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3 border-top">
+                    <span class="text-muted" style="font-size: 0.8rem;">
+                        Tổng số quyết định: <strong>${empty bonusList ? 0 : fn:length(bonusList)}</strong>
+                    </span>
                 </div>
             </div>
 

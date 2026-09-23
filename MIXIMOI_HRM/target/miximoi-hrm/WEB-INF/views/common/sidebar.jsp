@@ -10,10 +10,14 @@
     <div class="sidebar-header">
         <a href="${pageContext.request.contextPath}/dashboard" class="d-flex align-items-center gap-3 text-decoration-none">
             <div class="brand-logo-icon">
-                <span style="font-weight: 800; font-size: 1.15rem; letter-spacing: -0.5px; color: #fff;">M</span>
+                <span style="font-weight: 800; font-size: 1.15rem; letter-spacing: -0.5px; color: #fff;">
+                    ${not empty applicationScope.systemSettings['company_short_name'] ? applicationScope.systemSettings['company_short_name'].substring(0, 1) : 'M'}
+                </span>
             </div>
             <div class="brand-text">
-                <span class="brand-title">MIXIMOI</span>
+                <span class="brand-title">
+                    ${not empty applicationScope.systemSettings['company_short_name'] ? applicationScope.systemSettings['company_short_name'] : 'MIXIMOI'}
+                </span>
                 <span class="brand-sub">HRM & PAYROLL</span>
             </div>
         </a>

@@ -1,6 +1,8 @@
 package com.miximoi.hrm.controller;
 
+import com.miximoi.hrm.dao.DepartmentDAO;
 import com.miximoi.hrm.dao.PayrollDAO;
+import com.miximoi.hrm.model.Department;
 import com.miximoi.hrm.model.Payroll;
 import com.miximoi.hrm.model.User;
 import com.miximoi.hrm.service.PayrollService;
@@ -26,11 +28,22 @@ public class PayrollServlet extends HttpServlet {
 
     private final PayrollService payrollService = new PayrollService();
     private final PayrollDAO     payrollDAO     = new PayrollDAO();
+    private final DepartmentDAO  departmentDAO  = new DepartmentDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
+
+        User user = (User) request.getSession().getAttribute("currentUser");
+        if (user.isEmployee()) {
+            response.sendRedirect(request.getContextPath() + "/payslip");
+            return;
+        }
+        if (!user.isAdmin() && !user.isAccountant()) {
+            response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+            return;
+        }
 
         LocalDate now = LocalDate.now();
         String mStr = request.getParameter("month");
@@ -38,17 +51,14 @@ public class PayrollServlet extends HttpServlet {
         int month = (mStr != null && !mStr.isEmpty()) ? Integer.parseInt(mStr) : now.getMonthValue();
         int year  = (yStr != null && !yStr.isEmpty()) ? Integer.parseInt(yStr) : now.getYear();
 
-        User user = (User) request.getSession().getAttribute("currentUser");
-        List<Payroll> allPayrolls;
-        if ("EMPLOYEE".equals(user.getRole())) {
-            Payroll pr = payrollDAO.findByEmployeeAndPeriod(user.getEmployeeId(), month, year);
-            allPayrolls = pr != null
-                    ? new java.util.ArrayList<>(List.of(pr))
-                    : new java.util.ArrayList<>();
-        } else {
-            allPayrolls = payrollDAO.findByPeriod(month, year);
-            if (allPayrolls == null) allPayrolls = new java.util.ArrayList<>();
-        }
+        String keyword = request.getParameter("keyword");
+        String deptParam = request.getParameter("deptId");
+        Integer deptId = (deptParam != null && !deptParam.isEmpty()) ? Integer.parseInt(deptParam) : null;
+        String status = request.getParameter("status");
+
+        // Lấy danh sách bảng lương theo bộ lọc
+        List<Payroll> allPayrolls = payrollDAO.search(month, year, deptId, status, keyword, 0, 0);
+        if (allPayrolls == null) allPayrolls = new java.util.ArrayList<>();
 
         // ===== KPI Stats =====
         BigDecimal totalPayroll  = payrollDAO.sumNetSalaryByPeriod(month, year);
@@ -61,12 +71,11 @@ public class PayrollServlet extends HttpServlet {
         int        countDraft    = payrollDAO.countByStatus(month, year, "DRAFT");
 
         // Tỉ lệ hoàn thành chi trả
-        int    paidTotal    = countPaid + countApproved; // đã approved hoặc đã PAID đều coi là "ổn"
         double paidRatio    = totalEmpCount > 0 ? (double) countPaid / totalEmpCount * 100.0 : 0;
         int    pendingCount = countPending + countDraft;
 
-        // Phân trang 10 bản ghi/trang
-        int pageSize    = 10;
+        // Phân trang 15 bản ghi/trang
+        int pageSize    = 15;
         int totalRecords = allPayrolls.size();
         int totalPages  = (int) Math.ceil((double) totalRecords / pageSize);
 
@@ -79,23 +88,33 @@ public class PayrollServlet extends HttpServlet {
         int toIdx   = Math.min(fromIdx + pageSize, totalRecords);
         List<Payroll> payrollList = (totalRecords > 0) ? allPayrolls.subList(fromIdx, toIdx) : allPayrolls;
 
+        List<Department> departments = departmentDAO.findAll();
+
         // ===== Attributes =====
-        request.setAttribute("activeMenu",   "payroll");
-        request.setAttribute("payrollList",  payrollList);
-        request.setAttribute("totalPayroll", totalPayroll);
-        request.setAttribute("avgSalary",    avgSalary);
-        request.setAttribute("totalEmpCount", totalEmpCount);
-        request.setAttribute("countPaid",    countPaid);
-        request.setAttribute("countApproved", countApproved);
-        request.setAttribute("countPending", countPending);
-        request.setAttribute("pendingCount", pendingCount);
-        request.setAttribute("paidRatio",    String.format("%.1f", paidRatio));
-        request.setAttribute("selectedMonth", month);
-        request.setAttribute("selectedYear",  year);
-        request.setAttribute("currentPage",  page);
-        request.setAttribute("totalPages",   totalPages);
-        request.setAttribute("totalRecords", totalRecords);
-        request.setAttribute("pageSize",     pageSize);
+        request.setAttribute("activeMenu",      "payroll");
+        request.setAttribute("payrollList",     payrollList);
+        request.setAttribute("totalPayroll",    totalPayroll);
+        request.setAttribute("avgSalary",       avgSalary);
+        request.setAttribute("totalEmpCount",   totalEmpCount);
+        request.setAttribute("countPaid",       countPaid);
+        request.setAttribute("countApproved",   countApproved);
+        request.setAttribute("countPending",    countPending);
+        request.setAttribute("pendingCount",    pendingCount);
+        request.setAttribute("paidRatio",       String.format("%.1f", paidRatio));
+        request.setAttribute("selectedMonth",   month);
+        request.setAttribute("selectedYear",    year);
+        request.setAttribute("currentPage",     page);
+        request.setAttribute("totalPages",      totalPages);
+        request.setAttribute("totalRecords",    totalRecords);
+        request.setAttribute("pageSize",        pageSize);
+        request.setAttribute("departments",     departments);
+        request.setAttribute("keyword",         keyword);
+        request.setAttribute("selectedDeptId",  deptId);
+        request.setAttribute("selectedStatus",  status);
+
+        String success = request.getParameter("success");
+        if (success != null) request.setAttribute("successMsg", success);
+
         request.getRequestDispatcher("/WEB-INF/views/payroll/payroll-list.jsp")
                .forward(request, response);
     }
@@ -104,12 +123,18 @@ public class PayrollServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
+
+        User user = (User) request.getSession().getAttribute("currentUser");
+        if (!user.isAdmin() && !user.isAccountant()) {
+            response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+            return;
+        }
+
         request.setCharacterEncoding("UTF-8");
         String action = request.getParameter("action");
         if (action == null) action = "";
 
-        User user   = (User) request.getSession().getAttribute("currentUser");
-        int  userId = user.getId();
+        int userId = user.getId();
 
         LocalDate now = LocalDate.now();
         int month = now.getMonthValue();
@@ -130,14 +155,20 @@ public class PayrollServlet extends HttpServlet {
             }
             case "approve": {
                 int id = Integer.parseInt(request.getParameter("id"));
-                payrollDAO.updateStatus(id, "APPROVED", userId);
+                payrollService.approve(id, userId);
                 response.sendRedirect(request.getContextPath()
                         + "/payroll?month=" + month + "&year=" + year + "&success=approved");
                 break;
             }
+            case "approve_all": {
+                payrollService.approveAll(month, year, userId);
+                response.sendRedirect(request.getContextPath()
+                        + "/payroll?month=" + month + "&year=" + year + "&success=approved_all");
+                break;
+            }
             case "pay": {
                 int id = Integer.parseInt(request.getParameter("id"));
-                payrollDAO.updateStatus(id, "PAID", userId);
+                payrollService.payPayrollSingle(id, userId, "BANK_TRANSFER", null);
                 response.sendRedirect(request.getContextPath()
                         + "/payroll?month=" + month + "&year=" + year + "&success=paid");
                 break;

@@ -68,6 +68,16 @@
                                 <span>Tính lương tự động</span>
                             </button>
                         </form>
+                        <form method="post" action="${pageContext.request.contextPath}/payroll" class="d-inline"
+                              onsubmit="return confirm('Xác nhận phê duyệt toàn bộ bảng lương tháng ${selectedMonth}/${selectedYear}?');">
+                            <input type="hidden" name="action" value="approve_all">
+                            <input type="hidden" name="month" value="${selectedMonth}">
+                            <input type="hidden" name="year" value="${selectedYear}">
+                            <button type="submit" class="btn-action-primary border-0" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+                                <i class="bi bi-check2-all"></i>
+                                <span>Phê duyệt toàn bộ</span>
+                            </button>
+                        </form>
                     </c:if>
 
                     <button type="button" class="btn-action-light" onclick="alert('Đang kết xuất bảng lương Tháng ${selectedMonth}/${selectedYear} ra định dạng Excel...');">
@@ -94,6 +104,7 @@
                     <c:choose>
                         <c:when test="${param.success eq 'calculated'}">Tính toán bảng lương tháng ${selectedMonth}/${selectedYear} thành công!</c:when>
                         <c:when test="${param.success eq 'approved'}">Phê duyệt bảng lương thành công!</c:when>
+                        <c:when test="${param.success eq 'approved_all'}">Đã phê duyệt toàn bộ bảng lương tháng ${selectedMonth}/${selectedYear}!</c:when>
                         <c:when test="${param.success eq 'paid'}">Ghi nhận hoàn tất chi trả thanh toán lương!</c:when>
                     </c:choose>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -219,50 +230,56 @@
 
             <!-- Filter & Search Toolbar -->
             <div class="dashboard-filter-card mb-4">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                    <div class="d-flex flex-wrap align-items-center gap-2 flex-grow-1">
-                        <!-- Search Box -->
-                        <div class="position-relative" style="min-width: 260px;">
-                            <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.85rem;"></i>
-                            <input type="text" class="form-control ps-5 py-2 bg-light border-0" placeholder="Tìm theo mã NV, họ tên..." style="font-size: 0.83rem; border-radius: 10px;">
+                <form method="get" action="${pageContext.request.contextPath}/payroll" id="payrollFilterForm">
+                    <input type="hidden" name="month" value="${selectedMonth}">
+                    <input type="hidden" name="year" value="${selectedYear}">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <div class="d-flex flex-wrap align-items-center gap-2 flex-grow-1">
+                            <!-- Search Box -->
+                            <div class="position-relative" style="min-width: 260px;">
+                                <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.85rem;"></i>
+                                <input type="text" name="keyword" value="${keyword}" class="form-control ps-5 py-2 bg-light border-0" placeholder="Tìm theo mã NV, họ tên..." style="font-size: 0.83rem; border-radius: 10px;">
+                            </div>
+
+                            <!-- Department Filter -->
+                            <select name="deptId" class="filter-select" onchange="this.form.submit()">
+                                <option value="">Phòng ban: Tất cả</option>
+                                <c:forEach var="dept" items="${departments}">
+                                    <option value="${dept.id}" ${dept.id == selectedDeptId ? 'selected' : ''}>${dept.name}</option>
+                                </c:forEach>
+                            </select>
+
+                            <!-- Status Filter -->
+                            <select name="status" class="filter-select" onchange="this.form.submit()">
+                                <option value="">Trạng thái: Tất cả</option>
+                                <option value="DRAFT"   ${selectedStatus eq 'DRAFT'    ? 'selected' : ''}>Bản nháp</option>
+                                <option value="PENDING" ${selectedStatus eq 'PENDING'  ? 'selected' : ''}>Chờ phê duyệt</option>
+                                <option value="APPROVED"${selectedStatus eq 'APPROVED' ? 'selected' : ''}>Đã duyệt</option>
+                                <option value="PAID"    ${selectedStatus eq 'PAID'     ? 'selected' : ''}>Đã chi trả</option>
+                            </select>
+
+                            <!-- Search & Reset -->
+                            <button type="submit" class="btn btn-sm btn-primary px-3" style="border-radius:8px;">
+                                <i class="bi bi-funnel me-1"></i>Lọc
+                            </button>
+                            <a href="${pageContext.request.contextPath}/payroll?month=${selectedMonth}&year=${selectedYear}" class="btn-filter-refresh" title="Làm mới bộ lọc">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                <span>Làm mới lọc</span>
+                            </a>
                         </div>
 
-                        <!-- Department Filter -->
-                        <select class="filter-select">
-                            <option selected>Phòng ban: Tất cả</option>
-                            <option>Phòng Công nghệ & IT</option>
-                            <option>Phát triển Kinh doanh</option>
-                            <option>Marketing Tổng hợp</option>
-                            <option>Tài chính - Kế toán</option>
-                            <option>Nhân sự & Đào tạo</option>
-                        </select>
-
-                        <!-- Status Filter -->
-                        <select class="filter-select">
-                            <option selected>Trạng thái: Tất cả</option>
-                            <option>Đã chi trả</option>
-                            <option>Chờ phê duyệt</option>
-                            <option>Bản nháp</option>
-                        </select>
-
-                        <!-- Reset Button -->
-                        <button type="button" class="btn-filter-refresh" title="Làm mới bộ lọc">
-                            <i class="bi bi-arrow-clockwise"></i>
-                            <span>Làm mới lọc</span>
-                        </button>
-                    </div>
-
-                    <!-- Right Options & Count -->
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="text-muted" style="font-size: 0.83rem;">
-                            Hiển thị: <strong>${not empty payrollList ? payrollList.size() : 0}</strong> / <strong>${totalRecords}</strong> bản ghi
-                        </span>
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-light border py-1 px-2" title="Cột hiển thị"><i class="bi bi-layout-three-columns"></i></button>
-                            <button class="btn btn-sm btn-light border py-1 px-2" title="Lịch sử tính lương"><i class="bi bi-clock-history"></i></button>
+                        <!-- Right Options & Count -->
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="text-muted" style="font-size: 0.83rem;">
+                                Hiển thị: <strong>${not empty payrollList ? payrollList.size() : 0}</strong> / <strong>${totalRecords}</strong> bản ghi
+                            </span>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-light border py-1 px-2" title="Cột hiển thị"><i class="bi bi-layout-three-columns"></i></button>
+                                <button type="button" class="btn btn-sm btn-light border py-1 px-2" title="Lịch sử tính lương"><i class="bi bi-clock-history"></i></button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </form>
             </div>
 
             <!-- Payroll Master Table -->
@@ -281,7 +298,9 @@
                                 <th class="text-end">THƯỞNG</th>
                                 <th class="text-end">TĂNG CA (OT)</th>
                                 <th class="text-end">KHẤU TRỪ</th>
-                                <th class="text-end pe-4">THỰC NHẬN (NET)</th>
+                                <th class="text-end">THỰC NHẬN (NET)</th>
+                                <th class="text-center">TRẠNG THÁI</th>
+                                <th class="text-center pe-3">THAO TÁC</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -348,13 +367,58 @@
                                                     <c:otherwise><span class="text-muted">—</span></c:otherwise>
                                                 </c:choose>
                                             </td>
-                                            <td class="text-end pe-4 font-monospace text-net-salary">
+                                            <td class="text-end font-monospace text-net-salary">
                                                 <c:choose>
                                                     <c:when test="${not empty pr.netSalary}">
                                                         <fmt:formatNumber value="${pr.netSalary}" pattern="#,###"/> đ
                                                     </c:when>
                                                     <c:otherwise>—</c:otherwise>
                                                 </c:choose>
+                                            </td>
+                                            <td class="text-center">
+                                                <c:choose>
+                                                    <c:when test="${pr.status eq 'PAID'}">
+                                                        <span class="badge bg-success-subtle text-success border">Đã chi trả</span>
+                                                    </c:when>
+                                                    <c:when test="${pr.status eq 'APPROVED'}">
+                                                        <span class="badge bg-primary-subtle text-primary border">Đã duyệt</span>
+                                                    </c:when>
+                                                    <c:when test="${pr.status eq 'PENDING'}">
+                                                        <span class="badge bg-warning-subtle text-warning-emphasis border">Chờ duyệt</span>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <span class="badge bg-secondary-subtle text-secondary border">Nháp</span>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="text-center pe-3">
+                                                <div class="d-flex gap-1 justify-content-center">
+                                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&id=${pr.id}" class="btn btn-sm btn-outline-primary py-1 px-2" title="Xem phiếu lương">
+                                                        <i class="bi bi-receipt"></i>
+                                                    </a>
+                                                    <c:if test="${(sessionScope.currentUser.role eq 'ADMIN' or sessionScope.currentUser.role eq 'ACCOUNTANT') and (pr.status eq 'DRAFT' or pr.status eq 'PENDING')}">
+                                                        <form method="post" action="${pageContext.request.contextPath}/payroll" style="display:inline;" onsubmit="return confirm('Phê duyệt bảng lương cho ${pr.employeeName}?')">
+                                                            <input type="hidden" name="action" value="approve">
+                                                            <input type="hidden" name="id" value="${pr.id}">
+                                                            <input type="hidden" name="month" value="${selectedMonth}">
+                                                            <input type="hidden" name="year" value="${selectedYear}">
+                                                            <button type="submit" class="btn btn-sm btn-outline-success py-1 px-2" title="Phê duyệt">
+                                                                <i class="bi bi-check-circle"></i>
+                                                            </button>
+                                                        </form>
+                                                    </c:if>
+                                                    <c:if test="${(sessionScope.currentUser.role eq 'ADMIN' or sessionScope.currentUser.role eq 'ACCOUNTANT') and pr.status eq 'APPROVED'}">
+                                                        <form method="post" action="${pageContext.request.contextPath}/payroll" style="display:inline;" onsubmit="return confirm('Chi trả lương cho ${pr.employeeName}?')">
+                                                            <input type="hidden" name="action" value="pay">
+                                                            <input type="hidden" name="id" value="${pr.id}">
+                                                            <input type="hidden" name="month" value="${selectedMonth}">
+                                                            <input type="hidden" name="year" value="${selectedYear}">
+                                                            <button type="submit" class="btn btn-sm btn-success py-1 px-2" title="Chi trả lương">
+                                                                <i class="bi bi-cash-coin"></i>
+                                                            </button>
+                                                        </form>
+                                                    </c:if>
+                                                </div>
                                             </td>
                                         </tr>
                                     </c:forEach>
@@ -363,7 +427,7 @@
                                         <td class="text-center text-primary fs-5">Σ</td>
                                         <td colspan="2">TỔNG CỘNG KỲ THÁNG ${selectedMonth}/${selectedYear} (${totalRecords} NV)</td>
                                         <td class="text-end font-monospace" colspan="5"></td>
-                                        <td class="text-end pe-4 font-monospace text-net-salary fs-6">
+                                        <td class="text-end font-monospace text-net-salary fs-6">
                                             <c:choose>
                                                 <c:when test="${not empty totalPayroll and totalPayroll > 0}">
                                                     <fmt:formatNumber value="${totalPayroll}" pattern="#,###"/> đ
@@ -371,6 +435,7 @@
                                                 <c:otherwise>—</c:otherwise>
                                             </c:choose>
                                         </td>
+                                        <td colspan="2"></td>
                                     </tr>
                                 </c:when>
                                 <c:otherwise>

@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -155,92 +156,7 @@
                     </div>
                 </div>
             </div>
-                    <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Tổng khấu trừ kỳ này</span>
-                            <div class="kpi-icon-box coral">
-                                <i class="bi bi-dash-circle"></i>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-baseline gap-1 mb-2">
-                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.7rem;">78.000.000</span>
-                            <span class="text-muted fw-semibold" style="font-size: 0.85rem;">đ</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-1">
-                            <span class="badge bg-danger-subtle text-danger fw-semibold" style="font-size: 0.73rem;">
-                                18.4% tổng quỹ lương
-                            </span>
-                            <span class="text-muted small">kỳ Tháng 09</span>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- KPI 2 -->
-                <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Trích nộp BHXH / BHYT / BHTN</span>
-                            <div class="kpi-icon-box blue">
-                                <i class="bi bi-shield-shaded"></i>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-baseline gap-1 mb-2">
-                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.7rem;">54.200.000</span>
-                            <span class="text-muted fw-semibold" style="font-size: 0.85rem;">đ</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-1">
-                            <span class="badge bg-primary-subtle text-primary fw-semibold" style="font-size: 0.73rem;">
-                                10.5% lương đóng BH
-                            </span>
-                            <span class="text-muted small">245 lao động</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- KPI 3 -->
-                <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Thuế TNCN tạm khấu trừ</span>
-                            <div class="kpi-icon-box amber">
-                                <i class="bi bi-percent"></i>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-baseline gap-1 mb-2">
-                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.7rem;">18.500.000</span>
-                            <span class="text-muted fw-semibold" style="font-size: 0.85rem;">đ</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-1">
-                            <span class="badge bg-warning-subtle text-warning-emphasis fw-semibold" style="font-size: 0.73rem;">
-                                Lũy tiến 7 bậc
-                            </span>
-                            <span class="text-muted small">Thông tư 111</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- KPI 4 -->
-                <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="card h-100 border-0 shadow-sm rounded-3 p-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-muted text-uppercase fw-bold" style="font-size: 0.72rem;">Thu hồi & Tạm ứng khác</span>
-                            <div class="kpi-icon-box purple">
-                                <i class="bi bi-arrow-left-right"></i>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-baseline gap-1 mb-2">
-                            <span class="kpi-value text-dark fw-bold" style="font-size: 1.7rem;">5.300.000</span>
-                            <span class="text-muted fw-semibold" style="font-size: 0.85rem;">đ</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-1">
-                            <span class="badge bg-purple-subtle text-purple fw-semibold" style="font-size: 0.73rem; background: #f3e8ff; color: #7e22ce;">
-                                12 trường hợp
-                            </span>
-                            <span class="text-muted small">đã đối soát</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Filter Card -->
             <div class="card border-0 shadow-sm rounded-3 mb-4">
@@ -278,39 +194,7 @@
                     </form>
                 </div>
             </div>
-                        <div class="col-12 col-md-4">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-                                <input type="text" name="keyword" class="form-control border-start-0" placeholder="Tìm tên nhân viên, mã NV..." value="${param.keyword}">
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <select name="dept" class="form-select form-select-sm">
-                                <option value="">Tất cả phòng ban</option>
-                                <option value="IT" ${param.dept eq 'IT' ? 'selected' : ''}>Kỹ thuật & Công nghệ</option>
-                                <option value="Sales" ${param.dept eq 'Sales' ? 'selected' : ''}>Kinh doanh & Marketing</option>
-                                <option value="HR" ${param.dept eq 'HR' ? 'selected' : ''}>Nhân sự & Hành chính</option>
-                                <option value="Finance" ${param.dept eq 'Finance' ? 'selected' : ''}>Tài chính kế toán</option>
-                            </select>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <select name="status" class="form-select form-select-sm">
-                                <option value="">Tất cả đối soát VssID</option>
-                                <option value="synced" ${param.status eq 'synced' ? 'selected' : ''}>Đã khớp dữ liệu</option>
-                                <option value="warning" ${param.status eq 'warning' ? 'selected' : ''}>Cảnh báo chênh lệch</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-2 d-flex gap-2">
-                            <button type="submit" class="btn btn-sm btn-primary w-100 d-flex align-items-center justify-content-center gap-1">
-                                <i class="bi bi-funnel"></i> Lọc
-                            </button>
-                            <a href="${pageContext.request.contextPath}/deductions" class="btn btn-sm btn-outline-secondary" title="Đặt lại">
-                                <i class="bi bi-arrow-counterclockwise"></i>
-                            </a>
-                        </div>
-                    </form>
-                </div>
-            </div>
+
 
             <!-- Deductions Detail Table -->
             <div class="card border-0 shadow-sm rounded-3 mb-4 overflow-hidden">
@@ -392,12 +276,14 @@
                     </table>
                 </div>
             </div>
+            <!-- Deductions by Employee in Payroll -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4 overflow-hidden">
                 <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                     <div>
-                        <h2 class="h6 fw-bold mb-0 text-dark">Bảng chi tiết khấu trừ cá nhân kỳ Tháng 09/2026</h2>
-                        <span class="text-muted small">Hiển thị danh sách 5 nhân sự tiêu biểu trong kỳ lương</span>
+                        <h2 class="h6 fw-bold mb-0 text-dark">Bảng chi tiết khấu trừ theo nhân sự kỳ Tháng ${selectedMonth}/${selectedYear}</h2>
+                        <span class="text-muted small">Khấu trừ bảo hiểm (10.5%), thuế TNCN và các khoản giảm trừ theo bảng lương</span>
                     </div>
-                    <span class="badge bg-light text-dark border">Tổng cộng: 245 nhân sự</span>
+                    <span class="badge bg-light text-dark border">Tổng cộng: ${empty payrolls ? 0 : fn:length(payrolls)} nhân sự</span>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0 text-nowrap" style="font-size: 0.83rem;">
@@ -405,172 +291,77 @@
                             <tr>
                                 <th class="ps-3 py-3" style="width: 110px;">Mã NV</th>
                                 <th style="width: 220px;">Họ tên & Vị trí</th>
+                                <th class="text-end">Lương cơ bản</th>
                                 <th class="text-end">BHXH (8%)</th>
                                 <th class="text-end">BHYT (1.5%)</th>
                                 <th class="text-end">BHTN (1%)</th>
-                                <th class="text-end">Thuế TNCN</th>
-                                <th class="text-end">Tạm ứng</th>
-                                <th class="text-end">Khác</th>
                                 <th class="text-end fw-bold text-danger">Tổng khấu trừ</th>
-                                <th class="text-center">Đối soát VssID</th>
+                                <th class="text-center">Trạng thái</th>
                                 <th class="text-center pe-3">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Row 1 -->
-                            <tr>
-                                <td class="ps-3 fw-bold text-primary">MXM-0102</td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-circle bg-primary-subtle text-primary fw-bold" style="width: 32px; height: 32px; font-size: 0.78rem;">NA</div>
-                                        <div>
-                                            <div class="fw-bold text-dark">Nguyễn Văn An</div>
-                                            <small class="text-muted">Senior Tech Lead • IT</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-end">2.384.000 đ</td>
-                                <td class="text-end">447.000 đ</td>
-                                <td class="text-end">298.000 đ</td>
-                                <td class="text-end fw-semibold text-warning-emphasis">1.850.000 đ</td>
-                                <td class="text-end text-muted">0 đ</td>
-                                <td class="text-end text-muted">0 đ</td>
-                                <td class="text-end fw-bold text-danger">4.979.000 đ</td>
-                                <td class="text-center">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                        <i class="bi bi-check2-all"></i> Đã khớp
-                                    </span>
-                                </td>
-                                <td class="text-center pe-3">
-                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV001" class="btn btn-sm btn-outline-primary py-1 px-2" title="Xem phiếu lương">
-                                        <i class="bi bi-receipt"></i>
-                                    </a>
-                                </td>
-                            </tr>
-
-                            <!-- Row 2 -->
-                            <tr>
-                                <td class="ps-3 fw-bold text-primary">MXM-0245</td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-circle bg-info-subtle text-info fw-bold" style="width: 32px; height: 32px; font-size: 0.78rem;">TM</div>
-                                        <div>
-                                            <div class="fw-bold text-dark">Trần Thị Mai</div>
-                                            <small class="text-muted">Kế toán trưởng • Finance</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-end">2.384.000 đ</td>
-                                <td class="text-end">447.000 đ</td>
-                                <td class="text-end">298.000 đ</td>
-                                <td class="text-end fw-semibold text-warning-emphasis">2.150.000 đ</td>
-                                <td class="text-end fw-semibold text-purple">2.000.000 đ</td>
-                                <td class="text-end text-muted">0 đ</td>
-                                <td class="text-end fw-bold text-danger">7.279.000 đ</td>
-                                <td class="text-center">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                        <i class="bi bi-check2-all"></i> Đã khớp
-                                    </span>
-                                </td>
-                                <td class="text-center pe-3">
-                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV002" class="btn btn-sm btn-outline-primary py-1 px-2" title="Xem phiếu lương">
-                                        <i class="bi bi-receipt"></i>
-                                    </a>
-                                </td>
-                            </tr>
-
-                            <!-- Row 3: Warning record -->
-                            <tr class="table-warning bg-opacity-25">
-                                <td class="ps-3 fw-bold text-primary">MXM-0311</td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-circle bg-warning-subtle text-warning fw-bold" style="width: 32px; height: 32px; font-size: 0.78rem;">HN</div>
-                                        <div>
-                                            <div class="fw-bold text-dark">Lê Hoàng Nam</div>
-                                            <small class="text-muted">Product Manager • Product</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-end">2.384.000 đ</td>
-                                <td class="text-end">447.000 đ</td>
-                                <td class="text-end">298.000 đ</td>
-                                <td class="text-end fw-semibold text-warning-emphasis">1.450.000 đ</td>
-                                <td class="text-end text-muted">0 đ</td>
-                                <td class="text-end fw-semibold text-danger">500.000 đ</td>
-                                <td class="text-end fw-bold text-danger">5.079.000 đ</td>
-                                <td class="text-center">
-                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" title="Mức đóng BHXH trên sổ VssID chênh 200k">
-                                        <i class="bi bi-exclamation-triangle-fill"></i> Lệch mức đóng
-                                    </span>
-                                </td>
-                                <td class="text-center pe-3">
-                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV003" class="btn btn-sm btn-outline-primary py-1 px-2" title="Xem phiếu lương">
-                                        <i class="bi bi-receipt"></i>
-                                    </a>
-                                </td>
-                            </tr>
-
-                            <!-- Row 4 -->
-                            <tr>
-                                <td class="ps-3 fw-bold text-primary">MXM-0089</td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-circle bg-success-subtle text-success fw-bold" style="width: 32px; height: 32px; font-size: 0.78rem;">PT</div>
-                                        <div>
-                                            <div class="fw-bold text-dark">Phạm Thu Trang</div>
-                                            <small class="text-muted">Chuyên viên Nhân sự • HR</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-end">1.200.000 đ</td>
-                                <td class="text-end">225.000 đ</td>
-                                <td class="text-end">150.000 đ</td>
-                                <td class="text-end fw-semibold text-warning-emphasis">450.000 đ</td>
-                                <td class="text-end text-muted">0 đ</td>
-                                <td class="text-end text-muted">0 đ</td>
-                                <td class="text-end fw-bold text-danger">2.025.000 đ</td>
-                                <td class="text-center">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                        <i class="bi bi-check2-all"></i> Đã khớp
-                                    </span>
-                                </td>
-                                <td class="text-center pe-3">
-                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV004" class="btn btn-sm btn-outline-primary py-1 px-2" title="Xem phiếu lương">
-                                        <i class="bi bi-receipt"></i>
-                                    </a>
-                                </td>
-                            </tr>
-
-                            <!-- Row 5 -->
-                            <tr>
-                                <td class="ps-3 fw-bold text-primary">MXM-0412</td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-circle bg-secondary-subtle text-secondary fw-bold" style="width: 32px; height: 32px; font-size: 0.78rem;">VL</div>
-                                        <div>
-                                            <div class="fw-bold text-dark">Vũ Đình Long</div>
-                                            <small class="text-muted">QA Lead • IT</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-end">1.760.000 đ</td>
-                                <td class="text-end">330.000 đ</td>
-                                <td class="text-end">220.000 đ</td>
-                                <td class="text-end fw-semibold text-warning-emphasis">980.000 đ</td>
-                                <td class="text-end fw-semibold text-purple">1.500.000 đ</td>
-                                <td class="text-end text-muted">0 đ</td>
-                                <td class="text-end fw-bold text-danger">4.790.000 đ</td>
-                                <td class="text-center">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                        <i class="bi bi-check2-all"></i> Đã khớp
-                                    </span>
-                                </td>
-                                <td class="text-center pe-3">
-                                    <a href="${pageContext.request.contextPath}/payslip?action=detail&code=NV005" class="btn btn-sm btn-outline-primary py-1 px-2" title="Xem phiếu lương">
-                                        <i class="bi bi-receipt"></i>
-                                    </a>
-                                </td>
-                            </tr>
+                            <c:choose>
+                                <c:when test="${empty payrolls}">
+                                    <tr>
+                                        <td colspan="9" class="text-center py-5 text-muted">
+                                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                            Chưa có dữ liệu bảng lương tháng ${selectedMonth}/${selectedYear}.
+                                        </td>
+                                    </tr>
+                                </c:when>
+                                <c:otherwise>
+                                    <c:forEach var="p" items="${payrolls}">
+                                        <tr>
+                                            <td class="ps-3 fw-bold text-primary">${p.employeeCode}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="user-initials-avatar bg-primary-subtle text-primary fw-bold" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.78rem;">
+                                                        ${fn:substring(p.employeeName, 0, 1)}
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold text-dark">${p.employeeName}</div>
+                                                        <small class="text-muted">${p.positionName} • ${p.departmentName}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-end font-monospace">
+                                                <fmt:formatNumber value="${p.baseSalary}" pattern="#,##0"/> đ
+                                            </td>
+                                            <td class="text-end font-monospace text-muted">
+                                                <fmt:formatNumber value="${p.baseSalary * 0.08}" pattern="#,##0"/> đ
+                                            </td>
+                                            <td class="text-end font-monospace text-muted">
+                                                <fmt:formatNumber value="${p.baseSalary * 0.015}" pattern="#,##0"/> đ
+                                            </td>
+                                            <td class="text-end font-monospace text-muted">
+                                                <fmt:formatNumber value="${p.baseSalary * 0.01}" pattern="#,##0"/> đ
+                                            </td>
+                                            <td class="text-end font-monospace fw-bold text-danger">
+                                                <fmt:formatNumber value="${p.deduction}" pattern="#,##0"/> đ
+                                            </td>
+                                            <td class="text-center">
+                                                <c:choose>
+                                                    <c:when test="${p.status eq 'PAID'}">
+                                                        <span class="badge bg-success-subtle text-success">Đã chi trả</span>
+                                                    </c:when>
+                                                    <c:when test="${p.status eq 'APPROVED'}">
+                                                        <span class="badge bg-primary-subtle text-primary">Đã duyệt</span>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <span class="badge bg-warning-subtle text-warning-emphasis">${p.status}</span>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="text-center pe-3">
+                                                <a href="${pageContext.request.contextPath}/payslip?action=detail&id=${p.id}" class="btn btn-sm btn-outline-primary py-1 px-2" title="Xem phiếu lương">
+                                                    <i class="bi bi-receipt"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </c:otherwise>
+                            </c:choose>
                         </tbody>
                     </table>
                 </div>

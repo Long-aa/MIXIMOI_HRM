@@ -120,15 +120,23 @@
         const dateEl = document.getElementById("sideCreatedDate");
         if (dateEl) dateEl.innerText = formattedDate;
 
-        // Check for saved local draft
-        checkSavedDraft();
+        // Check for saved local draft (only for new employee onboarding)
+        if (!window.IS_EDIT_MODE) {
+            checkSavedDraft();
+        }
 
-        // Default department: Phòng Kỹ thuật (ID 6) if not selected
+        // Department initialization
         const deptSelect = document.getElementById("departmentId");
-        if (deptSelect && !deptSelect.value) {
+        if (deptSelect && !deptSelect.value && !window.IS_EDIT_MODE) {
             deptSelect.value = "6";
         }
-        handleDepartmentChange(deptSelect ? deptSelect.value : "6");
+        if (!window.IS_EDIT_MODE) {
+            handleDepartmentChange(deptSelect ? deptSelect.value : "6");
+        } else {
+            if (deptSelect && deptSelect.value) {
+                updateDeptQuotaBannerOnly(deptSelect.value);
+            }
+        }
 
         // Calculations
         recalcCompensation();
@@ -231,8 +239,11 @@
             posSelect.appendChild(opt);
         });
 
-        // Select first position by default
-        if (data.positions.length > 0) {
+        // Select appropriate position
+        if (window.IS_EDIT_MODE && window.CURRENT_EMP_POS_ID) {
+            posSelect.value = window.CURRENT_EMP_POS_ID;
+            handlePositionChange(window.CURRENT_EMP_POS_ID);
+        } else if (data.positions.length > 0) {
             posSelect.selectedIndex = 1;
             handlePositionChange(data.positions[0].id);
         }
@@ -270,7 +281,7 @@
 
         // Suggest salary in Step 3
         const salaryInput = document.getElementById("baseSalary");
-        if (salaryInput) {
+        if (salaryInput && (!window.IS_EDIT_MODE || !salaryInput.value || salaryInput.value === '0')) {
             salaryInput.value = defSalary;
             recalcCompensation();
         }
@@ -287,12 +298,12 @@
     // =========================================================================
     function jumpToStep(target) {
         if (target === currentStep) return;
-        if (target > currentStep && !validateCurrentStep()) return;
+        if (!window.IS_EDIT_MODE && target > currentStep && !validateCurrentStep()) return;
         goToStep(target);
     }
 
     function nextStep() {
-        if (!validateCurrentStep()) return;
+        if (!window.IS_EDIT_MODE && !validateCurrentStep()) return;
         if (currentStep < TOTAL_STEPS) {
             goToStep(currentStep + 1);
         }
@@ -304,11 +315,21 @@
         }
     }
 
+    window.jumpToStep = jumpToStep;
+    window.nextStep = nextStep;
+    window.prevStep = prevStep;
+
     function goToStep(step) {
         currentStep = step;
 
         // Update header & title
-        document.getElementById("pageHeaderTitle").innerText = stepHeaders[step];
+        if (window.IS_EDIT_MODE) {
+            const titleName = window.CURRENT_EMP_NAME || (document.getElementById("fullName") ? document.getElementById("fullName").value : "");
+            const titleCode = window.CURRENT_EMP_CODE || (document.getElementById("employeeCode") ? document.getElementById("employeeCode").value : "");
+            document.getElementById("pageHeaderTitle").innerText = "Chỉnh sửa: " + titleName + (titleCode ? " (" + titleCode + ")" : "") + " — Bước " + step + "/4";
+        } else {
+            document.getElementById("pageHeaderTitle").innerText = stepHeaders[step];
+        }
         document.getElementById("badgeProgressText").innerText = "Tiến trình hồ sơ: " + (step * 25) + "% Hoàn thành";
 
         // Show right panel
@@ -833,6 +854,7 @@
     }
 
     function startAutoSaveInterval() {
+        if (window.IS_EDIT_MODE) return;
         let count = 0;
         setInterval(() => {
             count++;
@@ -850,5 +872,53 @@
     }
 
     function confirmDiscard() {
-        return confirm("Bạn có chắc chắn muốn hủy bỏ? Mọi thông tin chưa lưu sẽ được lưu tạm trong bản nháp.");
+        return confirm("Bạn có chắc chắn muốn hủy bỏ? Mọi thông tin chưa lưu sẽ bị hủy.");
     }
+
+    function handleStatusChange(status) {
+        const termFields = document.getElementById("terminationFields");
+        if (termFields) {
+            if (status === "INACTIVE") {
+                termFields.classList.remove("d-none");
+            } else {
+                termFields.classList.add("d-none");
+            }
+        }
+    }
+    window.handleStatusChange = handleStatusChange;
+
+    function updateDeptQuotaBannerOnly(deptId) {
+        const banner = document.getElementById("deptQuotaBanner");
+        const data = DEPARTMENT_DATA[deptId];
+        if (!banner || !data) return;
+        const pct = Math.round((data.currentCount / data.targetCount) * 100);
+        const vacantCount = data.targetCount - data.currentCount;
+        let badgeHtml = "";
+        let barColor = "linear-gradient(90deg, #2563eb, #38bdf8)";
+        if (vacantCount > 0) {
+            badgeHtml = `<span class="quota-badge-vacant"><i class="bi bi-person-plus-fill"></i> Còn thiếu ${vacantCount} chỉ tiêu</span>`;
+            barColor = "linear-gradient(90deg, #059669, #34d399)";
+        } else {
+            badgeHtml = `<span class="quota-badge-full"><i class="bi bi-exclamation-circle-fill"></i> Đã đủ định biên (${data.currentCount}/${data.targetCount})</span>`;
+            barColor = "linear-gradient(90deg, #dc2626, #f87171)";
+        }
+        banner.innerHTML = `
+            <div class="quota-header">
+                <div>
+                    <div style="font-weight:800; font-size:0.9rem; color:#0f172a;">🏢 ${data.name}</div>
+                    <div style="font-size:0.75rem; color:#64748b;">Nghiệp vụ: ${data.desc}</div>
+                </div>
+                ${badgeHtml}
+            </div>
+            <div class="d-flex justify-content-between align-items-center" style="font-size:0.75rem;">
+                <span style="font-weight:700; color:#1e293b;">Hiện có ${data.currentCount} / ${data.targetCount} nhân sự</span>
+                <span style="font-weight:800; color:#2563eb;">${pct}% định biên</span>
+            </div>
+            <div class="quota-progress">
+                <div class="quota-progress-bar" style="width:${pct}%; background:${barColor};"></div>
+            </div>
+        `;
+        updateStep2Summary();
+    }
+    window.updateDeptQuotaBannerOnly = updateDeptQuotaBannerOnly;
+

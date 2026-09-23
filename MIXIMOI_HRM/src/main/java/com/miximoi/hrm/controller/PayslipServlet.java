@@ -88,10 +88,24 @@ public class PayslipServlet extends HttpServlet {
         if (idStr != null && !idStr.isEmpty()) {
             try { payroll = payrollDAO.findById(Integer.parseInt(idStr)); } catch (Exception ignored) {}
         }
-        if (payroll == null && "EMPLOYEE".equals(user.getRole())) {
+        if (payroll == null && "EMPLOYEE".equalsIgnoreCase(user.getRole())) {
             LocalDate now = LocalDate.now();
             payroll = payrollDAO.findByEmployeeAndPeriod(user.getEmployeeId(),
                     now.getMonthValue(), now.getYear());
+        }
+
+        // BẢO MẬT: Chặn nhân viên xem trộm phiếu lương của người khác qua ID
+        if (payroll != null && "EMPLOYEE".equalsIgnoreCase(user.getRole())) {
+            if (payroll.getEmployeeId() != user.getEmployeeId()) {
+                Payroll ownPayroll = payrollDAO.findByEmployeeAndPeriod(user.getEmployeeId(),
+                        payroll.getPayMonth(), payroll.getPayYear());
+                if (ownPayroll != null) {
+                    payroll = ownPayroll;
+                } else {
+                    response.sendRedirect(request.getContextPath() + "/payslip?error=access_denied");
+                    return;
+                }
+            }
         }
 
         // Lấy Employee và Contract info
@@ -140,6 +154,13 @@ public class PayslipServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!checkAuth(request, response)) return;
+
+        User user = (User) request.getSession().getAttribute("currentUser");
+        if (!user.isAdmin() && !user.isAccountant()) {
+            response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+            return;
+        }
+
         request.setCharacterEncoding("UTF-8");
 
         String action = request.getParameter("action");
