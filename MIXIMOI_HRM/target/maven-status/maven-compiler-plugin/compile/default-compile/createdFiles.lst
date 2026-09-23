@@ -48,6 +48,7 @@ com\miximoi\hrm\dao\UserDAO.class
 com\miximoi\hrm\controller\DepartmentServlet.class
 com\miximoi\hrm\dao\LeaveDAO.class
 com\miximoi\hrm\dao\OvertimeDAO.class
+com\miximoi\hrm\model\EmployeeLeaveBalance.class
 com\miximoi\hrm\service\EmployeeService.class
 com\miximoi\hrm\dao\ContractDAO.class
 com\miximoi\hrm\service\AttendanceService.class

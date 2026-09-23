@@ -3,6 +3,7 @@ package com.miximoi.hrm.util;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +28,13 @@ public class DatabaseInitializer {
             // 2. Nạp dữ liệu Overtime vào PostgreSQL nếu trống
             seedOvertimeIfEmpty(conn);
 
-            // 3. Nạp dữ liệu Chấm công hôm nay (FaceID, Vân tay) nếu trống
+            // 3. Nạp dữ liệu Nghỉ phép vào PostgreSQL nếu trống
+            seedLeaveRequestsIfEmpty(conn);
+
+            // 4. Đồng bộ trạng thái nhân sự (Đang nghỉ phép, Nghỉ việc)
+            syncEmployeeStatuses(conn);
+
+            // 5. Nạp dữ liệu Chấm công hôm nay (FaceID, Vân tay) nếu trống
             seedAttendanceIfEmpty(conn);
 
             initialized = true;
@@ -312,4 +319,195 @@ public class DatabaseInitializer {
             System.out.println("[DatabaseInitializer] Đã nạp " + empIds.size() + " bản ghi chấm công hôm nay vào PostgreSQL!");
         }
     }
+
+    private static void seedLeaveRequestsIfEmpty(Connection conn) throws SQLException {
+        String countSql = "SELECT COUNT(*) FROM leave_requests";
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(countSql)) {
+            if (rs.next() && rs.getInt(1) >= 4) return; // Đã có dữ liệu đầy đủ
+        }
+
+        List<Integer> empIds = new ArrayList<>();
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT id FROM employees ORDER BY id LIMIT 10")) {
+            while (rs.next()) empIds.add(rs.getInt(1));
+        }
+
+        if (empIds.isEmpty()) return;
+
+        int e1 = empIds.get(0);
+        int e2 = empIds.size() > 1 ? empIds.get(1) : e1;
+        int e3 = empIds.size() > 2 ? empIds.get(2) : e1;
+        int e4 = empIds.size() > 3 ? empIds.get(3) : e1;
+        int e5 = empIds.size() > 4 ? empIds.get(4) : e1;
+        int e6 = empIds.size() > 5 ? empIds.get(5) : e1;
+        int e7 = empIds.size() > 6 ? empIds.get(6) : e1;
+        int e8 = empIds.size() > 7 ? empIds.get(7) : e1;
+
+        LocalDate today = LocalDate.now();
+
+        String insertSql = "INSERT INTO leave_requests (leave_code, employee_id, leave_type, start_date, end_date, total_days, "
+                         + "reason, status, approved_by_id, approved_at, reject_reason, handover_person, manager_status, hr_status, created_at) "
+                         + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW() - INTERVAL '1 day') "
+                         + "ON CONFLICT (leave_code) DO NOTHING";
+
+        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            // 1. Nhân viên e4 (Kỹ thuật): Nghỉ phép năm ĐÃ DUYỆT (Bao gồm ngày hôm nay)
+            ps.setString(1, "LP-2026-001");
+            ps.setInt(2, e4);
+            ps.setString(3, "ANNUAL");
+            ps.setDate(4, Date.valueOf(today.minusDays(1)));
+            ps.setDate(5, Date.valueOf(today.plusDays(1)));
+            ps.setInt(6, 3);
+            ps.setString(7, "Nghỉ phép thường niên cùng gia đình");
+            ps.setString(8, "APPROVED");
+            ps.setInt(9, e1);
+            ps.setTimestamp(10, Timestamp.valueOf(LocalDateTime.now().minusDays(2)));
+            ps.setString(11, null);
+            ps.setString(12, "Đặng Văn Giang — 0967890123 (R&D)");
+            ps.setString(13, "APPROVED");
+            ps.setString(14, "APPROVED");
+            ps.addBatch();
+
+            // 2. Nhân viên e6 (Marketing): Nghỉ ốm đau BHXH ĐÃ DUYỆT (Bao gồm ngày hôm nay)
+            ps.setString(1, "LP-2026-002");
+            ps.setInt(2, e6);
+            ps.setString(3, "SICK");
+            ps.setDate(4, Date.valueOf(today));
+            ps.setDate(5, Date.valueOf(today.plusDays(1)));
+            ps.setInt(6, 2);
+            ps.setString(7, "Điều trị cảm sốt cấp tính theo chỉ định y tế tại BV Đa khoa");
+            ps.setString(8, "APPROVED");
+            ps.setInt(9, e2);
+            ps.setTimestamp(10, Timestamp.valueOf(LocalDateTime.now().minusDays(1)));
+            ps.setString(11, null);
+            ps.setString(12, "Bùi Thị Hoa — 0978901234 (HR/Admin)");
+            ps.setString(13, "APPROVED");
+            ps.setString(14, "APPROVED");
+            ps.addBatch();
+
+            // 3. Nhân viên e5 (Kinh doanh): Nghỉ phép năm ĐANG CHỜ DUYỆT
+            ps.setString(1, "LP-2026-003");
+            ps.setInt(2, e5);
+            ps.setString(3, "ANNUAL");
+            ps.setDate(4, Date.valueOf(today.plusDays(2)));
+            ps.setDate(5, Date.valueOf(today.plusDays(4)));
+            ps.setInt(6, 3);
+            ps.setString(7, "Giải quyết việc hiếu hỉ gia đình ở quê");
+            ps.setString(8, "PENDING");
+            ps.setNull(9, Types.INTEGER);
+            ps.setNull(10, Types.TIMESTAMP);
+            ps.setString(11, null);
+            ps.setString(12, "Nguyễn Văn An — 0901234567");
+            ps.setString(13, "PENDING");
+            ps.setString(14, "PENDING");
+            ps.addBatch();
+
+            // 4. Nhân viên e7 (Kỹ thuật): Nghỉ việc riêng kết hôn (3 ngày có lương) ĐANG CHỜ DUYỆT
+            ps.setString(1, "LP-2026-004");
+            ps.setInt(2, e7);
+            ps.setString(3, "PERSONAL");
+            ps.setDate(4, Date.valueOf(today.plusDays(5)));
+            ps.setDate(5, Date.valueOf(today.plusDays(7)));
+            ps.setInt(6, 3);
+            ps.setString(7, "Nghỉ cưới kết hôn cá nhân (Đã gửi thiệp báo phòng HR)");
+            ps.setString(8, "PENDING");
+            ps.setNull(9, Types.INTEGER);
+            ps.setNull(10, Types.TIMESTAMP);
+            ps.setString(11, null);
+            ps.setString(12, "Phạm Thị Dung — 0934567890");
+            ps.setString(13, "APPROVED");
+            ps.setString(14, "PENDING");
+            ps.addBatch();
+
+            // 5. Nhân viên e8 (HR): Nghỉ không hưởng lương ĐÃ TỪ CHỐI
+            ps.setString(1, "LP-2026-005");
+            ps.setInt(2, e8);
+            ps.setString(3, "UNPAID");
+            ps.setDate(4, Date.valueOf(today.plusDays(1)));
+            ps.setDate(5, Date.valueOf(today.plusDays(5)));
+            ps.setInt(6, 5);
+            ps.setString(7, "Du lịch nước ngoài tự túc cùng bạn bè");
+            ps.setString(8, "REJECTED");
+            ps.setInt(9, e1);
+            ps.setTimestamp(10, Timestamp.valueOf(LocalDateTime.now().minusDays(1)));
+            ps.setString(11, "Trùng thời điểm quyết toán nhân sự quý 3, đề nghị dời lịch sang tháng sau");
+            ps.setString(12, "Trần Thị Bình — 0912345678");
+            ps.setString(13, "REJECTED");
+            ps.setString(14, "REJECTED");
+            ps.addBatch();
+
+            // 6. Nhân viên e2 (HR): Nghỉ phép năm đã sử dụng tuần trước
+            ps.setString(1, "LP-2026-006");
+            ps.setInt(2, e2);
+            ps.setString(3, "ANNUAL");
+            ps.setDate(4, Date.valueOf(today.minusDays(10)));
+            ps.setDate(5, Date.valueOf(today.minusDays(9)));
+            ps.setInt(6, 2);
+            ps.setString(7, "Nghỉ phép năm định kỳ quý 3");
+            ps.setString(8, "APPROVED");
+            ps.setInt(9, e1);
+            ps.setTimestamp(10, Timestamp.valueOf(LocalDateTime.now().minusDays(12)));
+            ps.setString(11, null);
+            ps.setString(12, "Bùi Thị Hoa — 0978901234");
+            ps.setString(13, "APPROVED");
+            ps.setString(14, "APPROVED");
+            ps.addBatch();
+
+            ps.executeBatch();
+            System.out.println("[DatabaseInitializer] Đã nạp danh sách Đơn nghỉ phép mẫu đa dạng vào PostgreSQL!");
+        }
+    }
+
+    private static void syncEmployeeStatuses(Connection conn) throws SQLException {
+        LocalDate today = LocalDate.now();
+
+        // 1. Cập nhật nhân viên có đơn nghỉ phép APPROVED bao gồm hôm nay sang ON_LEAVE
+        String updateOnLeaveSql = "UPDATE employees SET status = 'ON_LEAVE' WHERE id IN ("
+                                + "SELECT employee_id FROM leave_requests "
+                                + "WHERE status = 'APPROVED' AND ? BETWEEN start_date AND end_date)";
+        try (PreparedStatement ps = conn.prepareStatement(updateOnLeaveSql)) {
+            ps.setDate(1, Date.valueOf(today));
+            int updated = ps.executeUpdate();
+            if (updated > 0) {
+                System.out.println("[DatabaseInitializer] Đã cập nhật " + updated + " nhân sự sang trạng thái ON_LEAVE!");
+            }
+        }
+
+        // 2. Đảm bảo có ít nhất 2 nhân sự mẫu ở trạng thái INACTIVE (đã thôi việc / hết hạn hợp đồng)
+        // để thẻ 'Nghỉ việc / Lưu trữ' trên UI hiển thị số liệu thực tế
+        String countInactiveSql = "SELECT COUNT(*) FROM employees WHERE status IN ('INACTIVE', 'TERMINATED')";
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(countInactiveSql)) {
+            int inactiveCount = rs.next() ? rs.getInt(1) : 0;
+            if (inactiveCount < 2) {
+                // Đánh dấu 2 nhân viên cuối cùng là INACTIVE nếu chưa đủ 2
+                String setInactiveSql = "UPDATE employees SET status = 'INACTIVE', end_date = COALESCE(end_date, ?), "
+                                      + "termination_reason = COALESCE(termination_reason, 'Hết hạn hợp đồng thời vụ — Hoàn tất thủ tục bàn giao') "
+                                      + "WHERE status NOT IN ('INACTIVE','TERMINATED','ON_LEAVE') "
+                                      + "AND id IN (SELECT id FROM employees WHERE status NOT IN ('INACTIVE','TERMINATED') ORDER BY id DESC LIMIT 2)";
+                try (PreparedStatement psi = conn.prepareStatement(setInactiveSql)) {
+                    psi.setDate(1, Date.valueOf(today.minusDays(30)));
+                    int updated = psi.executeUpdate();
+                    if (updated > 0) {
+                        System.out.println("[DatabaseInitializer] Đã thiết lập " + updated + " nhân viên mẫu sang trạng thái INACTIVE!");
+                    }
+                }
+            }
+        }
+
+        // 3. Đồng bộ vào bảng chấm công hôm nay cho những ai có status ON_LEAVE
+        String syncAttSql = "INSERT INTO attendance (employee_id, work_date, status, notes, method) "
+                          + "SELECT lr.employee_id, ?, 'ON_LEAVE', 'Nghỉ phép theo đơn ' || lr.leave_code, 'FaceID' "
+                          + "FROM leave_requests lr "
+                          + "WHERE lr.status = 'APPROVED' AND ? BETWEEN lr.start_date AND lr.end_date "
+                          + "ON CONFLICT (employee_id, work_date) DO UPDATE "
+                          + "SET status = 'ON_LEAVE', notes = EXCLUDED.notes";
+        try (PreparedStatement ps = conn.prepareStatement(syncAttSql)) {
+            ps.setDate(1, Date.valueOf(today));
+            ps.setDate(2, Date.valueOf(today));
+            ps.executeUpdate();
+        }
+    }
 }
+

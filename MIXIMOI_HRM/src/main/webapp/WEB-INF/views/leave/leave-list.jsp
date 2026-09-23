@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
@@ -28,6 +28,7 @@
                         <c:when test="${param.success eq 'submitted'}">Tạo đơn xin nghỉ phép thành công! Đã chuyển Trưởng phòng và HR phê duyệt.</c:when>
                         <c:when test="${param.success eq 'approved'}">Phê duyệt đơn nghỉ phép thành công!</c:when>
                         <c:when test="${param.success eq 'rejected'}">Đã từ chối đơn xin nghỉ phép.</c:when>
+                        <c:when test="${param.success eq 'cancelled'}">Đã hủy đơn nghỉ phép thành công.</c:when>
                         <c:when test="${param.success eq 'exported'}">Đã xuất báo cáo tổng hợp nghỉ phép năm 2026!</c:when>
                         <c:otherwise>Thao tác hoàn tất!</c:otherwise>
                     </c:choose>
@@ -72,7 +73,7 @@
                                 Giám sát tỷ lệ vắng mặt phòng ban và xử lý phê duyệt Cấp 1 (TP) cho các thành viên trong nhóm.
                             </c:when>
                             <c:when test="${sessionScope.currentUser.employee and not sessionScope.currentUser.admin and not sessionScope.currentUser.hr}">
-                                Tra cứu số dư phép năm khả dụng (11.5 ngày), tạo đơn xin nghỉ phép và theo dõi tiến độ phê duyệt TP → HR.
+                                Tra cứu số dư phép năm khả dụng (<strong>${availableLeaveDays}</strong> ngày), tạo đơn xin nghỉ phép và theo dõi tiến độ phê duyệt TP → HR.
                             </c:when>
                             <c:when test="${sessionScope.currentUser.hr}">
                                 Quản lý quỹ phép năm Điều 113 BLLĐ, cấu hình chính sách thâm niên, thẩm tra và duyệt Cấp 2 HR toàn công ty.
@@ -137,11 +138,11 @@
                             <div>
                                 <span class="lkpi-label" style="color:#059669;">Nghỉ 100% lương</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val" style="color:#059669;">347</span>
+                                    <span class="lkpi-val" style="color:#059669;">${annualDays + personalDays + maternityDays}</span>
                                     <span style="font-size:0.9rem; color:#64748b; font-weight:600;">ngày</span>
                                 </div>
                             </div>
-                            <div class="lkpi-sub"><i class="bi bi-check2-circle text-success me-1"></i>Được tính đủ nguyên lương theo BLLĐ</div>
+                            <div class="lkpi-sub"><i class="bi bi-check2-circle text-success me-1"></i>Phép năm + Việc riêng + Thai sản hưởng lương</div>
                         </div>
 
                         <div class="leave-kpi-card" style="border-left: 4px solid #dc2626;">
@@ -149,7 +150,7 @@
                             <div>
                                 <span class="lkpi-label" style="color:#dc2626;">Nghỉ không lương (Khấu trừ)</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val" style="color:#dc2626;">10</span>
+                                    <span class="lkpi-val" style="color:#dc2626;">${unpaidDays}</span>
                                     <span style="font-size:0.9rem; color:#64748b; font-weight:600;">ngày trừ công</span>
                                 </div>
                             </div>
@@ -161,7 +162,7 @@
                             <div>
                                 <span class="lkpi-label" style="color:#2563eb;">Nghỉ ốm BHXH chi trả</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val" style="color:#2563eb;">68</span>
+                                    <span class="lkpi-val" style="color:#2563eb;">${sickDays}</span>
                                     <span style="font-size:0.9rem; color:#64748b; font-weight:600;">ngày trợ cấp</span>
                                 </div>
                             </div>
@@ -171,13 +172,13 @@
                         <div class="leave-kpi-card" style="border-left: 4px solid #475569;">
                             <div class="lkpi-shape" style="background:#f8fafc;"></div>
                             <div>
-                                <span class="lkpi-label">Đơn đã chốt tính lương</span>
+                                <span class="lkpi-label">Tổng số ngày đã đối soát</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val">166</span>
-                                    <span style="font-size:0.9rem; color:#64748b; font-weight:600;">/ 186 đơn</span>
+                                    <span class="lkpi-val">${totalUsedDays}</span>
+                                    <span style="font-size:0.9rem; color:#64748b; font-weight:600;">/ ${totalLeaves} đơn</span>
                                 </div>
                             </div>
-                            <div class="lkpi-sub"><strong class="text-success">89.2%</strong> hoàn tất đối soát quyết toán</div>
+                            <div class="lkpi-sub"><strong class="text-success">Năm 2026</strong> — Tổng hợp tất cả đơn đã duyệt</div>
                         </div>
                     </div>
                 </c:when>
@@ -190,11 +191,11 @@
                             <div>
                                 <span class="lkpi-label">Phòng ban nghỉ hôm nay</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val">2</span>
-                                    <span style="font-size:0.9rem; color:#64748b; font-weight:600;">/ 24 nhân sự</span>
+                                    <span class="lkpi-val">${empty deptOnLeaveToday ? 0 : deptOnLeaveToday}</span>
+                                    <span style="font-size:0.9rem; color:#64748b; font-weight:600;">/ ${empty deptTotalEmp ? totalLeaves : deptTotalEmp} nhân sự</span>
                                 </div>
                             </div>
-                            <div class="lkpi-sub"><strong class="text-primary">8.3%</strong> • Vắng mặt có đăng ký trước</div>
+                            <div class="lkpi-sub"><strong class="text-primary">${empty deptAbsencePct ? '0' : deptAbsencePct}%</strong> • Vắng mặt có đăng ký trước</div>
                         </div>
 
                         <div class="leave-kpi-card" style="border-left: 4px solid #d97706;">
@@ -202,7 +203,7 @@
                             <div>
                                 <span class="lkpi-label" style="color:#d97706;">Đơn chờ TP phê duyệt</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val" style="color:#d97706;">3</span>
+                                    <span class="lkpi-val" style="color:#d97706;">${empty deptPendingCount ? pendingCount : deptPendingCount}</span>
                                     <span style="font-size:0.9rem; color:#64748b; font-weight:600;">đơn cần xử lý</span>
                                 </div>
                             </div>
@@ -212,17 +213,17 @@
                         <div class="leave-kpi-card">
                             <div class="lkpi-shape"></div>
                             <div>
-                                <span class="lkpi-label">Quỹ phép phòng ban đã dùng</span>
+                                <span class="lkpi-label">Tổng đơn nghỉ phép phòng ban</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val">84</span>
-                                    <span style="font-size:0.88rem; color:#94a3b8; font-weight:600;">/ 450 ngày</span>
+                                    <span class="lkpi-val">${totalLeaves}</span>
+                                    <span style="font-size:0.88rem; color:#94a3b8; font-weight:600;">đơn trong danh sách</span>
                                 </div>
                             </div>
                             <div class="lkpi-sub d-flex align-items-center justify-content-between">
                                 <div class="progress flex-grow-1 me-2" style="height:5px;">
-                                    <div class="progress-bar bg-warning" style="width: 18.6%;"></div>
+                                    <div class="progress-bar bg-warning" style="width: ${empty deptAbsencePct ? 0 : deptAbsencePct}%;"></div>
                                 </div>
-                                <span class="fw-bold text-dark" style="font-size:0.75rem;">18.6%</span>
+                                <span class="fw-bold text-dark" style="font-size:0.75rem;">${empty deptAbsencePct ? '0' : deptAbsencePct}%</span>
                             </div>
                         </div>
 
@@ -231,11 +232,11 @@
                             <div>
                                 <span class="lkpi-label" style="color:#059669;">Quân số trực đảm bảo</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val" style="color:#059669;">91.7%</span>
+                                    <span class="lkpi-val" style="color:#059669;">${empty deptAttendancePct ? '100' : deptAttendancePct}%</span>
                                     <span style="font-size:0.88rem; color:#64748b; font-weight:600;">đạt chuẩn</span>
                                 </div>
                             </div>
-                            <div class="lkpi-sub"><i class="bi bi-shield-check text-success me-1"></i>Đáp ứng tiến độ dự án quý 3</div>
+                            <div class="lkpi-sub"><i class="bi bi-shield-check text-success me-1"></i>Tỷ lệ hiện diện phòng ban hôm nay</div>
                         </div>
                     </div>
                 </c:when>
@@ -248,7 +249,7 @@
                             <div>
                                 <span class="lkpi-label" style="color:#059669;">Phép khả dụng của bạn</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val" style="color:#059669;">11.5</span>
+                                    <span class="lkpi-val" style="color:#059669;">${availableLeaveDays}</span>
                                     <span style="font-size:1rem; color:#059669; font-weight:800;">ngày</span>
                                 </div>
                             </div>
@@ -260,11 +261,11 @@
                             <div>
                                 <span class="lkpi-label">Số ngày đã nghỉ năm nay</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val">5.5</span>
-                                    <span style="font-size:0.9rem; color:#64748b; font-weight:600;">/ 17.0 ngày</span>
+                                    <span class="lkpi-val">${usedLeaveDays}</span>
+                                    <span style="font-size:0.9rem; color:#64748b; font-weight:600;">/ ${standardLeaveDays + seniorityLeaveDays + carryOverLeaveDays} ngày</span>
                                 </div>
                             </div>
-                            <div class="lkpi-sub">3.5 ngày phép năm • 2.0 ngày nghỉ ốm</div>
+                            <div class="lkpi-sub">${usedLeaveDays} ngày đã sử dụng trong năm nay</div>
                         </div>
 
                         <div class="leave-kpi-card" style="border-left: 4px solid #d97706;">
@@ -272,22 +273,27 @@
                             <div>
                                 <span class="lkpi-label" style="color:#d97706;">Đơn đang xử lý</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val" style="color:#d97706;">1</span>
+                                    <span class="lkpi-val" style="color:#d97706;">${empty empPendingCount ? 0 : empPendingCount}</span>
                                     <span style="font-size:0.9rem; color:#64748b; font-weight:600;">đơn trình ký</span>
                                 </div>
                             </div>
-                            <div class="lkpi-sub"><span class="badge bg-warning-subtle text-dark fw-bold">LP-2026-016</span> chờ TP duyệt</div>
+                            <div class="lkpi-sub">
+                                <c:choose>
+                                    <c:when test="${not empty latestPendingCode}"><span class="badge bg-warning-subtle text-dark fw-bold">${latestPendingCode}</span> chờ TP duyệt</c:when>
+                                    <c:otherwise><span class="text-success">Không có đơn đang chờ duyệt</span></c:otherwise>
+                                </c:choose>
+                            </div>
                         </div>
 
                         <div class="leave-kpi-card">
                             <div class="lkpi-shape"></div>
                             <div>
-                                <span class="lkpi-label">Hạn bảo lưu phép 2025</span>
+                                <span class="lkpi-label">Thâm niên tích lũy</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val" style="font-size:1.35rem; color:#2563eb;">31/03/2027</span>
+                                    <span class="lkpi-val" style="font-size:1.35rem; color:#2563eb;">+${seniorityLeaveDays} ngày</span>
                                 </div>
                             </div>
-                            <div class="lkpi-sub"><i class="bi bi-clock-history me-1 text-muted"></i>Còn 4.0 ngày chuyển từ năm ngoái</div>
+                            <div class="lkpi-sub"><i class="bi bi-award me-1 text-primary"></i>Thâm niên theo Điều 114 BLLĐ 2019</div>
                         </div>
                     </div>
                 </c:when>
@@ -301,12 +307,12 @@
                             <div>
                                 <span class="lkpi-label">Đang nghỉ hôm nay</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val">8</span>
+                                    <span class="lkpi-val">${todayOnLeaveCount}</span>
                                     <span style="font-size:0.9rem; color:#64748b; font-weight:600;">nhân sự</span>
                                 </div>
                             </div>
                             <div class="lkpi-sub">
-                                <strong class="text-primary">3.2%</strong> • Vắng mặt có kế hoạch
+                                <strong class="text-primary">${todayOnLeavePct}%</strong> • Vắng mặt có kế hoạch
                             </div>
                         </div>
 
@@ -316,12 +322,12 @@
                             <div>
                                 <span class="lkpi-label">Đơn chờ phê duyệt</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val">14</span>
+                                    <span class="lkpi-val">${pendingCount}</span>
                                     <span style="font-size:0.9rem; color:#64748b; font-weight:600;">đơn trình ký</span>
                                 </div>
                             </div>
                             <div class="lkpi-sub">
-                                <span class="badge" style="background:#eff6ff; color:#2563eb; font-weight:700;">8 mới</span>
+                                <span class="badge" style="background:#eff6ff; color:#2563eb; font-weight:700;">${pending24hCount} mới</span>
                                 <span>gửi trong 24h qua</span>
                             </div>
                         </div>
@@ -332,30 +338,31 @@
                             <div>
                                 <span class="lkpi-label">Quỹ phép đã sử dụng</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val">482</span>
-                                    <span style="font-size:0.88rem; color:#94a3b8; font-weight:600;">/ 2,940 ngày</span>
+                                    <span class="lkpi-val">${totalUsedDays}</span>
+                                    <span style="font-size:0.88rem; color:#94a3b8; font-weight:600;">/ ${companyQuota} ngày</span>
                                 </div>
                             </div>
                             <div class="lkpi-sub d-flex align-items-center justify-content-between">
+                                <c:set var="usedPct" value="${companyQuota > 0 ? totalUsedDays * 100 / companyQuota : 0}"/>
                                 <div class="progress flex-grow-1 me-2" style="height:5px;">
-                                    <div class="progress-bar bg-primary" style="width: 16.4%;"></div>
+                                    <div class="progress-bar bg-primary" style="width: ${usedPct}%;"></div>
                                 </div>
-                                <span class="fw-bold text-dark" style="font-size:0.75rem;">16.4%</span>
+                                <span class="fw-bold text-dark" style="font-size:0.75rem;">${usedPct}%</span>
                             </div>
                         </div>
 
-                        <!-- Card 4: Tồn phép trung bình -->
+                        <!-- Card 4: Cơ cấu phép năm -->
                         <div class="leave-kpi-card">
                             <div class="lkpi-shape"></div>
                             <div>
-                                <span class="lkpi-label">Tồn phép trung bình</span>
+                                <span class="lkpi-label">Phép năm / Ốm đau</span>
                                 <div class="lkpi-val-row">
-                                    <span class="lkpi-val">7.8</span>
-                                    <span style="font-size:0.88rem; color:#64748b; font-weight:600;">ngày / nhân sự</span>
+                                    <span class="lkpi-val">${annualDays}</span>
+                                    <span style="font-size:0.88rem; color:#64748b; font-weight:600;">/ ${sickDays} ngày ốm</span>
                                 </div>
                             </div>
                             <div class="lkpi-sub">
-                                <i class="bi bi-clock me-1 text-muted"></i> Hạn bảo lưu đến 31/03/2027
+                                <i class="bi bi-pie-chart me-1 text-primary"></i> ${annualPct}% phép năm • ${sickPct}% ốm đau
                             </div>
                         </div>
                     </div>
@@ -372,21 +379,27 @@
                                 <h3 class="mcard-title">Cơ cấu loại nghỉ phép &amp; Tần suất</h3>
                                 <p class="mcard-sub">Tỷ lệ ngày nghỉ theo nhóm chế độ chính sách năm 2026</p>
                             </div>
-                            <span class="mcard-tag">Tổng cộng: 482 ngày</span>
+                            <span class="mcard-tag">${totalUsedDays} ng&#224;y s&#7917; d&#7909;ng</span>
                         </div>
 
-                        <!-- Segmented Progress Bar -->
+                        <!-- Segmented Progress Bar (Dynamic) -->
                         <div class="segmented-bar">
-                            <div class="seg-1" title="Phép thường niên: 72%"></div>
-                            <div class="seg-2" title="Nghỉ ốm & BHYT: 14%"></div>
-                            <div class="seg-3" title="Việc riêng có lương: 8%"></div>
-                            <div class="seg-4" title="Chế độ Thai sản: 4%"></div>
-                            <div class="seg-5" title="Nghỉ không hưởng lương: 2%"></div>
+                            <div class="seg-1" style="width:${annualPct}%" title="Ph&#233;p th&#432;&#7901;ng ni&#234;n: ${annualPct}%"></div>
+                            <div class="seg-2" style="width:${sickPct}%" title="Ngh&#7881; &#7889;m &amp; BHYT: ${sickPct}%"></div>
+                            <div class="seg-3" style="width:${personalPct}%" title="Vi&#7879;c ri&#234;ng c&#243; l&#432;&#417;ng: ${personalPct}%"></div>
+                            <div class="seg-4" style="width:${maternityPct}%" title="Ch&#7871; &#273;&#7897; Thai s&#7843;n: ${maternityPct}%"></div>
+                            <div class="seg-5" style="width:${unpaidPct}%" title="Ngh&#7881; kh&#244;ng h&#432;&#7903;ng l&#432;&#417;ng: ${unpaidPct}%"></div>
                         </div>
 
-                        <!-- Legend Items (3x2 grid) -->
+                        <!-- Legend Items (3x2 grid) - Dynamic -->
                         <div class="cat-legend-grid">
-                            <div><span class="cat-dot c1"></span> Phép thường niên: <strong>347 ngày (72%)</strong></div>
+                            <div><span class="cat-dot c1"></span> Ph&#233;p th&#432;&#7901;ng ni&#234;n: <strong>${annualDays} ng&#224;y (${annualPct}%)</strong></div>
+                            <div><span class="cat-dot c2"></span> Ngh&#7881; &#7889;m &amp; BHYT: <strong>${sickDays} ng&#224;y (${sickPct}%)</strong></div>
+                            <div><span class="cat-dot c3"></span> Vi&#7879;c ri&#234;ng c&#243; l&#432;&#417;ng: <strong>${personalDays} ng&#224;y (${personalPct}%)</strong></div>
+                            <div><span class="cat-dot c4"></span> Ch&#7871; &#273;&#7897; Thai s&#7843;n: <strong>${maternityDays} ng&#224;y (${maternityPct}%)</strong></div>
+                            <div><span class="cat-dot c5"></span> Ngh&#7881; kh&#244;ng h&#432;&#7903;ng l&#432;&#417;ng: <strong>${unpaidDays} ng&#224;y (${unpaidPct}%)</strong></div>
+                            <div><span class="cat-dot c6"></span> T&#7893;ng s&#7917; d&#7909;ng: <strong class="text-success">${totalUsedDays} ng&#224;y to&#224;n c&#244;ng ty</strong></div>
+                        </div>
                             <div><span class="cat-dot c2"></span> Nghỉ ốm &amp; BHYT: <strong>68 ngày (14%)</strong></div>
                             <div><span class="cat-dot c3"></span> Việc riêng có lương: <strong>38 ngày (8%)</strong></div>
                             <div><span class="cat-dot c4"></span> Chế độ Thai sản: <strong>19 ngày (4%)</strong></div>
@@ -402,7 +415,19 @@
                         <div class="mcard-header">
                             <div>
                                 <h3 class="mcard-title">Lịch vắng mặt trong tuần</h3>
-                                <p class="mcard-sub">28/09/2026 – 02/10/2026 (Tuần 40)</p>
+                                <%@ page import="java.time.LocalDate, java.time.format.DateTimeFormatter, java.time.temporal.WeekFields, java.util.Locale" %>
+                                <%
+                                    java.time.LocalDate todayDate = java.time.LocalDate.now();
+                                    java.time.DayOfWeek firstDOW = java.time.DayOfWeek.MONDAY;
+                                    java.time.LocalDate weekStart = todayDate.with(java.time.temporal.TemporalAdjusters.previousOrSame(firstDOW));
+                                    java.time.LocalDate weekEnd = weekStart.plusDays(4);
+                                    int weekNum = todayDate.get(java.time.temporal.WeekFields.of(java.util.Locale.getDefault()).weekOfWeekBasedYear());
+                                    java.time.format.DateTimeFormatter df = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                                    request.setAttribute("weekStartFmt", weekStart.format(df));
+                                    request.setAttribute("weekEndFmt", weekEnd.format(df));
+                                    request.setAttribute("weekNum", weekNum);
+                                %>
+                                <p class="mcard-sub">${weekStartFmt} – ${weekEndFmt} (Tuần ${weekNum})</p>
                             </div>
                             <div class="d-flex align-items-center gap-1">
                                 <button class="btn btn-sm btn-outline-light text-muted border py-0 px-2">&lt;</button>
@@ -411,39 +436,43 @@
                             </div>
                         </div>
 
-                        <!-- 3 Hàng ngày trong tuần -->
-                        <div class="week-item-row">
+                        <!-- 3 Hàng ngày trong tuần (Dynamic) -->
+                        <%
+                            String[] dayNames = {"T2","T3","T4","T5","T6"};
+                            java.time.LocalDate wd = (java.time.LocalDate) request.getAttribute("weekStartFmt") != null
+                                ? java.time.LocalDate.now().with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+                                : java.time.LocalDate.now();
+                            java.time.LocalDate todayRef = java.time.LocalDate.now();
+                            java.time.LocalDate weekStartRef = todayRef.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                        %>
+                        <c:forEach var="dayOffset" items="0,1,2,3,4" varStatus="loop">
+                        <%
+                            java.time.LocalDate dayDate = weekStartRef.plusDays(loop.index);
+                            boolean isToday = dayDate.equals(todayRef);
+                            String dayKey = new String[]{"T2","T3","T4","T5","T6"}[loop.index];
+                            request.setAttribute("_dayKey", dayKey);
+                            request.setAttribute("_dayNum", dayDate.getDayOfMonth());
+                            request.setAttribute("_isToday", isToday);
+                        %>
+                        <div class="week-item-row ${_isToday ? 'today' : ''}">
                             <div class="d-flex align-items-center">
-                                <div class="wdate-box"><span class="wdate-day">T2</span><span class="wdate-num">28</span></div>
+                                <div class="wdate-box ${_isToday ? 'today' : ''}"><span class="wdate-day">${_dayKey}</span><span class="wdate-num">${_dayNum}</span></div>
                                 <div class="week-content">
-                                    <div class="week-title">3 nhân sự nghỉ phép</div>
-                                    <div class="week-sub">Trần Thu Hà (R&amp;D), Lê Quốc Dũng (KD) +1 người</div>
+                                    <c:choose>
+                                        <c:when test="${_isToday}">
+                                            <div class="week-title text-primary">Hôm nay: ${todayOnLeaveCount} nhân sự nghỉ •</div>
+                                            <div class="week-sub">${annualDays > 0 ? annualDays : ''} Phép năm${sickDays > 0 ? ', '.concat(sickDays).concat(' Ốm đau') : ''}</div>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <div class="week-title">Dự kiến vắng mặt</div>
+                                            <div class="week-sub">Xem đơn nghỉ phép đã đăng ký</div>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </div>
                             </div>
-                            <span class="week-badge">3 người</span>
+                            <span class="week-badge ${_isToday ? 'today' : ''}">${_isToday ? 'Hôm nay' : _dayKey}</span>
                         </div>
-
-                        <div class="week-item-row today">
-                            <div class="d-flex align-items-center">
-                                <div class="wdate-box today"><span class="wdate-day">T3</span><span class="wdate-num">29</span></div>
-                                <div class="week-content">
-                                    <div class="week-title text-primary">Hôm nay: 8 nhân sự •</div>
-                                    <div class="week-sub">4 Phép năm, 2 Ốm đau, 2 Công tác đặc biệt</div>
-                                </div>
-                            </div>
-                            <span class="week-badge today">Hôm nay</span>
-                        </div>
-
-                        <div class="week-item-row">
-                            <div class="d-flex align-items-center">
-                                <div class="wdate-box light"><span class="wdate-day">T4</span><span class="wdate-num">30</span></div>
-                                <div class="week-content">
-                                    <div class="week-title">5 nhân sự dự kiến vắng</div>
-                                    <div class="week-sub">Phòng Kỹ thuật (2), Nhân sự (1), Kế toán (2)</div>
-                                </div>
-                            </div>
-                            <span class="week-badge">5 người</span>
-                        </div>
+                        </c:forEach>
                     </div>
 
                     <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="font-size:0.78rem;">
@@ -491,16 +520,19 @@
 
             <!-- Tabs Điều Hướng (Matches Screenshot 2) -->
             <div class="leave-nav-tabs">
-                <a href="${pageContext.request.contextPath}/leave" class="leave-tab-link active">
-                    Danh sách đơn nghỉ phép <span class="tab-badge-pill">186</span>
+                <a href="${pageContext.request.contextPath}/leave" class="leave-tab-link ${empty activeTab or activeTab eq 'requests' ? 'active' : ''}">
+                    Danh sách đơn nghỉ phép <span class="tab-badge-pill">${totalLeaves}</span>
                 </a>
-                <a href="${pageContext.request.contextPath}/leave?tab=balance" class="leave-tab-link">
-                    Bảng theo dõi tồn phép nhân viên <span class="tab-badge-pill">245</span>
+                <a href="${pageContext.request.contextPath}/leave?tab=balance" class="leave-tab-link ${activeTab eq 'balance' ? 'active' : ''}">
+                    Bảng theo dõi tồn phép nhân viên
                 </a>
-                <a href="${pageContext.request.contextPath}/leave?tab=policy" class="leave-tab-link">
+                <a href="${pageContext.request.contextPath}/leave?tab=policy" class="leave-tab-link ${activeTab eq 'policy' ? 'active' : ''}">
                     Lịch nghỉ lễ &amp; Quy định công ty
                 </a>
             </div>
+
+            <%-- Tab: Requests (default) --%>
+            <c:if test="${empty activeTab or activeTab eq 'requests'}">
 
             <!-- Thanh Lọc (Filter Row - Matches Screenshot 2) -->
             <div class="leave-filter-row">
@@ -742,9 +774,14 @@
 
                                                 <%-- 3. Nút cho Nhân viên cá nhân: Hủy đơn nếu còn PENDING --%>
                                                 <c:if test="${sessionScope.currentUser.employee and not sessionScope.currentUser.admin and not sessionScope.currentUser.hr and not sessionScope.currentUser.manager and not sessionScope.currentUser.accountant and lr.status eq 'PENDING'}">
-                                                    <button type="button" class="laction-btn no" title="Hủy đơn xin nghỉ phép của tôi" onclick="if(confirm('Bạn có chắc chắn muốn hủy đơn nghỉ phép này không?')) { alert('Đã hủy đơn thành công!'); location.reload(); }">
-                                                        <i class="bi bi-trash text-danger"></i>
-                                                    </button>
+                                                    <form method="post" action="${pageContext.request.contextPath}/leave" class="d-inline"
+                                                          onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn nghỉ phép này không?');">
+                                                        <input type="hidden" name="action" value="cancel">
+                                                        <input type="hidden" name="id" value="${lr.id}">
+                                                        <button type="submit" class="laction-btn no" title="Hủy đơn xin nghỉ phép của tôi">
+                                                            <i class="bi bi-trash text-danger"></i>
+                                                        </button>
+                                                    </form>
                                                 </c:if>
 
                                                 <!-- Xem chi tiết (Tất cả Role) -->
@@ -824,15 +861,101 @@
                     </div>
                 </div>
 
-                <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="alert('Mở Cẩm nang Nhân sự MIXIMOI 2026.');" style="height:36px; border-radius:8px;">
-                        Xem cẩm nang nhân sự
-                    </button>
-                    <button type="button" class="btn btn-sm btn-primary fw-bold" onclick="alert('Đang tổng hợp số dư phép toàn công ty...');" style="height:36px; border-radius:8px; background:#2563eb;">
-                        Kiểm tra số dư toàn công ty
-                    </button>
+                                <div class="d-flex align-items-center gap-2">
+                    <a href="${pageContext.request.contextPath}/leave?tab=policy" class="btn btn-sm btn-outline-primary fw-bold" style="height:36px; border-radius:8px;">
+                        Xem c&#7849;m nang nh&#226;n s&#7921;
+                    </a>
+                    <a href="${pageContext.request.contextPath}/leave?tab=balance" class="btn btn-sm btn-primary fw-bold" style="height:36px; border-radius:8px; background:#2563eb;">
+                        Ki&#7875;m tra s&#7889; d&#432; to&#224;n c&#244;ng ty
+                    </a>
                 </div>
             </div>
+
+            </c:if><%-- end tab: requests --%>
+
+            <%-- ===============================================================
+                 Tab: Balance - B&#7843;ng theo d&#245;i t&#7891;n ph&#233;p nh&#226;n vi&#234;n
+                 =============================================================== --%>
+            <c:if test="${activeTab eq 'balance'}">
+            <div class="leave-table-card" style="margin-top:16px;">
+                <div class="table-card-header">
+                    <h3 class="table-card-title"><i class="bi bi-person-vcard me-2"></i>B&#7843;ng Theo D&#245;i T&#7891;n Ph&#233;p Nh&#226;n Vi&#234;n</h3>
+                    <span class="badge bg-primary-soft"><c:out value="${fn:length(leaveBalances)}"/> nh&#226;n vi&#234;n</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="leave-table" id="balanceTable">
+                        <thead>
+                            <tr>
+                                <th>M&#227; NV</th>
+                                <th>H&#7885; t&#234;n</th>
+                                <th>Ph&#242;ng ban</th>
+                                <th>Ch&#7913;c v&#7909;</th>
+                                <th>Th&#226;m ni&#234;n</th>
+                                <th>Ph&#233;p chu&#7849;n</th>
+                                <th>Th&#226;m ni&#234;n +</th>
+                                <th>T&#7891;n n&#259;m tr&#432;&#7899;c</th>
+                                <th>&#272;&#227; d&#249;ng</th>
+                                <th>Kh&#7843; d&#7909;ng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <c:choose>
+                                <c:when test="${empty leaveBalances}">
+                                    <tr><td colspan="10" class="text-center text-muted py-4">Kh&#244;ng c&#243; d&#7919; li&#7879;u</td></tr>
+                                </c:when>
+                                <c:otherwise>
+                                    <c:forEach var="bal" items="${leaveBalances}">
+                                        <tr>
+                                            <td><span class="emp-code">${bal.employeeCode}</span></td>
+                                            <td>${bal.fullName}</td>
+                                            <td>${bal.departmentName}</td>
+                                            <td>${bal.positionName}</td>
+                                            <td>${bal.yearsOfService} n&#259;m</td>
+                                            <td>${bal.standardDays}</td>
+                                            <td>+${bal.seniorityDays}</td>
+                                            <td>${bal.carryOverDays}</td>
+                                            <td class="text-danger">${bal.usedDays}</td>
+                                            <td><strong class="text-success">${bal.availableDays}</strong></td>
+                                        </tr>
+                                    </c:forEach>
+                                </c:otherwise>
+                            </c:choose>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            </c:if><%-- end tab: balance --%>
+
+            <%-- ===============================================================
+                 Tab: Policy - L&#7883;ch ngh&#7881; l&#7877; &amp; Quy &#273;&#7883;nh c&#244;ng ty
+                 =============================================================== --%>
+            <c:if test="${activeTab eq 'policy'}">
+            <div class="leave-table-card" style="margin-top:16px; padding:24px;">
+                <h3 class="table-card-title mb-4"><i class="bi bi-calendar-event me-2"></i>L&#7883;ch Ngh&#7881; L&#7877; &amp; Quy &#272;&#7883;nh 2026</h3>
+                <h5 class="mb-3" style="color:#1e40af;">&#127881; Ng&#224;y ngh&#7881; l&#7877; theo quy &#273;&#7883;nh (&#272;i&#7873;u 112 BLL&#272; 2019)</h5>
+                <div class="table-responsive mb-4">
+                    <table class="leave-table">
+                        <thead><tr><th>D&#7883;p l&#7877;</th><th>Ng&#224;y ngh&#7881;</th><th>S&#7889; ng&#224;y</th><th>Ghi ch&#250;</th></tr></thead>
+                        <tbody>
+                            <tr><td>&#127761; T&#7871;t D&#432;&#417;ng l&#7883;ch</td><td>01/01/2026</td><td>1 ng&#224;y</td><td>B&#249; n&#7871;u tr&#249;ng cu&#7889;i tu&#7847;n</td></tr>
+                            <tr><td>&#127878; T&#7871;t Nguy&#234;n &#272;&#225;n</td><td>28/01 &#8211; 03/02/2026</td><td>7 ng&#224;y</td><td>Theo l&#7883;ch &#226;m d&#432;&#417;ng</td></tr>
+                            <tr><td>&#127802; Gi&#7895; T&#7893; H&#249;ng V&#432;&#417;ng</td><td>18/04/2026</td><td>1 ng&#224;y</td><td>10/3 &#226;m l&#7883;ch</td></tr>
+                            <tr><td>&#127894; Ng&#224;y Gi&#7843;i ph&#243;ng</td><td>30/04/2026</td><td>1 ng&#224;y</td><td>&#8211;</td></tr>
+                            <tr><td>&#128119; Ng&#224;y Qu&#7889;c t&#7871; Lao &#273;&#7897;ng</td><td>01/05/2026</td><td>1 ng&#224;y</td><td>Ngh&#7881; b&#249; 04/05</td></tr>
+                            <tr><td>&#127483; Qu&#7889;c Kh&#225;nh</td><td>02/09/2026</td><td>2 ng&#224;y</td><td>Bao g&#7891;m 1 ng&#224;y li&#7873;n k&#7873;</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <h5 class="mb-3" style="color:#1e40af;">&#128203; Quy &#273;&#7883;nh Ngh&#7881; ph&#233;p t&#7841;i MIXIMOI</h5>
+                <div class="row g-3">
+                    <div class="col-md-6"><div class="card border-0 shadow-sm p-3" style="border-radius:12px;background:#f0f7ff;"><h6 class="fw-bold text-primary mb-2">Ph&#233;p th&#432;&#7901;ng ni&#234;n</h6><ul class="mb-0 ps-3" style="font-size:0.88rem;"><li>12 ng&#224;y / n&#259;m cho nh&#226;n vi&#234;n &#273;&#7911; 1 n&#259;m</li><li>Th&#234;m 1 ng&#224;y cho m&#7895;i 5 n&#259;m th&#226;m ni&#234;n</li><li>T&#7889;i &#273;a 5 ng&#224;y chuy&#7875;n sang n&#259;m sau (tr&#432;&#7899;c 31/03)</li><li>&#272;&#417;n ph&#7843;i n&#7897;p tr&#432;&#7899;c &#237;t nh&#7845;t 3 ng&#224;y l&#224;m vi&#7879;c</li></ul></div></div>
+                    <div class="col-md-6"><div class="card border-0 shadow-sm p-3" style="border-radius:12px;background:#f0fdf4;"><h6 class="fw-bold text-success mb-2">Ngh&#7881; &#7889;m &amp; Thai s&#7843;n</h6><ul class="mb-0 ps-3" style="font-size:0.88rem;"><li>Ngh&#7881; &#7889;m &#273;au: theo ch&#7871; &#273;&#7897; BHXH (t&#7889;i &#273;a 30-75 ng&#224;y/n&#259;m)</li><li>Thai s&#7843;n n&#7919;: 6 th&#225;ng theo Lu&#7853;t BHXH</li><li>Nu&#244;i con nh&#7887; d&#432;&#7899;i 12 th&#225;ng: 60 ph&#250;t/ng&#224;y</li><li>C&#7847;n gi&#7845;y t&#7901; y t&#7871; h&#7907;p l&#7879;</li></ul></div></div>
+                    <div class="col-md-6"><div class="card border-0 shadow-sm p-3" style="border-radius:12px;background:#fefce8;"><h6 class="fw-bold mb-2" style="color:#92400e;">Ngh&#7881; c&#243; l&#432;&#417;ng &#273;&#7863;c bi&#7879;t</h6><ul class="mb-0 ps-3" style="font-size:0.88rem;"><li>C&#432;&#7899;i h&#7887;i b&#7843;n th&#226;n: 3 ng&#224;y</li><li>C&#432;&#7899;i con: 1 ng&#224;y</li><li>Tang cha m&#7865;, v&#7907;/ch&#7891;ng, con: 3 ng&#224;y</li><li>Tang &#244;ng b&#224;, anh ch&#7883; em ru&#7897;t: 1 ng&#224;y</li></ul></div></div>
+                    <div class="col-md-6"><div class="card border-0 shadow-sm p-3" style="border-radius:12px;background:#fdf4ff;"><h6 class="fw-bold mb-2" style="color:#7e22ce;">Quy tr&#236;nh x&#233;t duy&#7879;t</h6><ul class="mb-0 ps-3" style="font-size:0.88rem;"><li>Nh&#226;n vi&#234;n n&#7897;p &#273;&#417;n qua h&#7879; th&#7889;ng</li><li>Qu&#7843;n l&#253; tr&#7921;c ti&#7871;p duy&#7879;t trong 24h</li><li>HR x&#225;c nh&#7853;n &amp; c&#7853;p nh&#7853;t ch&#7845;m c&#244;ng</li><li>&#272;&#417;n kh&#7849;n: li&#234;n h&#7879; tr&#7921;c ti&#7871;p Ph&#242;ng HR</li></ul></div></div>
+                </div>
+            </div>
+            </c:if><%-- end tab: policy --%>
+
 
         </div>
     </main>
@@ -898,31 +1021,31 @@
                         <!-- Từ ngày -->
                         <div class="col-md-4">
                             <label class="form-label fw-bold" style="font-size:0.83rem;">Từ ngày <span class="text-danger">*</span></label>
-                            <input type="date" name="startDate" id="leaveStartDate" class="form-control" value="2026-09-28" required onchange="calculateLeaveDays();">
+                            <input type="date" name="startDate" id="leaveStartDate" class="form-control" required onchange="calculateLeaveDays();">
                         </div>
 
                         <!-- Đến ngày -->
                         <div class="col-md-4">
                             <label class="form-label fw-bold" style="font-size:0.83rem;">Đến ngày <span class="text-danger">*</span></label>
-                            <input type="date" name="endDate" id="leaveEndDate" class="form-control" value="2026-09-30" required onchange="calculateLeaveDays();">
+                            <input type="date" name="endDate" id="leaveEndDate" class="form-control" required onchange="calculateLeaveDays();">
                         </div>
 
                         <!-- Số ngày nghỉ -->
                         <div class="col-md-4">
                             <label class="form-label fw-bold" style="font-size:0.83rem;">Số ngày nghỉ tính toán</label>
-                            <input type="number" step="0.5" name="days" id="leaveDaysCalculated" class="form-control" value="2.5" required>
+                            <input type="number" step="0.5" name="days" id="leaveDaysCalculated" class="form-control" value="1" required>
                         </div>
 
                         <!-- Người nhận bàn giao công việc -->
                         <div class="col-md-12">
                             <label class="form-label fw-bold" style="font-size:0.83rem;">Người nhận bàn giao công việc <span class="text-danger">*</span></label>
-                            <input type="text" name="handoverPerson" class="form-control" placeholder="Họ tên người nhận bàn giao — Số điện thoại liên hệ khẩn cấp..." value="Lê Hoàng Nam — 0912.445.892 (Khẩn cấp)" required>
+                            <input type="text" name="handoverPerson" class="form-control" placeholder="Họ tên người nhận bàn giao — Số điện thoại liên hệ khẩn cấp..." required>
                         </div>
 
                         <!-- Lý do nghỉ phép -->
                         <div class="col-12">
                             <label class="form-label fw-bold" style="font-size:0.83rem;">Lý do xin nghỉ cụ thể <span class="text-danger">*</span></label>
-                            <textarea name="reason" class="form-control" rows="3" placeholder="Ghi rõ lý do xin nghỉ phép..." required>Giải quyết việc gia đình cá nhân</textarea>
+                            <textarea name="reason" class="form-control" rows="3" placeholder="Ghi rõ lý do xin nghỉ phép..." required></textarea>
                         </div>
                     </div>
                 </div>
@@ -1003,6 +1126,18 @@
                 document.getElementById('leaveDaysCalculated').value = diffDays;
             }
         }
+    }
+
+    // Tự động set ngày mặc định là hôm nay khi mở modal tạo đơn
+    var newLeaveModal = document.getElementById('newLeaveModal');
+    if (newLeaveModal) {
+        newLeaveModal.addEventListener('show.bs.modal', function () {
+            var today = new Date().toISOString().split('T')[0];
+            var startEl = document.getElementById('leaveStartDate');
+            var endEl = document.getElementById('leaveEndDate');
+            if (startEl && !startEl.value) startEl.value = today;
+            if (endEl && !endEl.value) endEl.value = today;
+        });
     }
 
     function openRejectLeaveModal(id, name, code) {

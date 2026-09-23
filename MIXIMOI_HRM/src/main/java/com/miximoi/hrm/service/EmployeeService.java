@@ -41,6 +41,14 @@ public class EmployeeService {
         return employeeDAO.countByStatus(status);
     }
 
+    public int countOnLeave() {
+        return employeeDAO.countOnLeave();
+    }
+
+    public int countInactive() {
+        return employeeDAO.countInactive();
+    }
+
     public String getNextEmployeeCode() {
         return employeeDAO.getNextEmployeeCode();
     }

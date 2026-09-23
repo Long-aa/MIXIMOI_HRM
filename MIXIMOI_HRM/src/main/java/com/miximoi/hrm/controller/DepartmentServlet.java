@@ -84,12 +84,26 @@ public class DepartmentServlet extends HttpServlet {
                         ? allDepts.subList(fromIndex, toIndex)
                         : new java.util.ArrayList<>();
 
-                request.setAttribute("departments", pagedDepts);
+                int totalEmp = 0;
+                int maxEmpCount = 0;
+                if (allDepts != null) {
+                    for (Department d : allDepts) {
+                        totalEmp += d.getEmployeeCount();
+                        if (d.getEmployeeCount() > maxEmpCount) {
+                            maxEmpCount = d.getEmployeeCount();
+                        }
+                    }
+                }
+
+                request.setAttribute("deptCount",      totalDepts);
+                request.setAttribute("totalEmp",       totalEmp);
+                request.setAttribute("maxEmpCount",    maxEmpCount);
+                request.setAttribute("departments",    pagedDepts);
                 request.setAttribute("allDepartments", allDepts);
                 request.setAttribute("totalDepartments", totalDepts);
-                request.setAttribute("currentPage", page);
-                request.setAttribute("totalPages", totalPages);
-                request.setAttribute("pageSize", pageSize);
+                request.setAttribute("currentPage",    page);
+                request.setAttribute("totalPages",     totalPages);
+                request.setAttribute("pageSize",       pageSize);
                 request.getRequestDispatcher("/WEB-INF/views/department/department-list.jsp")
                        .forward(request, response);
             }

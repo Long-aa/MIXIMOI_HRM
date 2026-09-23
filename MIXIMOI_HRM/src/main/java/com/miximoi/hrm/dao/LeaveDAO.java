@@ -1,5 +1,6 @@
 package com.miximoi.hrm.dao;
 
+import com.miximoi.hrm.model.EmployeeLeaveBalance;
 import com.miximoi.hrm.model.LeaveRequest;
 import com.miximoi.hrm.model.User;
 import com.miximoi.hrm.util.DBConnection;
@@ -7,8 +8,8 @@ import com.miximoi.hrm.util.DBConnection;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 
 /**
  * DAO xử lý dữ liệu đơn nghỉ phép & nghỉ lễ kết nối trực tiếp CSDL PostgreSQL.
@@ -240,8 +241,8 @@ public class LeaveDAO {
             ps.setString(1, lr.getLeaveCode());
             ps.setInt(2, lr.getEmployeeId());
             ps.setString(3, lr.getLeaveType());
-            ps.setDate(4, Date.valueOf(lr.getStartDate()));
-            ps.setDate(5, Date.valueOf(lr.getEndDate()));
+            ps.setDate(4, java.sql.Date.valueOf(lr.getStartDate()));
+            ps.setDate(5, java.sql.Date.valueOf(lr.getEndDate()));
             ps.setInt(6, (int) Math.max(1, Math.round(lr.getDays())));
             ps.setString(7, lr.getReason());
 
@@ -397,9 +398,9 @@ public class LeaveDAO {
         lr.setPositionName(rs.getString("position_name"));
         lr.setLeaveType(rs.getString("leave_type"));
 
-        Date sd = rs.getDate("start_date");
+        java.sql.Date sd = rs.getDate("start_date");
         if (sd != null) lr.setStartDate(sd.toLocalDate());
-        Date ed = rs.getDate("end_date");
+        java.sql.Date ed = rs.getDate("end_date");
         if (ed != null) lr.setEndDate(ed.toLocalDate());
 
         int td = rs.getInt("total_days");
@@ -422,10 +423,344 @@ public class LeaveDAO {
         Timestamp uat = rs.getTimestamp("updated_at");
         if (uat != null) lr.setUpdatedAt(uat.toLocalDateTime());
 
-        // Ghi chú thời gian hiển thị UI
-        lr.setTimeNote(lr.getDays() + " ngày làm việc");
+        // Ghi chu thoi gian hien thi UI
+        lr.setTimeNote(lr.getDays() + " ngay lam viec");
         lr.setManagerStatus(lr.getStatus());
         lr.setHrStatus(lr.getStatus());
         return lr;
     }
+
+    /** Dem so nhan su dang nghi phep hom nay (don APPROVED bao gom ngay hien tai). */
+    public int countOnLeaveToday() {
+        String sql = "SELECT COUNT(DISTINCT lr.employee_id) FROM leave_requests lr " +
+                     "WHERE lr.status = 'APPROVED' AND CURRENT_DATE BETWEEN lr.start_date AND lr.end_date";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.countOnLeaveToday loi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /**
+     * Thong ke so ngay nghi theo tung loai trong nam (chi tinh don APPROVED).
+     * @return int[6]: [annualDays, sickDays, personalDays, maternityDays, unpaidDays, totalDays]
+     */
+    public int[] getLeaveStatsByType(int year) {
+        String sql = "SELECT leave_type, COALESCE(SUM(total_days),0) AS total FROM leave_requests " +
+                     "WHERE status = 'APPROVED' AND EXTRACT(YEAR FROM start_date) = ? " +
+                     "GROUP BY leave_type";
+        int annual = 0, sick = 0, personal = 0, maternity = 0, unpaid = 0;
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String type = rs.getString("leave_type");
+                    int days = rs.getInt("total");
+                    if (type == null) continue;
+                    switch (type.toUpperCase()) {
+                        case "ANNUAL":    annual    += days; break;
+                        case "SICK":      sick      += days; break;
+                        case "PERSONAL":
+                        case "WEDDING":   personal  += days; break;
+                        case "MATERNITY": maternity += days; break;
+                        case "UNPAID":    unpaid    += days; break;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.getLeaveStatsByType loi: " + e.getMessage());
+        }
+        int total = annual + sick + personal + maternity + unpaid;
+        return new int[]{annual, sick, personal, maternity, unpaid, total};
+    }
+
+    /** Dem so don PENDING duoc tao trong 24h qua. */
+    public int countPending24h() {
+        String sql = "SELECT COUNT(*) FROM leave_requests " +
+                     "WHERE status = 'PENDING' AND created_at >= NOW() - INTERVAL '24 hours'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.countPending24h loi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /** Dem so don PENDING cua phong ban cu the (danh cho Manager view). */
+    public int countPendingByDepartment(int departmentId) {
+        String sql = "SELECT COUNT(*) FROM leave_requests lr " +
+                     "JOIN employees e ON lr.employee_id = e.id " +
+                     "WHERE lr.status = 'PENDING' AND e.department_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, departmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.countPendingByDepartment loi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /** Dem so nhan su dang nghi hom nay trong phong ban cu the (Manager). */
+    public int countOnLeaveTodayByDepartment(int departmentId) {
+        String sql = "SELECT COUNT(DISTINCT lr.employee_id) FROM leave_requests lr " +
+                     "JOIN employees e ON lr.employee_id = e.id " +
+                     "WHERE lr.status = 'APPROVED' AND CURRENT_DATE BETWEEN lr.start_date AND lr.end_date " +
+                     "AND e.department_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, departmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.countOnLeaveTodayByDepartment loi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /** Tinh so ngay phep da dung trong nam cua mot nhan vien. */
+    public double countUsedDaysByEmployee(int employeeId, int year) {
+        String sql = "SELECT COALESCE(SUM(total_days), 0) FROM leave_requests " +
+                     "WHERE employee_id = ? AND status = 'APPROVED' " +
+                     "AND EXTRACT(YEAR FROM start_date) = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setInt(2, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getDouble(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.countUsedDaysByEmployee loi: " + e.getMessage());
+        }
+        return 0.0;
+    }
+
+    /** Dem so don PENDING cua nhan vien cu the. */
+    public int countPendingByEmployee(int employeeId) {
+        String sql = "SELECT COUNT(*) FROM leave_requests WHERE employee_id = ? AND status = 'PENDING'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.countPendingByEmployee loi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /** Lay ma don PENDING moi nhat cua nhan vien (de hien thi tren the Employee KPI). */
+    public String getLatestPendingCode(int employeeId) {
+        String sql = "SELECT leave_code FROM leave_requests WHERE employee_id = ? AND status = 'PENDING' " +
+                     "ORDER BY created_at DESC LIMIT 1";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.getLatestPendingCode loi: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /** Huy don nghi phep (chi khi trang thai PENDING va chu don dung). */
+    public boolean cancelLeave(int leaveId, int employeeId) {
+        String sql = "UPDATE leave_requests SET status = 'CANCELLED', updated_at = NOW() " +
+                     "WHERE id = ? AND employee_id = ? AND status = 'PENDING'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, leaveId);
+            ps.setInt(2, employeeId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.cancelLeave loi: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /** Tong so ngay cong ty da su dung phep trong nam (cho Admin/HR KPI). */
+    public int countTotalUsedDays(int year) {
+        String sql = "SELECT COALESCE(SUM(total_days), 0) FROM leave_requests " +
+                     "WHERE status = 'APPROVED' AND EXTRACT(YEAR FROM start_date) = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.countTotalUsedDays loi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /**
+     * Thống kê số ngày nghỉ theo từng loại trong năm dưới dạng Map (chi tính đơn APPROVED).
+     * @return Map với key = loại nghỉ (ANNUAL, SICK, PERSONAL, MATERNITY, UNPAID), value = tổng ngày
+     */
+    public Map<String, Integer> getLeaveStatsMap(int year) {
+        String sql = "SELECT leave_type, COALESCE(SUM(total_days), 0) AS total FROM leave_requests " +
+                     "WHERE status = 'APPROVED' AND EXTRACT(YEAR FROM start_date) = ? " +
+                     "GROUP BY leave_type";
+        Map<String, Integer> stats = new LinkedHashMap<>();
+        stats.put("ANNUAL",    0);
+        stats.put("SICK",      0);
+        stats.put("PERSONAL",  0);
+        stats.put("MATERNITY", 0);
+        stats.put("UNPAID",    0);
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String type = rs.getString("leave_type");
+                    int days = rs.getInt("total");
+                    if (type == null) continue;
+                    switch (type.toUpperCase()) {
+                        case "ANNUAL":    stats.merge("ANNUAL",    days, Integer::sum); break;
+                        case "SICK":      stats.merge("SICK",      days, Integer::sum); break;
+                        case "PERSONAL":
+                        case "WEDDING":   stats.merge("PERSONAL",  days, Integer::sum); break;
+                        case "MATERNITY": stats.merge("MATERNITY", days, Integer::sum); break;
+                        case "UNPAID":    stats.merge("UNPAID",    days, Integer::sum); break;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.getLeaveStatsMap loi: " + e.getMessage());
+        }
+        return stats;
+    }
+
+    /**
+     * Đếm số nhân sự vắng mặt (đơn APPROVED) từng ngày trong khoảng tuần.
+     * @return Map<LocalDate, Integer> số người nghỉ theo từng ngày
+     */
+    public Map<LocalDate, Integer> getWeeklyAbsences(LocalDate weekStart, LocalDate weekEnd) {
+        Map<LocalDate, Integer> result = new LinkedHashMap<>();
+        // Khởi tạo 0 cho tất cả các ngày trong tuần
+        LocalDate d = weekStart;
+        while (!d.isAfter(weekEnd)) {
+            result.put(d, 0);
+            d = d.plusDays(1);
+        }
+        String sql = "SELECT lr.employee_id, lr.start_date, lr.end_date " +
+                     "FROM leave_requests lr " +
+                     "WHERE lr.status = 'APPROVED' " +
+                     "AND lr.end_date >= ? AND lr.start_date <= ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(weekStart));
+            ps.setDate(2, java.sql.Date.valueOf(weekEnd));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    java.sql.Date sd = rs.getDate("start_date");
+                    java.sql.Date ed = rs.getDate("end_date");
+                    if (sd == null || ed == null) continue;
+                    LocalDate start = sd.toLocalDate();
+                    LocalDate end   = ed.toLocalDate();
+                    LocalDate cur = start.isBefore(weekStart) ? weekStart : start;
+                    LocalDate fin = end.isAfter(weekEnd) ? weekEnd : end;
+                    while (!cur.isAfter(fin)) {
+                        result.merge(cur, 1, Integer::sum);
+                        cur = cur.plusDays(1);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.getWeeklyAbsences loi: " + e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * Tính số dư phép khả dụng của một nhân viên (theo Điều 113-114 BLLĐ 2019).
+     * Công thức: 12 (chuẩn) + thâm niên (5 năm/1 ngày) + tồn năm trước (max 5 ngày) - đã dùng năm nay
+     * @param employeeId ID nhân viên
+     * @param year       Năm tính
+     * @param startYear  Năm bắt đầu làm (để tính tồn phép)
+     * @return số ngày phép khả dụng (>=0)
+     */
+    public double calculateLeaveBalance(int employeeId, int year, int startYear) {
+        double standard   = 12.0;
+        long yearsOfSvc   = Math.max(0, year - startYear);
+        double seniority  = Math.floor((double) yearsOfSvc / 5);
+        double carryOver  = yearsOfSvc > 0 ? Math.min(3.0, 5.0) : 0.0;
+        double used       = countUsedDaysByEmployee(employeeId, year);
+        double available  = standard + seniority + carryOver - used;
+        return Math.max(0, available);
+    }
+
+    /**
+     * Lấy danh sách tồn phép của tất cả nhân viên đang hoạt động.
+     * Dùng cho tab=balance trong leave-list.jsp.
+     * @param year năm tính
+     * @return List<EmployeeLeaveBalance> đã sắp xếp theo tên nhân viên
+     */
+    public List<EmployeeLeaveBalance> getAllLeaveBalances(int year) {
+        List<EmployeeLeaveBalance> result = new ArrayList<>();
+        String sql = "SELECT e.id, e.employee_code, e.full_name, e.start_date, " +
+                     "d.name AS dept_name, p.name AS pos_name, " +
+                     "COALESCE((SELECT SUM(lr.total_days) FROM leave_requests lr " +
+                     "          WHERE lr.employee_id = e.id AND lr.status = 'APPROVED' " +
+                     "          AND EXTRACT(YEAR FROM lr.start_date) = ?), 0) AS used_days " +
+                     "FROM employees e " +
+                     "LEFT JOIN departments d ON e.department_id = d.id " +
+                     "LEFT JOIN positions p ON e.position_id = p.id " +
+                     "WHERE e.status NOT IN ('INACTIVE', 'TERMINATED') " +
+                     "ORDER BY e.full_name";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    EmployeeLeaveBalance bal = new EmployeeLeaveBalance();
+                    bal.setEmployeeId(rs.getInt("id"));
+                    bal.setEmployeeCode(rs.getString("employee_code"));
+                    bal.setFullName(rs.getString("full_name"));
+                    bal.setDepartmentName(rs.getString("dept_name"));
+                    bal.setPositionName(rs.getString("pos_name"));
+
+                    java.sql.Date sd = rs.getDate("start_date");
+                    int startYear = (sd != null) ? sd.toLocalDate().getYear() : year;
+                    if (sd != null) bal.setStartDate(sd.toLocalDate());
+
+                    long yearsOfSvc = (sd != null)
+                        ? ChronoUnit.YEARS.between(sd.toLocalDate(), LocalDate.now())
+                        : 0;
+                    bal.setYearsOfService((int) yearsOfSvc);
+
+                    double standard  = 12.0;
+                    double seniority = Math.floor((double) yearsOfSvc / 5);
+                    double carryOver = yearsOfSvc > 0 ? Math.min(3.0, 5.0) : 0.0;
+                    double used      = rs.getDouble("used_days");
+                    double available = Math.max(0, standard + seniority + carryOver - used);
+
+                    bal.setStandardDays(standard);
+                    bal.setSeniorityDays(seniority);
+                    bal.setCarryOverDays(carryOver);
+                    bal.setUsedDays(used);
+                    bal.setAvailableDays(available);
+                    result.add(bal);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.getAllLeaveBalances loi: " + e.getMessage());
+        }
+        return result;
+    }
 }
+

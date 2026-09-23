@@ -116,7 +116,17 @@ public class EmployeeServlet extends HttpServlet {
                     }
                 }
                 int standardLeaveDays = 12;
-                int remainingLeaveDays = Math.max(0, standardLeaveDays - approvedDaysTaken);
+                int seniorityDays = 0;
+                if (emp != null && emp.getStartDate() != null) {
+                    long yearsOfService = ChronoUnit.YEARS.between(emp.getStartDate(), LocalDate.now());
+                    seniorityDays = (int) (yearsOfService / 5);
+                }
+                int totalQuota = standardLeaveDays + seniorityDays;
+                int remainingLeaveDays = Math.max(0, totalQuota - approvedDaysTaken);
+                request.setAttribute("standardLeaveDays", standardLeaveDays);
+                request.setAttribute("seniorityLeaveDays", seniorityDays);
+                request.setAttribute("totalLeaveQuota", totalQuota);
+                request.setAttribute("approvedDaysTaken", approvedDaysTaken);
                 request.setAttribute("remainingLeaveDays", remainingLeaveDays);
 
                 long monthsOfService = 0;

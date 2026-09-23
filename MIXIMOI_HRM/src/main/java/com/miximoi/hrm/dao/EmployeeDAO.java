@@ -74,7 +74,13 @@ public class EmployeeDAO {
             sql.append("AND e.position_id = ? ");
         }
         if (status != null && !status.trim().isEmpty()) {
-            sql.append("AND e.status = ? ");
+            if ("ON_LEAVE".equalsIgnoreCase(status.trim())) {
+                sql.append("AND (e.status = 'ON_LEAVE' OR EXISTS (SELECT 1 FROM leave_requests lr WHERE lr.employee_id = e.id AND lr.status = 'APPROVED' AND CURRENT_DATE BETWEEN lr.start_date AND lr.end_date)) ");
+            } else if ("INACTIVE".equalsIgnoreCase(status.trim())) {
+                sql.append("AND (e.status = 'INACTIVE' OR e.status = 'TERMINATED') ");
+            } else {
+                sql.append("AND e.status = ? ");
+            }
         }
         sql.append("ORDER BY e.employee_code");
 
@@ -90,7 +96,9 @@ public class EmployeeDAO {
             }
             if (departmentId != null && departmentId > 0) ps.setInt(idx++, departmentId);
             if (positionId != null && positionId > 0) ps.setInt(idx++, positionId);
-            if (status != null && !status.trim().isEmpty()) ps.setString(idx, status);
+            if (status != null && !status.trim().isEmpty() && !"ON_LEAVE".equalsIgnoreCase(status.trim()) && !"INACTIVE".equalsIgnoreCase(status.trim())) {
+                ps.setString(idx, status.trim());
+            }
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) list.add(mapRow(rs));
@@ -301,6 +309,12 @@ public class EmployeeDAO {
 
     /** Đếm tổng nhân viên theo trạng thái */
     public int countByStatus(String status) {
+        if ("ON_LEAVE".equalsIgnoreCase(status)) {
+            return countOnLeave();
+        }
+        if ("INACTIVE".equalsIgnoreCase(status)) {
+            return countInactive();
+        }
         String sql = "SELECT COUNT(*) FROM employees WHERE status = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -310,6 +324,36 @@ public class EmployeeDAO {
             }
         } catch (SQLException e) {
             System.err.println("EmployeeDAO.countByStatus lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /** Đếm nhân viên đang nghỉ phép (status = ON_LEAVE hoặc có đơn APPROVED bao gồm hôm nay) */
+    public int countOnLeave() {
+        String sql = "SELECT COUNT(DISTINCT e.id) FROM employees e "
+                   + "WHERE e.status = 'ON_LEAVE' "
+                   + "   OR EXISTS (SELECT 1 FROM leave_requests lr "
+                   + "              WHERE lr.employee_id = e.id AND lr.status = 'APPROVED' "
+                   + "                AND CURRENT_DATE BETWEEN lr.start_date AND lr.end_date)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            System.err.println("EmployeeDAO.countOnLeave lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /** Đếm nhân sự đã nghỉ việc / lưu trữ */
+    public int countInactive() {
+        String sql = "SELECT COUNT(*) FROM employees WHERE status = 'INACTIVE' OR status = 'TERMINATED'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            System.err.println("EmployeeDAO.countInactive lỗi: " + e.getMessage());
         }
         return 0;
     }

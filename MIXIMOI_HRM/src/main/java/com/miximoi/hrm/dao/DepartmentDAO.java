@@ -19,7 +19,7 @@ public class DepartmentDAO {
                    + "d.status, d.created_at, COUNT(e.id) AS employee_count "
                    + "FROM departments d "
                    + "LEFT JOIN employees m ON d.manager_id = m.id "
-                   + "LEFT JOIN employees e ON e.department_id = d.id AND e.status = 'ACTIVE' "
+                   + "LEFT JOIN employees e ON e.department_id = d.id AND (e.status = 'ACTIVE' OR e.status = 'ON_LEAVE') "
                    + "GROUP BY d.id, d.name, d.code, d.description, d.manager_id, m.full_name, d.status, d.created_at "
                    + "ORDER BY d.id";
         try (Connection conn = DBConnection.getConnection();
@@ -38,7 +38,7 @@ public class DepartmentDAO {
                    + "d.status, d.created_at, COUNT(e.id) AS employee_count "
                    + "FROM departments d "
                    + "LEFT JOIN employees m ON d.manager_id = m.id "
-                   + "LEFT JOIN employees e ON e.department_id = d.id AND e.status = 'ACTIVE' "
+                   + "LEFT JOIN employees e ON e.department_id = d.id AND (e.status = 'ACTIVE' OR e.status = 'ON_LEAVE') "
                    + "WHERE d.id = ? "
                    + "GROUP BY d.id, d.name, d.code, d.description, d.manager_id, m.full_name, d.status, d.created_at";
         try (Connection conn = DBConnection.getConnection();

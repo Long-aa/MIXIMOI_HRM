@@ -62,6 +62,9 @@ public class LeaveServlet extends HttpServlet {
                 break;
             }
             default: {
+                String tab = request.getParameter("tab");
+                if (tab == null) tab = "requests";
+
                 String status = request.getParameter("status");
                 String deptParam = request.getParameter("departmentId");
                 Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.parseInt(deptParam) : null;
@@ -101,21 +104,133 @@ public class LeaveServlet extends HttpServlet {
                 request.setAttribute("selectedDeptId", departmentId);
                 request.setAttribute("selectedLeaveType", leaveType);
                 request.setAttribute("keyword", keyword);
+                request.setAttribute("activeTab", tab);
 
-                // Dữ liệu số dư phép cá nhân
+                // ===== KPI ĐỘNG theo Role =====
+                int currentYear = java.time.LocalDate.now().getYear();
+                com.miximoi.hrm.dao.LeaveDAO leaveDAO = new com.miximoi.hrm.dao.LeaveDAO();
+                int[] typeStats = leaveDAO.getLeaveStatsByType(currentYear); // [annual, sick, personal, maternity, unpaid, total]
+                int totalUsedDays = typeStats[5];
+
+                // KPI chung cho Admin/HR
+                int todayOnLeaveCount = leaveDAO.countOnLeaveToday();
+                int totalEmpCount = employees != null ? employees.size() : 1;
+                double todayOnLeavePct = totalEmpCount > 0 ? Math.round((double) todayOnLeaveCount / totalEmpCount * 1000.0) / 10.0 : 0.0;
+                int pendingCount = leaveDAO.countPending();
+                int pending24hCount = leaveDAO.countPending24h();
+                int companyQuota = totalEmpCount * 12;
+
+                request.setAttribute("todayOnLeaveCount", todayOnLeaveCount);
+                request.setAttribute("todayOnLeavePct",   todayOnLeavePct);
+                request.setAttribute("pendingCount",      pendingCount);
+                request.setAttribute("pending24hCount",   pending24hCount);
+                request.setAttribute("totalUsedDays",     totalUsedDays);
+                request.setAttribute("companyQuota",      companyQuota);
+
+                // KPI loại nghỉ phép (cho thẻ biểu đồ cơ cấu)
+                int annualDays   = typeStats[0];
+                int sickDays     = typeStats[1];
+                int personalDays = typeStats[2];
+                int maternityDays= typeStats[3];
+                int unpaidDays   = typeStats[4];
+                int annualPct    = totalUsedDays > 0 ? (int) Math.round((double) annualDays    / totalUsedDays * 100) : 0;
+                int sickPct      = totalUsedDays > 0 ? (int) Math.round((double) sickDays      / totalUsedDays * 100) : 0;
+                int personalPct  = totalUsedDays > 0 ? (int) Math.round((double) personalDays  / totalUsedDays * 100) : 0;
+                int maternityPct = totalUsedDays > 0 ? (int) Math.round((double) maternityDays / totalUsedDays * 100) : 0;
+                int unpaidPct    = totalUsedDays > 0 ? (int) Math.round((double) unpaidDays    / totalUsedDays * 100) : 0;
+
+                request.setAttribute("annualDays",    annualDays);
+                request.setAttribute("sickDays",      sickDays);
+                request.setAttribute("personalDays",  personalDays);
+                request.setAttribute("maternityDays", maternityDays);
+                request.setAttribute("unpaidDays",    unpaidDays);
+                request.setAttribute("annualPct",     annualPct);
+                request.setAttribute("sickPct",       sickPct);
+                request.setAttribute("personalPct",   personalPct);
+                request.setAttribute("maternityPct",  maternityPct);
+                request.setAttribute("unpaidPct",     unpaidPct);
+
+                // KPI cá nhân (Employee view)
                 String displayName = currentUser.getFullName();
                 if (displayName == null || displayName.trim().isEmpty() || "admin".equalsIgnoreCase(displayName)) {
-                    displayName = "Lê Văn Hoàng";
+                    displayName = currentUser.getUsername() != null ? currentUser.getUsername() : "Tài khoản hệ thống";
                 }
                 request.setAttribute("userLeaveName", displayName);
-                request.setAttribute("standardLeaveDays", 12.0);
-                request.setAttribute("seniorityLeaveDays", 2.0);
-                request.setAttribute("carryOverLeaveDays", 3.0);
-                request.setAttribute("usedLeaveDays", 5.5);
-                request.setAttribute("availableLeaveDays", 11.5);
+
+                int empId = currentUser.getEmployeeId();
+                double usedLeaveDays = 0.0;
+                double standardLeaveDays = 12.0;
+                double seniorityLeaveDays = 0.0;
+                double carryOverLeaveDays = 0.0;
+                double availableLeaveDays = 12.0;
+                int empPendingCount = 0;
+                String latestPendingCode = null;
+
+                if (empId > 0) {
+                    usedLeaveDays = leaveDAO.countUsedDaysByEmployee(empId, currentYear);
+                    empPendingCount = leaveDAO.countPendingByEmployee(empId);
+                    latestPendingCode = leaveDAO.getLatestPendingCode(empId);
+
+                    // Tính thâm niên theo Điều 114 BLLĐ 2019: cứ đủ 5 năm thêm 1 ngày
+                    Employee empObj = employeeDAO.findById(empId);
+                    if (empObj != null && empObj.getStartDate() != null) {
+                        long yearsOfService = java.time.temporal.ChronoUnit.YEARS.between(empObj.getStartDate(), java.time.LocalDate.now());
+                        seniorityLeaveDays = Math.floor((double) yearsOfService / 5);
+                        // Phép tồn (giả sử tối đa 5 ngày, lấy theo số năm)
+                        carryOverLeaveDays = Math.min(yearsOfService > 0 ? 3.0 : 0.0, 5.0);
+                    }
+                    availableLeaveDays = standardLeaveDays + seniorityLeaveDays + carryOverLeaveDays - usedLeaveDays;
+                    if (availableLeaveDays < 0) availableLeaveDays = 0;
+                }
+
+                request.setAttribute("standardLeaveDays",   standardLeaveDays);
+                request.setAttribute("seniorityLeaveDays",  seniorityLeaveDays);
+                request.setAttribute("carryOverLeaveDays",  carryOverLeaveDays);
+                request.setAttribute("usedLeaveDays",       usedLeaveDays);
+                request.setAttribute("availableLeaveDays",  availableLeaveDays);
+                request.setAttribute("empPendingCount",     empPendingCount);
+                request.setAttribute("latestPendingCode",   latestPendingCode);
+
+                // KPI Manager: thống kê phòng ban
+                if (currentUser.isManager() && !currentUser.isAdmin() && !currentUser.isHr()) {
+                    Employee managerEmp = empId > 0 ? employeeDAO.findById(empId) : null;
+                    int mgrDeptId = managerEmp != null ? managerEmp.getDepartmentId() : 0;
+                    if (mgrDeptId > 0) {
+                        int deptOnLeaveToday = leaveDAO.countOnLeaveTodayByDepartment(mgrDeptId);
+                        int deptPendingCount = leaveDAO.countPendingByDepartment(mgrDeptId);
+                        // Đếm tổng nhân viên phòng ban
+                        long deptTotalEmp = employees != null ? employees.stream()
+                                .filter(e -> e.getDepartmentId() == mgrDeptId).count() : 1;
+                        double deptAbsencePct = deptTotalEmp > 0
+                                ? Math.round((double) deptOnLeaveToday / deptTotalEmp * 1000.0) / 10.0 : 0.0;
+                        double deptAttendancePct = 100.0 - deptAbsencePct;
+
+                        request.setAttribute("deptOnLeaveToday",   deptOnLeaveToday);
+                        request.setAttribute("deptTotalEmp",        (int) deptTotalEmp);
+                        request.setAttribute("deptPendingCount",    deptPendingCount);
+                        request.setAttribute("deptAttendancePct",   deptAttendancePct);
+                        request.setAttribute("deptAbsencePct",      deptAbsencePct);
+                    }
+                }
+
+                // ===== Weekly Absences cho Lịch tuần =====
+                java.time.LocalDate weekStart = java.time.LocalDate.now()
+                        .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                java.time.LocalDate weekEnd = weekStart.plusDays(4); // T2 -> T6
+                java.util.Map<java.time.LocalDate, Integer> weeklyAbsences =
+                        leaveDAO.getWeeklyAbsences(weekStart, weekEnd);
+                request.setAttribute("weeklyAbsences", weeklyAbsences);
+
+                // ===== Tab Balance: Tồn phép nhân viên =====
+                if ("balance".equalsIgnoreCase(tab)) {
+                    java.util.List<com.miximoi.hrm.model.EmployeeLeaveBalance> leaveBalances =
+                            leaveDAO.getAllLeaveBalances(currentYear);
+                    request.setAttribute("leaveBalances", leaveBalances);
+                }
 
                 request.getRequestDispatcher("/WEB-INF/views/leave/leave-list.jsp")
                        .forward(request, response);
+
             }
         }
     }
@@ -279,6 +394,26 @@ public class LeaveServlet extends HttpServlet {
             }
             case "export": {
                 exportLeaveRequestsCSV(request, response, currentUser);
+                return;
+            }
+            case "cancel": {
+                // Nhân viên hủy đơn của mình (chỉ khi còn PENDING)
+                String idStr = request.getParameter("id");
+                if (idStr != null && !idStr.isEmpty()) {
+                    int leaveId = Integer.parseInt(idStr);
+                    int cancelEmpId = currentUser.getEmployeeId();
+                    if (cancelEmpId > 0) {
+                        com.miximoi.hrm.dao.LeaveDAO leaveDAO2 = new com.miximoi.hrm.dao.LeaveDAO();
+                        boolean cancelled = leaveDAO2.cancelLeave(leaveId, cancelEmpId);
+                        if (cancelled) {
+                            response.sendRedirect(request.getContextPath() + "/leave?success=cancelled");
+                        } else {
+                            response.sendRedirect(request.getContextPath() + "/leave?error=Không thể hủy đơn. Đơn đã được xử lý hoặc không thuộc về bạn.");
+                        }
+                        return;
+                    }
+                }
+                response.sendRedirect(request.getContextPath() + "/leave?error=Yêu cầu hủy không hợp lệ.");
                 return;
             }
             default:
