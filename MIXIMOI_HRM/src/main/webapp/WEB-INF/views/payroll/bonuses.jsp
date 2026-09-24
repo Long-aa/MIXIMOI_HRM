@@ -50,9 +50,9 @@
                         <span>Xuất phiếu chi</span>
                     </button>
 
-                    <button type="button" class="btn-action-primary" data-bs-toggle="modal" data-bs-target="#addBonusModal">
-                        <i class="bi bi-plus-circle"></i>
-                        <span>+ Quyết định thưởng mới</span>
+                    <button type="button" class="btn-action-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addBonusModal">
+                        <i class="bi bi-plus-circle-fill"></i>
+                        <span>Quyết định thưởng mới</span>
                     </button>
                 </div>
             </div>

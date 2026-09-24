@@ -51,7 +51,7 @@
                     </button>
                     <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#createUserModal">
                         <i class="bi bi-person-plus-fill"></i>
-                        <span>+ Tạo tài khoản</span>
+                        <span>Tạo tài khoản</span>
                     </button>
                 </div>
             </div>

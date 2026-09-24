@@ -47,7 +47,7 @@
                     </button>
                     <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#createViolationModal">
                         <i class="bi bi-plus-lg"></i>
-                        <span>+ Tạo biên bản vi phạm</span>
+                        <span>Tạo biên bản vi phạm</span>
                     </button>
                 </div>
             </div>

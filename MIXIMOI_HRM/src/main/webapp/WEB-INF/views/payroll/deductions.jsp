@@ -47,7 +47,7 @@
                     </button>
                     <button type="button" class="btn btn-primary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addDeductionModal">
                         <i class="bi bi-plus-lg"></i>
-                        <span>+ Thêm khoản khấu trừ</span>
+                        <span>Thêm khoản khấu trừ</span>
                     </button>
                 </div>
             </div>

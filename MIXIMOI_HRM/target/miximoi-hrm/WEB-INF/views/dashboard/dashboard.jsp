@@ -8,6 +8,71 @@
     <%@ include file="/WEB-INF/views/common/head.jsp" %>
     <!-- Chart.js 4.4 for high-performance interactive analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <style>
+        .filter-date-item {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+        .filter-date-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #475569;
+            white-space: nowrap;
+            margin-bottom: 0;
+        }
+        .filter-input-date {
+            height: 38px;
+            padding: 0.35rem 0.65rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #1e293b;
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            outline: none;
+            transition: all 0.15s ease;
+        }
+        .filter-input-date:hover {
+            border-color: #94a3b8;
+        }
+        .filter-input-date:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+        .filter-select {
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 0.75rem center !important;
+            background-size: 12px 10px !important;
+            padding-right: 2.2rem !important;
+        }
+        .filter-select::-ms-expand {
+            display: none !important;
+        }
+        .btn-filter-submit {
+            height: 38px;
+            padding: 0.35rem 1.15rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #ffffff;
+            background: #2563eb;
+            border: none;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-filter-submit:hover {
+            background: #1d4ed8;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+        }
+    </style>
 </head>
 <body>
 
@@ -46,73 +111,70 @@
                     </p>
                 </div>
 
-                <div class="welcome-actions">
-                    <button class="btn-action-light" type="button" id="btnExportReport">
-                        <i class="bi bi-box-arrow-up"></i>
+                <div class="welcome-actions ms-auto">
+                    <button class="btn-action-light" type="button" id="btnExportReport" title="Xuất báo cáo định dạng Excel / PDF">
+                        <i class="bi bi-box-arrow-up text-primary"></i>
                         <span>Xuất báo cáo</span>
                     </button>
-                    <button class="btn-action-light" type="button" id="btnGenerateComposite">
+                    <button class="btn-action-primary" type="button" id="btnGenerateComposite" title="Tạo báo cáo tổng hợp hệ thống">
                         <i class="bi bi-file-earmark-text"></i>
                         <span>Tạo báo cáo tổng hợp</span>
                     </button>
-                    <a href="${pageContext.request.contextPath}/employees?action=new" class="btn-action-primary">
-                        <i class="bi bi-plus-lg"></i>
-                        <span>+ Thêm nhân viên</span>
-                    </a>
                 </div>
             </div>
 
-            <!-- 2. Multi-Criteria Filter Bar (Bộ lọc đa chiều) -->
-            <div class="dashboard-filter-card">
+            <!-- 2. Multi-Criteria Filter Bar (Bộ lọc theo khoảng ngày, phòng ban, trạng thái) -->
+            <form id="dashboardFilterForm" method="GET" action="${pageContext.request.contextPath}/dashboard" class="dashboard-filter-card">
                 <div class="filter-row-top">
                     <div class="filter-controls-group">
-                        <select class="filter-select" id="filterMonth">
-                            <option value="9" selected>Tháng 09/2026</option>
-                            <option value="8">Tháng 08/2026</option>
-                            <option value="7">Tháng 07/2026</option>
-                            <option value="6">Tháng 06/2026</option>
+                        <!-- Chọn Từ ngày -->
+                        <div class="filter-date-item">
+                            <label for="filterStartDate" class="filter-date-label">
+                                <i class="bi bi-calendar-event text-primary me-1"></i>Từ ngày:
+                            </label>
+                            <input type="date" class="filter-input-date" id="filterStartDate" name="startDate" value="${startDate}" required>
+                        </div>
+
+                        <!-- Chọn Đến ngày -->
+                        <div class="filter-date-item">
+                            <label for="filterEndDate" class="filter-date-label">
+                                <i class="bi bi-calendar-check text-primary me-1"></i>Đến ngày:
+                            </label>
+                            <input type="date" class="filter-input-date" id="filterEndDate" name="endDate" value="${endDate}" required>
+                        </div>
+
+                        <!-- Lọc Phòng ban -->
+                        <select class="filter-select" id="filterDepartment" name="departmentId" style="min-width: 175px;">
+                            <option value="all">Tất cả phòng ban</option>
+                            <c:forEach items="${departmentList}" var="dept">
+                                <option value="${dept.id}" ${selectedDepartmentId == dept.id ? 'selected' : ''}>${dept.name}</option>
+                            </c:forEach>
                         </select>
 
-                        <select class="filter-select" id="filterDepartment">
-                            <option value="all" selected>Tất cả phòng ban</option>
-                            <option value="sales">Kinh doanh & Bán hàng</option>
-                            <option value="it">Công nghệ & R&D</option>
-                            <option value="marketing">Marketing & Truyền thông</option>
-                            <option value="finance">Tài chính - Kế toán</option>
-                            <option value="hr">Hành chính - Nhân sự</option>
-                        </select>
-
-                        <select class="filter-select" id="filterBranch">
-                            <option value="all" selected>Tất cả chi nhánh</option>
-                            <option value="hanoi">Hà Nội (Trụ sở chính)</option>
-                            <option value="hcm">TP. Hồ Chí Minh</option>
-                            <option value="danang">Đà Nẵng</option>
-                        </select>
-
-                        <select class="filter-select" id="filterStatus">
-                            <option value="all" selected>Tất cả trạng thái</option>
-                            <option value="active">Đang làm việc</option>
-                            <option value="probation">Thử việc</option>
-                            <option value="leave">Đang nghỉ phép</option>
+                        <!-- Lọc Trạng thái -->
+                        <select class="filter-select" id="filterStatus" name="status">
+                            <option value="all" ${selectedStatus == null || selectedStatus == 'all' ? 'selected' : ''}>Tất cả trạng thái</option>
+                            <option value="ACTIVE" ${selectedStatus == 'ACTIVE' ? 'selected' : ''}>Đang làm việc</option>
+                            <option value="ON_LEAVE" ${selectedStatus == 'ON_LEAVE' ? 'selected' : ''}>Đang nghỉ phép</option>
+                            <option value="INACTIVE" ${selectedStatus == 'INACTIVE' ? 'selected' : ''}>Đã nghỉ việc</option>
                         </select>
                     </div>
 
-                    <button type="button" class="btn-filter-refresh" id="btnRefreshFilters" title="Làm mới bộ lọc">
-                        <i class="bi bi-arrow-clockwise"></i>
-                        <span>Làm mới</span>
-                    </button>
-                </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Nút Lọc dữ liệu -->
+                        <button type="submit" class="btn-filter-submit" id="btnApplyFilter" title="Áp dụng bộ lọc thời gian thực">
+                            <i class="bi bi-funnel-fill"></i>
+                            <span>Lọc dữ liệu</span>
+                        </button>
 
-                <!-- Segmented Period Tabs -->
-                <div class="period-segments-wrapper">
-                    <button type="button" class="period-tab-btn" data-range="today">Hôm nay</button>
-                    <button type="button" class="period-tab-btn" data-range="week">Tuần này</button>
-                    <button type="button" class="period-tab-btn active" data-range="month">Tháng này</button>
-                    <button type="button" class="period-tab-btn" data-range="quarter">Quý này</button>
-                    <button type="button" class="period-tab-btn" data-range="year">Năm nay</button>
-                    <button type="button" class="period-tab-btn" data-range="custom">Tùy chỉnh</button>
+                        <!-- Nút Làm mới -->
+                        <a href="${pageContext.request.contextPath}/dashboard" class="btn-filter-refresh text-decoration-none" id="btnRefreshFilters" title="Làm mới bộ lọc về mặc định">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            <span>Làm mới</span>
+                        </a>
+                    </div>
                 </div>
-            </div>
+            </form>
 
             <!-- 3. Eight Stat KPI Cards (2 Rows of 4 Cards) -->
             <!-- Row 1 of KPI Cards -->
@@ -124,12 +186,7 @@
                             <div>
                                 <div class="kpi-label">Tổng nhân viên</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value">
-                                        <c:choose>
-                                            <c:when test="${totalEmployees != null and totalEmployees > 0}">${totalEmployees}</c:when>
-                                            <c:otherwise>245</c:otherwise>
-                                        </c:choose>
-                                    </span>
+                                    <span class="kpi-value">${kpiStats.totalEmployees}</span>
                                     <span class="kpi-unit">nhân sự</span>
                                 </div>
                             </div>
@@ -139,9 +196,9 @@
                         </div>
                         <div class="kpi-footer">
                             <span class="trend-badge positive">
-                                <i class="bi bi-arrow-up-short"></i> +4.2%
+                                <i class="bi bi-shield-check"></i> Toàn hệ thống
                             </span>
-                            <span class="text-muted">so với tháng trước</span>
+                            <span class="text-muted">Nhân sự hiện hữu</span>
                         </div>
                     </div>
                 </div>
@@ -153,7 +210,7 @@
                             <div>
                                 <div class="kpi-label">Nhân viên đang làm việc</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value">232</span>
+                                    <span class="kpi-value">${kpiStats.activeEmployees}</span>
                                     <span class="kpi-unit">nhân sự</span>
                                 </div>
                             </div>
@@ -163,9 +220,9 @@
                         </div>
                         <div class="kpi-footer">
                             <span class="trend-badge positive">
-                                <i class="bi bi-arrow-up-short"></i> +3.1%
+                                <i class="bi bi-check-circle"></i> Đang hoạt động
                             </span>
-                            <span class="text-muted">Năng suất tại các công ty</span>
+                            <span class="text-muted">Trạng thái ACTIVE</span>
                         </div>
                     </div>
                 </div>
@@ -177,7 +234,7 @@
                             <div>
                                 <div class="kpi-label">Nhân viên mới</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value">12</span>
+                                    <span class="kpi-value">${kpiStats.newHires}</span>
                                     <span class="kpi-unit">tuyển mới</span>
                                 </div>
                             </div>
@@ -187,9 +244,9 @@
                         </div>
                         <div class="kpi-footer">
                             <span class="trend-badge" style="background:#eff6ff; color:#2563eb;">
-                                <i class="bi bi-arrow-up-short"></i> +20%
+                                <i class="bi bi-calendar-event"></i> Trong kỳ lọc
                             </span>
-                            <span class="text-muted">so với tháng trước</span>
+                            <span class="text-muted">Gia nhập gần đây</span>
                         </div>
                     </div>
                 </div>
@@ -201,7 +258,7 @@
                             <div>
                                 <div class="kpi-label">Nhân viên nghỉ việc</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value">3</span>
+                                    <span class="kpi-value">${kpiStats.inactiveEmployees}</span>
                                     <span class="kpi-unit">nghỉ việc</span>
                                 </div>
                             </div>
@@ -210,10 +267,10 @@
                             </div>
                         </div>
                         <div class="kpi-footer">
-                            <span class="trend-badge positive">
-                                <i class="bi bi-arrow-down-short"></i> -12%
+                            <span class="trend-badge text-secondary" style="background:#f1f5f9;">
+                                <i class="bi bi-person-x"></i> Đã thôi việc
                             </span>
-                            <span class="text-muted">Tỷ lệ biến động giảm</span>
+                            <span class="text-muted">Trạng thái INACTIVE</span>
                         </div>
                     </div>
                 </div>
@@ -228,7 +285,7 @@
                             <div>
                                 <div class="kpi-label">Phòng ban</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value">12</span>
+                                    <span class="kpi-value">${kpiStats.departmentCount}</span>
                                     <span class="kpi-unit">đơn vị</span>
                                 </div>
                             </div>
@@ -237,8 +294,8 @@
                             </div>
                         </div>
                         <div class="kpi-footer">
-                            <span class="kpi-chip-soft">+1 phòng ban mới</span>
-                            <span class="text-muted">Bộ phận AI Lab</span>
+                            <span class="kpi-chip-soft">Đang vận hành</span>
+                            <span class="text-muted">Cơ cấu tổ chức</span>
                         </div>
                     </div>
                 </div>
@@ -251,12 +308,7 @@
                                 <div class="kpi-label">Tổng quỹ lương</div>
                                 <div class="kpi-value-row">
                                     <span class="kpi-value text-primary">
-                                        <c:choose>
-                                            <c:when test="${totalPayroll != null}">
-                                                <fmt:formatNumber value="${totalPayroll}" type="number" groupingUsed="true"/>
-                                            </c:when>
-                                            <c:otherwise>850.000.000</c:otherwise>
-                                        </c:choose>
+                                        <fmt:formatNumber value="${payrollSummary.totalNet}" type="number" groupingUsed="true"/>
                                     </span>
                                     <span class="kpi-unit text-primary fw-bold">đ</span>
                                 </div>
@@ -267,9 +319,9 @@
                         </div>
                         <div class="kpi-footer">
                             <span class="trend-badge" style="background:#eff6ff; color:#2563eb;">
-                                <i class="bi bi-arrow-up-short"></i> +3.5%
+                                <i class="bi bi-cash-stack"></i> Thực chi trả
                             </span>
-                            <span class="text-muted">Kỳ: T09/2026</span>
+                            <span class="text-muted">Theo kỳ lọc</span>
                         </div>
                     </div>
                 </div>
@@ -281,7 +333,9 @@
                             <div>
                                 <div class="kpi-label">Hợp đồng sắp hết hạn</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value text-warning" style="color: #ea580c !important;">08</span>
+                                    <span class="kpi-value text-warning" style="color: #ea580c !important;">
+                                        <fmt:formatNumber value="${kpiStats.expiringContracts}" minIntegerDigits="2"/>
+                                    </span>
                                     <span class="kpi-unit">hợp đồng</span>
                                 </div>
                             </div>
@@ -291,7 +345,7 @@
                         </div>
                         <div class="kpi-footer">
                             <span class="kpi-chip-warning">
-                                <i class="bi bi-dot fs-5 p-0"></i> Có cảnh báo
+                                <i class="bi bi-dot fs-5 p-0"></i> Cần rà soát
                             </span>
                             <span class="text-muted">Trong 30 ngày tới</span>
                         </div>
@@ -305,14 +359,7 @@
                             <div>
                                 <div class="kpi-label">Đơn nghỉ phép chờ duyệt</div>
                                 <div class="kpi-value-row">
-                                    <span class="kpi-value text-primary">
-                                        <c:choose>
-                                            <c:when test="${pendingLeaves != null and pendingLeaves > 0}">
-                                                ${pendingLeaves}
-                                            </c:when>
-                                            <c:otherwise>12</c:otherwise>
-                                        </c:choose>
-                                    </span>
+                                    <span class="kpi-value text-primary">${kpiStats.pendingLeaves}</span>
                                     <span class="kpi-unit">yêu cầu</span>
                                 </div>
                             </div>
@@ -321,8 +368,8 @@
                             </div>
                         </div>
                         <div class="kpi-footer">
-                            <span class="kpi-chip-soft">Còn xử lý</span>
-                            <span class="text-danger fw-semibold">Cần xử lý gấp</span>
+                            <span class="kpi-chip-soft">Chờ duyệt</span>
+                            <span class="text-danger fw-semibold">Cần xử lý</span>
                         </div>
                     </div>
                 </div>
@@ -339,21 +386,16 @@
                                     <span>Biến động nhân sự</span>
                                     <i class="bi bi-info-circle text-muted fs-6" title="Xu hướng biến động quy mô nhân sự qua các tháng" style="cursor:help;"></i>
                                 </div>
-                                <p class="app-card-subtitle">Xu hướng nhân sự trong 6 tháng gần nhất (Tháng 4 - Tháng 9/2026)</p>
+                                <p class="app-card-subtitle">Xu hướng biến động quy mô nhân sự 6 tháng gần nhất</p>
                             </div>
 
                             <div class="d-flex align-items-center gap-3 flex-wrap">
                                 <!-- Legend Indicators -->
                                 <div class="chart-header-badges">
-                                    <span><span class="badge-dot-indicator" style="background-color: #2563eb;"></span>Tổng NS</span>
-                                    <span><span class="badge-dot-indicator" style="background-color: #10b981;"></span>Mới (+12)</span>
-                                    <span><span class="badge-dot-indicator" style="background-color: #ef4444;"></span>Nghỉ (-3)</span>
+                                    <span><span class="badge-dot-indicator" style="background-color: #2563eb;"></span>Tổng NS (${kpiStats.totalEmployees})</span>
+                                    <span><span class="badge-dot-indicator" style="background-color: #10b981;"></span>Mới (+${kpiStats.newHires})</span>
+                                    <span><span class="badge-dot-indicator" style="background-color: #ef4444;"></span>Nghỉ (-${kpiStats.inactiveEmployees})</span>
                                 </div>
-
-                                <!-- Filter dropdown -->
-                                <button type="button" class="btn btn-sm btn-light border py-1 px-2 fw-semibold text-secondary" style="font-size: 0.78rem;">
-                                    6 tháng gần nhất <i class="bi bi-chevron-down ms-1"></i>
-                                </button>
                             </div>
                         </div>
 
@@ -370,7 +412,7 @@
                             <div class="app-card-header mb-1">
                                 <div>
                                     <div class="app-card-title">Cơ cấu nhân sự</div>
-                                    <p class="app-card-subtitle">Phân bố 245 nhân sự trong công ty</p>
+                                    <p class="app-card-subtitle">Phân bố ${personnelStructure.totalEmployees} nhân sự trong công ty</p>
                                 </div>
 
                                 <!-- Toggle Tabs -->
@@ -385,56 +427,23 @@
                             <div class="donut-chart-wrapper my-2">
                                 <canvas id="departmentDonutChart" width="185" height="185"></canvas>
                                 <div class="donut-center-info">
-                                    <div class="donut-center-val">245</div>
+                                    <div class="donut-center-val">${personnelStructure.totalEmployees}</div>
                                     <div class="donut-center-label">Tổng nhân sự</div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 2-Column Legend Grid Matching Mockup -->
-                        <div class="donut-legend-row">
-                            <div class="donut-legend-item">
-                                <span class="legend-label">
-                                    <span class="color-square" style="background-color: #2563eb;"></span>
-                                    Kinh doanh
-                                </span>
-                                <span class="legend-val">28% <span class="text-muted fw-normal">(68)</span></span>
-                            </div>
-                            <div class="donut-legend-item">
-                                <span class="legend-label">
-                                    <span class="color-square" style="background-color: #0ea5e9;"></span>
-                                    CNTT & R&D
-                                </span>
-                                <span class="legend-val">22% <span class="text-muted fw-normal">(54)</span></span>
-                            </div>
-                            <div class="donut-legend-item">
-                                <span class="legend-label">
-                                    <span class="color-square" style="background-color: #f97316;"></span>
-                                    Marketing
-                                </span>
-                                <span class="legend-val">18% <span class="text-muted fw-normal">(44)</span></span>
-                            </div>
-                            <div class="donut-legend-item">
-                                <span class="legend-label">
-                                    <span class="color-square" style="background-color: #10b981;"></span>
-                                    Kế toán
-                                </span>
-                                <span class="legend-val">15% <span class="text-muted fw-normal">(37)</span></span>
-                            </div>
-                            <div class="donut-legend-item">
-                                <span class="legend-label">
-                                    <span class="color-square" style="background-color: #8b5cf6;"></span>
-                                    Nhân sự
-                                </span>
-                                <span class="legend-val">10% <span class="text-muted fw-normal">(25)</span></span>
-                            </div>
-                            <div class="donut-legend-item">
-                                <span class="legend-label">
-                                    <span class="color-square" style="background-color: #64748b;"></span>
-                                    Khác
-                                </span>
-                                <span class="legend-val">7% <span class="text-muted fw-normal">(17)</span></span>
-                            </div>
+                        <!-- 2-Column Legend Grid Dynamically Rendered -->
+                        <div class="donut-legend-row" id="donutDynamicLegend">
+                            <c:forEach items="${personnelStructure.deptList}" var="dept">
+                                <div class="donut-legend-item">
+                                    <span class="legend-label">
+                                        <span class="color-square" style="background-color: ${dept.color};"></span>
+                                        ${dept.name}
+                                    </span>
+                                    <span class="legend-val">${dept.percent}% <span class="text-muted fw-normal">(${dept.count})</span></span>
+                                </div>
+                            </c:forEach>
                         </div>
                     </div>
                 </div>
@@ -448,20 +457,20 @@
                         <div>
                             <div class="app-card-header">
                                 <div>
-                                    <div class="app-card-title">Tình hình chấm công hôm nay</div>
-                                    <p class="app-card-subtitle">Tổng số nhân sự theo lịch trực: <strong>245</strong></p>
+                                    <div class="app-card-title">Tình hình chấm công</div>
+                                    <p class="app-card-subtitle">Tổng số lượt chấm công theo kỳ: <strong>${attendanceSummary.totalRecords}</strong></p>
                                 </div>
                                 <span class="badge bg-success-subtle text-success px-2 py-1 fw-bold" style="font-size: 0.75rem;">
-                                    ● Trực tiếp
+                                    ● Dữ liệu kỳ lọc
                                 </span>
                             </div>
 
                             <!-- Stacked Progress Bar -->
                             <div class="attendance-stacked-bar">
-                                <div class="attendance-stacked-segment" style="width: 88%; background-color: #10b981;" title="Đúng giờ: 88%"></div>
-                                <div class="attendance-stacked-segment" style="width: 5%; background-color: #f59e0b;" title="Đi muộn/Về sớm: 5%"></div>
-                                <div class="attendance-stacked-segment" style="width: 3%; background-color: #3b82f6;" title="Nghỉ có lương: 3%"></div>
-                                <div class="attendance-stacked-segment" style="width: 1%; background-color: #ef4444;" title="Vắng không phép: 1%"></div>
+                                <div class="attendance-stacked-segment" style="width: ${attendanceSummary.onTimePct}%; background-color: #10b981;" title="Đúng giờ: ${attendanceSummary.onTimePct}%"></div>
+                                <div class="attendance-stacked-segment" style="width: ${attendanceSummary.latePct}%; background-color: #f59e0b;" title="Đi muộn/Về sớm: ${attendanceSummary.latePct}%"></div>
+                                <div class="attendance-stacked-segment" style="width: ${attendanceSummary.onLeavePct}%; background-color: #3b82f6;" title="Nghỉ phép: ${attendanceSummary.onLeavePct}%"></div>
+                                <div class="attendance-stacked-segment" style="width: ${attendanceSummary.absentPct}%; background-color: #ef4444;" title="Vắng không phép: ${attendanceSummary.absentPct}%"></div>
                             </div>
 
                             <!-- Breakdown Items -->
@@ -471,28 +480,28 @@
                                         <span class="badge-dot-indicator" style="background-color: #10b981;"></span>
                                         Đi làm đúng giờ
                                     </span>
-                                    <span class="attendance-item-val text-success">215 nhân sự (88%)</span>
+                                    <span class="attendance-item-val text-success">${attendanceSummary.onTimeCount} lượt (${attendanceSummary.onTimePct}%)</span>
                                 </div>
                                 <div class="attendance-item">
                                     <span class="attendance-item-label">
                                         <span class="badge-dot-indicator" style="background-color: #f59e0b;"></span>
                                         Đi muộn / Về sớm
                                     </span>
-                                    <span class="attendance-item-val text-warning" style="color:#d97706 !important;">12 nhân sự (5%)</span>
+                                    <span class="attendance-item-val text-warning" style="color:#d97706 !important;">${attendanceSummary.lateCount} lượt (${attendanceSummary.latePct}%)</span>
                                 </div>
                                 <div class="attendance-item">
                                     <span class="attendance-item-label">
                                         <span class="badge-dot-indicator" style="background-color: #3b82f6;"></span>
                                         Nghỉ phép có lương
                                     </span>
-                                    <span class="attendance-item-val text-primary">8 nhân sự (3%)</span>
+                                    <span class="attendance-item-val text-primary">${attendanceSummary.onLeaveCount} lượt (${attendanceSummary.onLeavePct}%)</span>
                                 </div>
                                 <div class="attendance-item">
                                     <span class="attendance-item-label">
                                         <span class="badge-dot-indicator" style="background-color: #ef4444;"></span>
                                         Vắng mặt không phép
                                     </span>
-                                    <span class="attendance-item-val text-danger">2 nhân sự (1%)</span>
+                                    <span class="attendance-item-val text-danger">${attendanceSummary.absentCount} lượt (${attendanceSummary.absentPct}%)</span>
                                 </div>
                             </div>
                         </div>
@@ -513,21 +522,21 @@
                             <div class="app-card-header">
                                 <div>
                                     <div class="app-card-title">Nghỉ phép</div>
-                                    <p class="app-card-subtitle">Quỹ phép toàn công ty: <strong>450.5 ngày</strong></p>
+                                    <p class="app-card-subtitle">Quỹ phép ước tính: <strong>${leaveSummary.totalFund} ngày</strong></p>
                                 </div>
                                 <span class="badge bg-primary-subtle text-primary px-2 py-1 fw-bold" style="font-size: 0.75rem;">
-                                    Năm 2026
+                                    Toàn công ty
                                 </span>
                             </div>
 
                             <!-- Dual Bar & Labels -->
                             <div class="leave-dual-bar">
-                                <div class="leave-bar-used" style="width: 27%;"></div>
-                                <div class="leave-bar-remain" style="width: 73%;"></div>
+                                <div class="leave-bar-used" style="width: ${leaveSummary.usedPct}%;"></div>
+                                <div class="leave-bar-remain" style="width: ${leaveSummary.remainPct}%;"></div>
                             </div>
                             <div class="leave-dual-labels">
-                                <span>Đã dùng: <strong>120</strong></span>
-                                <span>Còn lại: <strong>330.5</strong></span>
+                                <span>Đã dùng: <strong>${leaveSummary.totalDaysUsed}</strong> ngày (${leaveSummary.usedPct}%)</span>
+                                <span>Còn lại: <strong>${leaveSummary.remainingDays}</strong> ngày (${leaveSummary.remainPct}%)</span>
                             </div>
 
                             <!-- Highlight Callout Box -->
@@ -535,7 +544,7 @@
                                 <div>
                                     <div class="leave-callout-title">Đơn chờ duyệt</div>
                                     <div class="d-flex align-items-baseline">
-                                        <span class="leave-callout-number">12</span>
+                                        <span class="leave-callout-number">${leaveSummary.pendingCount}</span>
                                         <span class="leave-callout-unit">yêu cầu</span>
                                     </div>
                                 </div>
@@ -576,7 +585,7 @@
                                 <!-- Item 1 -->
                                 <div class="urgent-task-item">
                                     <div class="urgent-task-left">
-                                        <span class="urgent-num-badge orange">6</span>
+                                        <span class="urgent-num-badge orange">${urgentTasks.expiringContracts}</span>
                                         <div class="urgent-task-info">
                                             <span class="urgent-task-title">Hợp đồng sắp hết hạn</span>
                                             <span class="urgent-task-sub">Trong 30 ngày tới</span>
@@ -590,10 +599,10 @@
                                 <!-- Item 2 -->
                                 <div class="urgent-task-item">
                                     <div class="urgent-task-left">
-                                        <span class="urgent-num-badge blue">12</span>
+                                        <span class="urgent-num-badge blue">${urgentTasks.pendingLeaves}</span>
                                         <div class="urgent-task-info">
                                             <span class="urgent-task-title">Đơn nghỉ phép cần duyệt</span>
-                                            <span class="urgent-task-sub">4 đơn nghỉ phép gấp hôm nay</span>
+                                            <span class="urgent-task-sub">Chờ phê duyệt</span>
                                         </div>
                                     </div>
                                     <a href="${pageContext.request.contextPath}/leave" class="urgent-action-btn">
@@ -604,10 +613,10 @@
                                 <!-- Item 3 -->
                                 <div class="urgent-task-item">
                                     <div class="urgent-task-left">
-                                        <span class="urgent-num-badge purple">3</span>
+                                        <span class="urgent-num-badge purple">${urgentTasks.incompleteProfiles}</span>
                                         <div class="urgent-task-info">
-                                            <span class="urgent-task-title">Hồ sơ nhân viên chưa hoàn tất</span>
-                                            <span class="urgent-task-sub">Thiếu công chứng, MST, BHXH</span>
+                                            <span class="urgent-task-title">Hồ sơ chưa hoàn tất</span>
+                                            <span class="urgent-task-sub">Thiếu CCCD, MST hoặc Ngân hàng</span>
                                         </div>
                                     </div>
                                     <a href="${pageContext.request.contextPath}/employees" class="urgent-action-btn">
@@ -618,10 +627,10 @@
                                 <!-- Item 4 -->
                                 <div class="urgent-task-item">
                                     <div class="urgent-task-left">
-                                        <span class="urgent-num-badge orange">2</span>
+                                        <span class="urgent-num-badge orange">${urgentTasks.openRecruitment}</span>
                                         <div class="urgent-task-info">
-                                            <span class="urgent-task-title">Yêu cầu tuyển dụng chờ xử lý</span>
-                                            <span class="urgent-task-sub">Từ team Kỹ thuật & Sales</span>
+                                            <span class="urgent-task-title">Yêu cầu tuyển dụng đang mở</span>
+                                            <span class="urgent-task-sub">Đang tìm kiếm ứng viên</span>
                                         </div>
                                     </div>
                                     <a href="${pageContext.request.contextPath}/recruitment" class="urgent-action-btn">
@@ -632,13 +641,13 @@
                                 <!-- Item 5 -->
                                 <div class="urgent-task-item">
                                     <div class="urgent-task-left">
-                                        <span class="urgent-num-badge red">1</span>
+                                        <span class="urgent-num-badge red">${urgentTasks.pendingOvertime}</span>
                                         <div class="urgent-task-info">
-                                            <span class="urgent-task-title">Chưa cập nhật thông tin</span>
-                                            <span class="urgent-task-sub">Cần bổ sung STK & BHXH</span>
+                                            <span class="urgent-task-title">Làm thêm giờ chờ duyệt</span>
+                                            <span class="urgent-task-sub">Đăng ký ca OT gần đây</span>
                                         </div>
                                     </div>
-                                    <a href="${pageContext.request.contextPath}/employees" class="urgent-action-btn">
+                                    <a href="${pageContext.request.contextPath}/attendance" class="urgent-action-btn">
                                         Kiểm tra <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </div>
@@ -660,10 +669,10 @@
                                         <i class="bi bi-wallet2 text-primary me-1"></i>
                                         Quỹ lương & chi phí nhân sự
                                     </div>
-                                    <p class="app-card-subtitle">Chi tiết phân bổ ngân sách tiền lương kỳ Tháng 09/2026</p>
+                                    <p class="app-card-subtitle">Chi tiết phân bổ ngân sách tiền lương theo kỳ lọc</p>
                                 </div>
                                 <span class="badge bg-primary-subtle text-primary px-3 py-2 fw-bold" style="font-size:0.95rem;">
-                                    850.000.000 đ
+                                    <fmt:formatNumber value="${payrollSummary.totalNet}" type="number" groupingUsed="true"/> đ
                                 </span>
                             </div>
 
@@ -671,77 +680,52 @@
                             <div class="payroll-stats-bar">
                                 <div class="payroll-stat-pill">
                                     <div class="payroll-stat-label">Tổng quỹ</div>
-                                    <div class="payroll-stat-value text-primary">850 Tr đ</div>
+                                    <div class="payroll-stat-value text-primary">
+                                        <fmt:formatNumber value="${payrollSummary.totalNet / 1000000}" maxFractionDigits="1"/> Tr đ
+                                    </div>
                                 </div>
                                 <div class="payroll-stat-pill">
                                     <div class="payroll-stat-label">Lương cơ bản</div>
-                                    <div class="payroll-stat-value">650 Tr đ</div>
+                                    <div class="payroll-stat-value">
+                                        <fmt:formatNumber value="${payrollSummary.totalBase / 1000000}" maxFractionDigits="1"/> Tr đ
+                                    </div>
                                 </div>
                                 <div class="payroll-stat-pill">
                                     <div class="payroll-stat-label">Phụ cấp</div>
-                                    <div class="payroll-stat-value">75 Tr đ</div>
+                                    <div class="payroll-stat-value">
+                                        <fmt:formatNumber value="${payrollSummary.totalAllowance / 1000000}" maxFractionDigits="1"/> Tr đ
+                                    </div>
                                 </div>
                                 <div class="payroll-stat-pill">
                                     <div class="payroll-stat-label">Thưởng</div>
-                                    <div class="payroll-stat-value">65 Tr đ</div>
+                                    <div class="payroll-stat-value">
+                                        <fmt:formatNumber value="${payrollSummary.totalBonus / 1000000}" maxFractionDigits="1"/> Tr đ
+                                    </div>
                                 </div>
                                 <div class="payroll-stat-pill">
-                                    <div class="payroll-stat-label">Khống chế</div>
-                                    <div class="payroll-stat-value">60 Tr đ</div>
+                                    <div class="payroll-stat-label">Khấu trừ</div>
+                                    <div class="payroll-stat-value">
+                                        <fmt:formatNumber value="${payrollSummary.totalDeduction / 1000000}" maxFractionDigits="1"/> Tr đ
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- Department Progress Bars -->
                             <div class="dept-payroll-list my-3">
-                                <div class="dept-payroll-item">
-                                    <div class="dept-payroll-info">
-                                        <span class="dept-name">Kinh doanh & Bán hàng</span>
-                                        <span class="dept-amount">260.000.000 đ <span class="text-muted fw-normal">(31%)</span></span>
+                                <c:forEach items="${payrollSummary.deptPayrollList}" var="dp">
+                                    <div class="dept-payroll-item">
+                                        <div class="dept-payroll-info">
+                                            <span class="dept-name">${dp.name}</span>
+                                            <span class="dept-amount">
+                                                <fmt:formatNumber value="${dp.amount}" type="number" groupingUsed="true"/> đ 
+                                                <span class="text-muted fw-normal">(${dp.percent}%)</span>
+                                            </span>
+                                        </div>
+                                        <div class="dept-progress">
+                                            <div class="dept-progress-bar" style="width: ${dp.percent}%; background-color: #2563eb;"></div>
+                                        </div>
                                     </div>
-                                    <div class="dept-progress">
-                                        <div class="dept-progress-bar" style="width: 31%; background-color: #2563eb;"></div>
-                                    </div>
-                                </div>
-
-                                <div class="dept-payroll-item">
-                                    <div class="dept-payroll-info">
-                                        <span class="dept-name">Công nghệ & R&D</span>
-                                        <span class="dept-amount">240.000.000 đ <span class="text-muted fw-normal">(28%)</span></span>
-                                    </div>
-                                    <div class="dept-progress">
-                                        <div class="dept-progress-bar" style="width: 28%; background-color: #2563eb;"></div>
-                                    </div>
-                                </div>
-
-                                <div class="dept-payroll-item">
-                                    <div class="dept-payroll-info">
-                                        <span class="dept-name">Marketing & Truyền thông</span>
-                                        <span class="dept-amount">150.000.000 đ <span class="text-muted fw-normal">(18%)</span></span>
-                                    </div>
-                                    <div class="dept-progress">
-                                        <div class="dept-progress-bar" style="width: 18%; background-color: #3b82f6;"></div>
-                                    </div>
-                                </div>
-
-                                <div class="dept-payroll-item">
-                                    <div class="dept-payroll-info">
-                                        <span class="dept-name">Tài chính - Kế toán</span>
-                                        <span class="dept-amount">110.000.000 đ <span class="text-muted fw-normal">(13%)</span></span>
-                                    </div>
-                                    <div class="dept-progress">
-                                        <div class="dept-progress-bar" style="width: 13%; background-color: #60a5fa;"></div>
-                                    </div>
-                                </div>
-
-                                <div class="dept-payroll-item">
-                                    <div class="dept-payroll-info">
-                                        <span class="dept-name">Hành chính - Nhân sự</span>
-                                        <span class="dept-amount">90.000.000 đ <span class="text-muted fw-normal">(10%)</span></span>
-                                    </div>
-                                    <div class="dept-progress">
-                                        <div class="dept-progress-bar" style="width: 10%; background-color: #93c5fd;"></div>
-                                    </div>
-                                </div>
+                                </c:forEach>
                             </div>
                         </div>
 
@@ -771,26 +755,26 @@
                                     <p class="app-card-subtitle">Phễu tuyển dụng nhân sự và tỷ lệ chuyển đổi</p>
                                 </div>
                                 <span class="badge bg-primary-subtle text-primary px-2 py-1 fw-bold" style="font-size: 0.75rem;">
-                                    Q3 / 2026
+                                    Dữ liệu thực tế
                                 </span>
                             </div>
 
                             <!-- 4 Pipeline Metrics -->
                             <div class="recruitment-metric-grid">
                                 <div class="recruitment-metric-box">
-                                    <div class="recruitment-metric-val text-primary">12</div>
+                                    <div class="recruitment-metric-val text-primary">${recruitmentStats.openPositions}</div>
                                     <div class="recruitment-metric-label">Vị trí mở</div>
                                 </div>
                                 <div class="recruitment-metric-box">
-                                    <div class="recruitment-metric-val text-info">88</div>
+                                    <div class="recruitment-metric-val text-info">${recruitmentStats.totalCandidates}</div>
                                     <div class="recruitment-metric-label">Ứng viên nộp</div>
                                 </div>
                                 <div class="recruitment-metric-box">
-                                    <div class="recruitment-metric-val text-warning" style="color:#d97706 !important;">24</div>
+                                    <div class="recruitment-metric-val text-warning" style="color:#d97706 !important;">${recruitmentStats.interviews}</div>
                                     <div class="recruitment-metric-label">Phỏng vấn</div>
                                 </div>
                                 <div class="recruitment-metric-box">
-                                    <div class="recruitment-metric-val text-success">08</div>
+                                    <div class="recruitment-metric-val text-success">${recruitmentStats.onboarded}</div>
                                     <div class="recruitment-metric-label">Đã nhận việc</div>
                                 </div>
                             </div>
@@ -800,31 +784,31 @@
                                 <div class="funnel-row">
                                     <span class="funnel-stage-name">Ứng viên mới</span>
                                     <div class="funnel-bar-container">
-                                        <div class="funnel-bar-fill" style="width: 100%; background-color: #6366f1;">88 hồ sơ</div>
+                                        <div class="funnel-bar-fill" style="width: ${recruitmentStats.newPct}%; background-color: #6366f1;">${recruitmentStats.newCount} hồ sơ</div>
                                     </div>
                                 </div>
                                 <div class="funnel-row">
                                     <span class="funnel-stage-name">Đã sàng lọc</span>
                                     <div class="funnel-bar-container">
-                                        <div class="funnel-bar-fill" style="width: 61%; background-color: #3b82f6;">54 hồ sơ</div>
+                                        <div class="funnel-bar-fill" style="width: ${recruitmentStats.screeningPct}%; background-color: #3b82f6;">${recruitmentStats.screeningCount} hồ sơ</div>
                                     </div>
                                 </div>
                                 <div class="funnel-row">
                                     <span class="funnel-stage-name">Phỏng vấn</span>
                                     <div class="funnel-bar-container">
-                                        <div class="funnel-bar-fill" style="width: 27%; background-color: #f59e0b;">24 ứng viên</div>
+                                        <div class="funnel-bar-fill" style="width: ${recruitmentStats.interviewPct}%; background-color: #f59e0b;">${recruitmentStats.interviewCount} ứng viên</div>
                                     </div>
                                 </div>
                                 <div class="funnel-row">
                                     <span class="funnel-stage-name">Đề xuất tuyển</span>
                                     <div class="funnel-bar-container">
-                                        <div class="funnel-bar-fill" style="width: 11%; background-color: #06b6d4;">10</div>
+                                        <div class="funnel-bar-fill" style="width: ${recruitmentStats.offerPct}%; background-color: #06b6d4;">${recruitmentStats.offerCount}</div>
                                     </div>
                                 </div>
                                 <div class="funnel-row">
-                                    <span class="funnel-stage-name">Đã tuyển thành công</span>
+                                    <span class="funnel-stage-name">Đã tuyển dụng</span>
                                     <div class="funnel-bar-container">
-                                        <div class="funnel-bar-fill" style="width: 9%; background-color: #10b981;">8</div>
+                                        <div class="funnel-bar-fill" style="width: ${recruitmentStats.onboardedPct}%; background-color: #10b981;">${recruitmentStats.onboardedCount}</div>
                                     </div>
                                 </div>
                             </div>
@@ -861,70 +845,20 @@
 
                             <!-- KPI List -->
                             <div class="kpi-dept-list my-3">
-                                <div class="kpi-dept-item">
-                                    <div class="kpi-dept-header">
-                                        <span class="kpi-dept-name">Kinh doanh & Bán hàng</span>
-                                        <div>
-                                            <span class="kpi-eval-badge good">+100% Tốt</span>
-                                            <strong class="ms-2">90%</strong>
+                                <c:forEach items="${departmentKpis}" var="kpi">
+                                    <div class="kpi-dept-item">
+                                        <div class="kpi-dept-header">
+                                            <span class="kpi-dept-name">${kpi.name}</span>
+                                            <div>
+                                                <span class="kpi-eval-badge ${kpi.badgeClass}">${kpi.badgeText}</span>
+                                                <strong class="ms-2">${kpi.rate}%</strong>
+                                            </div>
+                                        </div>
+                                        <div class="kpi-progress-bar-bg">
+                                            <div class="kpi-progress-fill ${kpi.color}" style="width: ${kpi.rate}%;"></div>
                                         </div>
                                     </div>
-                                    <div class="kpi-progress-bar-bg">
-                                        <div class="kpi-progress-fill green" style="width: 90%;"></div>
-                                    </div>
-                                </div>
-
-                                <div class="kpi-dept-item">
-                                    <div class="kpi-dept-header">
-                                        <span class="kpi-dept-name">Công nghệ & R&D</span>
-                                        <div>
-                                            <span class="kpi-eval-badge good">+100% Tốt</span>
-                                            <strong class="ms-2">95%</strong>
-                                        </div>
-                                    </div>
-                                    <div class="kpi-progress-bar-bg">
-                                        <div class="kpi-progress-fill green" style="width: 95%;"></div>
-                                    </div>
-                                </div>
-
-                                <div class="kpi-dept-item">
-                                    <div class="kpi-dept-header">
-                                        <span class="kpi-dept-name">Marketing & Truyền thông</span>
-                                        <div>
-                                            <span class="kpi-eval-badge warning">78/100% Cần cải thiện</span>
-                                            <strong class="ms-2">68%</strong>
-                                        </div>
-                                    </div>
-                                    <div class="kpi-progress-bar-bg">
-                                        <div class="kpi-progress-fill orange" style="width: 68%;"></div>
-                                    </div>
-                                </div>
-
-                                <div class="kpi-dept-item">
-                                    <div class="kpi-dept-header">
-                                        <span class="kpi-dept-name">Tài chính - Kế toán</span>
-                                        <div>
-                                            <span class="kpi-eval-badge good">+100% Tốt</span>
-                                            <strong class="ms-2">94%</strong>
-                                        </div>
-                                    </div>
-                                    <div class="kpi-progress-bar-bg">
-                                        <div class="kpi-progress-fill green" style="width: 94%;"></div>
-                                    </div>
-                                </div>
-
-                                <div class="kpi-dept-item">
-                                    <div class="kpi-dept-header">
-                                        <span class="kpi-dept-name">Hành chính - Nhân sự</span>
-                                        <div>
-                                            <span class="kpi-eval-badge good">+100% Tốt</span>
-                                            <strong class="ms-2">96%</strong>
-                                        </div>
-                                    </div>
-                                    <div class="kpi-progress-bar-bg">
-                                        <div class="kpi-progress-fill green" style="width: 96%;"></div>
-                                    </div>
-                                </div>
+                                </c:forEach>
                             </div>
                         </div>
 
@@ -965,50 +899,50 @@
                                     <div class="age-dist-item">
                                         <div class="age-dist-header">
                                             <span class="age-dist-label">18 – 25 tuổi</span>
-                                            <span class="age-dist-val">18% <span class="text-muted fw-normal">(44 nhân sự)</span></span>
+                                            <span class="age-dist-val">${personnelStructure.ageUnder25Pct}% <span class="text-muted fw-normal">(${personnelStructure.ageUnder25} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: 18%;"></div>
+                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.ageUnder25Pct}%;"></div>
                                         </div>
                                     </div>
 
                                     <div class="age-dist-item">
                                         <div class="age-dist-header">
                                             <span class="age-dist-label fw-bold text-primary">25 – 35 tuổi</span>
-                                            <span class="age-dist-val text-primary">52% <span class="text-muted fw-normal">(128 nhân sự)</span></span>
+                                            <span class="age-dist-val text-primary">${personnelStructure.age25to35Pct}% <span class="text-muted fw-normal">(${personnelStructure.age25to35} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill highlight" style="width: 52%;"></div>
+                                            <div class="age-dist-bar-fill highlight" style="width: ${personnelStructure.age25to35Pct}%;"></div>
                                         </div>
                                     </div>
 
                                     <div class="age-dist-item">
                                         <div class="age-dist-header">
                                             <span class="age-dist-label">35 – 45 tuổi (Lực lượng nòng cốt)</span>
-                                            <span class="age-dist-val">18% <span class="text-muted fw-normal">(44 nhân sự)</span></span>
+                                            <span class="age-dist-val">${personnelStructure.age35to45Pct}% <span class="text-muted fw-normal">(${personnelStructure.age35to45} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: 18%;"></div>
+                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.age35to45Pct}%;"></div>
                                         </div>
                                     </div>
 
                                     <div class="age-dist-item">
                                         <div class="age-dist-header">
                                             <span class="age-dist-label">45 – 55 tuổi</span>
-                                            <span class="age-dist-val">12% <span class="text-muted fw-normal">(30 nhân sự)</span></span>
+                                            <span class="age-dist-val">${personnelStructure.age45to55Pct}% <span class="text-muted fw-normal">(${personnelStructure.age45to55} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: 12%;"></div>
+                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.age45to55Pct}%;"></div>
                                         </div>
                                     </div>
 
                                     <div class="age-dist-item">
                                         <div class="age-dist-header">
                                             <span class="age-dist-label">Trên 55 tuổi</span>
-                                            <span class="age-dist-val">5% <span class="text-muted fw-normal">(11 nhân sự)</span></span>
+                                            <span class="age-dist-val">${personnelStructure.ageOver55Pct}% <span class="text-muted fw-normal">(${personnelStructure.ageOver55} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: 5%;"></div>
+                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.ageOver55Pct}%;"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -1021,75 +955,33 @@
                                     <div class="gender-overview-card p-2 px-3 mb-3">
                                         <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.8rem;">
                                             <span class="fw-bold text-primary d-flex align-items-center gap-1">
-                                                <i class="bi bi-gender-male fs-6"></i> Nam: <strong>55%</strong> <span class="text-muted fw-normal">(135 NS)</span>
+                                                <i class="bi bi-gender-male fs-6"></i> Nam: <strong>${personnelStructure.malePct}%</strong> <span class="text-muted fw-normal">(${personnelStructure.maleCount} NS)</span>
                                             </span>
                                             <span class="fw-bold text-danger d-flex align-items-center gap-1">
-                                                <i class="bi bi-gender-female fs-6"></i> Nữ: <strong>45%</strong> <span class="text-muted fw-normal">(110 NS)</span>
+                                                <i class="bi bi-gender-female fs-6"></i> Nữ: <strong>${personnelStructure.femalePct}%</strong> <span class="text-muted fw-normal">(${personnelStructure.femaleCount} NS)</span>
                                             </span>
                                         </div>
                                         <div class="gender-dual-bar" style="height: 10px; border-radius: 9999px;">
-                                            <div class="gender-bar-male" style="width: 55%;"></div>
-                                            <div class="gender-bar-female" style="width: 45%;"></div>
+                                            <div class="gender-bar-male" style="width: ${personnelStructure.malePct}%;"></div>
+                                            <div class="gender-bar-female" style="width: ${personnelStructure.femalePct}%;"></div>
                                         </div>
                                     </div>
 
                                     <!-- Cơ cấu theo khối chức năng -->
                                     <div class="age-dist-list">
-                                        <div class="age-dist-item">
-                                            <div class="age-dist-header">
-                                                <span class="age-dist-label">Cấp Quản lý & Lãnh đạo</span>
-                                                <span class="age-dist-val" style="font-size: 0.76rem;">
-                                                    <span class="text-primary fw-bold">♂ 58%</span> <span class="text-muted fw-normal">(14)</span> &nbsp;|&nbsp; 
-                                                    <span class="text-danger fw-bold">♀ 42%</span> <span class="text-muted fw-normal">(10)</span>
-                                                </span>
+                                        <c:forEach items="${personnelStructure.deptList}" var="dept">
+                                            <div class="age-dist-item">
+                                                <div class="age-dist-header">
+                                                    <span class="age-dist-label">${dept.name}</span>
+                                                    <span class="age-dist-val" style="font-size: 0.76rem;">
+                                                        <span class="text-primary fw-bold">${dept.percent}%</span> <span class="text-muted fw-normal">(${dept.count} NS)</span>
+                                                    </span>
+                                                </div>
+                                                <div class="gender-dual-bar" style="height: 7px; border-radius: 9999px;">
+                                                    <div class="gender-bar-male" style="width: ${dept.percent}%; background-color: ${dept.color};"></div>
+                                                </div>
                                             </div>
-                                            <div class="gender-dual-bar" style="height: 7px; border-radius: 9999px;">
-                                                <div class="gender-bar-male" style="width: 58%;"></div>
-                                                <div class="gender-bar-female" style="width: 42%;"></div>
-                                            </div>
-                                        </div>
-
-                                        <div class="age-dist-item">
-                                            <div class="age-dist-header">
-                                                <span class="age-dist-label">Khối Công nghệ & R&D</span>
-                                                <span class="age-dist-val" style="font-size: 0.76rem;">
-                                                    <span class="text-primary fw-bold">♂ 78%</span> <span class="text-muted fw-normal">(42)</span> &nbsp;|&nbsp; 
-                                                    <span class="text-danger fw-bold">♀ 22%</span> <span class="text-muted fw-normal">(12)</span>
-                                                </span>
-                                            </div>
-                                            <div class="gender-dual-bar" style="height: 7px; border-radius: 9999px;">
-                                                <div class="gender-bar-male" style="width: 78%;"></div>
-                                                <div class="gender-bar-female" style="width: 22%;"></div>
-                                            </div>
-                                        </div>
-
-                                        <div class="age-dist-item">
-                                            <div class="age-dist-header">
-                                                <span class="age-dist-label">Khối Kinh doanh & Marketing</span>
-                                                <span class="age-dist-val" style="font-size: 0.76rem;">
-                                                    <span class="text-primary fw-bold">♂ 46%</span> <span class="text-muted fw-normal">(38)</span> &nbsp;|&nbsp; 
-                                                    <span class="text-danger fw-bold">♀ 54%</span> <span class="text-muted fw-normal">(45)</span>
-                                                </span>
-                                            </div>
-                                            <div class="gender-dual-bar" style="height: 7px; border-radius: 9999px;">
-                                                <div class="gender-bar-male" style="width: 46%;"></div>
-                                                <div class="gender-bar-female" style="width: 54%;"></div>
-                                            </div>
-                                        </div>
-
-                                        <div class="age-dist-item">
-                                            <div class="age-dist-header">
-                                                <span class="age-dist-label">Khối Tài chính & Hành chính HR</span>
-                                                <span class="age-dist-val" style="font-size: 0.76rem;">
-                                                    <span class="text-primary fw-bold">♂ 35%</span> <span class="text-muted fw-normal">(15)</span> &nbsp;|&nbsp; 
-                                                    <span class="text-danger fw-bold">♀ 65%</span> <span class="text-muted fw-normal">(28)</span>
-                                                </span>
-                                            </div>
-                                            <div class="gender-dual-bar" style="height: 7px; border-radius: 9999px;">
-                                                <div class="gender-bar-male" style="width: 35%;"></div>
-                                                <div class="gender-bar-female" style="width: 65%;"></div>
-                                            </div>
-                                        </div>
+                                        </c:forEach>
                                     </div>
                                 </div>
                             </div>
@@ -1100,54 +992,54 @@
                                     <div class="age-dist-item">
                                         <div class="age-dist-header">
                                             <span class="age-dist-label">Dưới 1 năm (Tân binh & Thử việc)</span>
-                                            <span class="age-dist-val">24% <span class="text-muted fw-normal">(59 nhân sự)</span></span>
+                                            <span class="age-dist-val">${personnelStructure.senUnder1Pct}% <span class="text-muted fw-normal">(${personnelStructure.senUnder1} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: 24%; background: #38bdf8;"></div>
+                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.senUnder1Pct}%; background: #38bdf8;"></div>
                                         </div>
                                     </div>
 
                                     <div class="age-dist-item">
                                         <div class="age-dist-header">
                                             <span class="age-dist-label fw-bold text-primary">1 – 3 năm (Cống hiến ổn định)</span>
-                                            <span class="age-dist-val text-primary">38% <span class="text-muted fw-normal">(93 nhân sự)</span></span>
+                                            <span class="age-dist-val text-primary">${personnelStructure.sen1to3Pct}% <span class="text-muted fw-normal">(${personnelStructure.sen1to3} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill highlight" style="width: 38%;"></div>
+                                            <div class="age-dist-bar-fill highlight" style="width: ${personnelStructure.sen1to3Pct}%;"></div>
                                         </div>
                                     </div>
 
                                     <div class="age-dist-item">
                                         <div class="age-dist-header">
                                             <span class="age-dist-label">3 – 5 năm (Chuyên viên nòng cốt)</span>
-                                            <span class="age-dist-val">22% <span class="text-muted fw-normal">(54 nhân sự)</span></span>
+                                            <span class="age-dist-val">${personnelStructure.sen3to5Pct}% <span class="text-muted fw-normal">(${personnelStructure.sen3to5} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: 22%; background: #6366f1;"></div>
+                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.sen3to5Pct}%; background: #6366f1;"></div>
                                         </div>
                                     </div>
 
                                     <div class="age-dist-item">
                                         <div class="age-dist-header">
                                             <span class="age-dist-label">Trên 5 năm (Cán bộ nguồn & Gắn bó)</span>
-                                            <span class="age-dist-val text-success">16% <span class="text-muted fw-normal">(39 nhân sự)</span></span>
+                                            <span class="age-dist-val text-success">${personnelStructure.senOver5Pct}% <span class="text-muted fw-normal">(${personnelStructure.senOver5} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: 16%; background: #10b981;"></div>
+                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.senOver5Pct}%; background: #10b981;"></div>
                                         </div>
                                     </div>
 
                                     <!-- Gắn kết card -->
                                     <div class="p-2 px-3 rounded-2 mt-1 d-flex align-items-center justify-content-between" style="background: #f0fdf4; border: 1px dashed #86efac; font-size: 0.77rem;">
                                         <div class="text-success fw-semibold d-flex align-items-center gap-1">
-                                            <i class="bi bi-shield-check fs-6"></i> Tỷ lệ nhân sự gắn bó trên 1 năm: <strong>76.0%</strong>
+                                            <i class="bi bi-shield-check fs-6"></i> Tỷ lệ nhân sự gắn bó trên 1 năm: <strong>${personnelStructure.retentionOver1YearPct}%</strong>
                                         </div>
                                         <span class="badge bg-success text-white">Chỉ số ổn định cao</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- TAB 4: TRÌNH ĐỘ (NEW TAB) -->
+                            <!-- TAB 4: TRÌNH ĐỘ -->
                             <div class="structure-tab-pane" id="structure-pane-education">
                                 <div class="age-dist-list my-3">
                                     <div class="age-dist-item">
@@ -1157,10 +1049,10 @@
                                                 <span>Sau Đại học (Thạc sĩ, Tiến sĩ)</span>
                                                 <span class="badge bg-purple-subtle ms-1" style="font-size:0.68rem;">Chuyên gia</span>
                                             </span>
-                                            <span class="age-dist-val text-purple">8% <span class="text-muted fw-normal">(20 nhân sự)</span></span>
+                                            <span class="age-dist-val text-purple">13.3% <span class="text-muted fw-normal">(2 nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: 8%; background: #8b5cf6;"></div>
+                                            <div class="age-dist-bar-fill" style="width: 13.3%; background: #8b5cf6;"></div>
                                         </div>
                                     </div>
 
@@ -1171,10 +1063,10 @@
                                                 <span>Đại học chính quy (Cử nhân, Kỹ sư)</span>
                                                 <span class="badge bg-primary-subtle text-primary ms-1" style="font-size:0.68rem;">Lực lượng chủ lực</span>
                                             </span>
-                                            <span class="age-dist-val text-primary">68% <span class="text-muted fw-normal">(167 nhân sự)</span></span>
+                                            <span class="age-dist-val text-primary">73.3% <span class="text-muted fw-normal">(11 nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill highlight" style="width: 68%;"></div>
+                                            <div class="age-dist-bar-fill highlight" style="width: 73.3%;"></div>
                                         </div>
                                     </div>
 
@@ -1184,49 +1076,36 @@
                                                 <i class="bi bi-journal-bookmark text-info"></i>
                                                 <span>Cao đẳng chuyên nghiệp</span>
                                             </span>
-                                            <span class="age-dist-val">16% <span class="text-muted fw-normal">(39 nhân sự)</span></span>
+                                            <span class="age-dist-val">13.4% <span class="text-muted fw-normal">(2 nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: 16%; background: #0ea5e9;"></div>
-                                        </div>
-                                    </div>
-
-                                    <div class="age-dist-item">
-                                        <div class="age-dist-header">
-                                            <span class="age-dist-label d-flex align-items-center gap-1">
-                                                <i class="bi bi-tools text-secondary"></i>
-                                                <span>Trung cấp &amp; Chứng chỉ nghề</span>
-                                            </span>
-                                            <span class="age-dist-val">8% <span class="text-muted fw-normal">(19 nhân sự)</span></span>
-                                        </div>
-                                        <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: 8%; background: #64748b;"></div>
+                                            <div class="age-dist-bar-fill" style="width: 13.4%; background: #0ea5e9;"></div>
                                         </div>
                                     </div>
 
                                     <!-- Chứng chỉ quốc tế highlight -->
                                     <div class="p-2 px-3 rounded-2 mt-1 d-flex align-items-center justify-content-between" style="background: #eff6ff; border: 1px dashed #bfdbfe; font-size: 0.77rem;">
                                         <div class="text-primary fw-semibold d-flex align-items-center gap-1">
-                                            <i class="bi bi-patch-check-fill fs-6 text-primary"></i> Trình độ từ Đại học trở lên: <strong>76.3%</strong> (187 NS)
+                                            <i class="bi bi-patch-check-fill fs-6 text-primary"></i> Trình độ từ Đại học trở lên: <strong>86.6%</strong>
                                         </div>
-                                        <span class="badge bg-primary text-white">42 Chứng chỉ quốc tế</span>
+                                        <span class="badge bg-primary text-white">Chất lượng cao</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 2 Demographic Subcards (Dynamic theo tab) -->
+                        <!-- 2 Demographic Subcards -->
                         <div class="demographic-subcards" id="structureSubcards">
                             <div class="demo-subcard">
                                 <div class="demo-subcard-title" id="structureSub1Title">Tỷ lệ giới tính</div>
                                 <div class="demo-subcard-val text-primary" id="structureSub1Val">
-                                    <i class="bi bi-gender-male"></i> Nam: 55% &nbsp;|&nbsp; <i class="bi bi-gender-female text-danger"></i> Nữ: 45%
+                                    <i class="bi bi-gender-male"></i> Nam: ${personnelStructure.malePct}% &nbsp;|&nbsp; <i class="bi bi-gender-female text-danger"></i> Nữ: ${personnelStructure.femalePct}%
                                 </div>
                             </div>
                             <div class="demo-subcard">
                                 <div class="demo-subcard-title" id="structureSub2Title">Thâm niên trung bình</div>
                                 <div class="demo-subcard-val text-success" id="structureSub2Val">
-                                    2.8 năm <span class="text-muted fw-normal">(38% từ 1-3 năm)</span>
+                                    ${personnelStructure.avgSeniority} năm <span class="text-muted fw-normal">(${personnelStructure.retentionOver1YearPct}% gắn bó > 1 năm)</span>
                                 </div>
                             </div>
                         </div>
@@ -1251,104 +1130,41 @@
                             </button>
                         </div>
 
-                        <!-- Activity Items List -->
+                        <!-- Activity Items List (Dữ liệu thực tế từ database) -->
                         <div class="activity-feed-full my-2">
-                            <!-- Item 1 -->
-                            <div class="activity-item-clean">
-                                <div class="activity-left-side">
-                                    <div class="activity-icon-round" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white;">
-                                        <i class="bi bi-person-fill"></i>
-                                    </div>
-                                    <div class="activity-desc-wrapper">
-                                        <div class="activity-main-line">
-                                            <strong>Nguyễn Văn An</strong> (IT Specialist) đã tiếp nhận và làm hồ sơ nhân viên mới cho <strong>Lê Quốc Tín</strong>
+                            <c:choose>
+                                <c:when test="${not empty recentActivities}">
+                                    <c:forEach items="${recentActivities}" var="act">
+                                        <div class="activity-item-clean">
+                                            <div class="activity-left-side">
+                                                <div class="activity-icon-round" style="background: ${act.iconBg}; color: ${act.iconColor};">
+                                                    <i class="bi ${act.icon}"></i>
+                                                </div>
+                                                <div class="activity-desc-wrapper">
+                                                    <div class="activity-main-line">
+                                                        ${act.title}
+                                                    </div>
+                                                    <div class="activity-badge-row">
+                                                        <span class="badge ${act.badgeClass} py-1 px-2">${act.badge}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <span class="activity-time-stamp">${act.timeAgo}</span>
                                         </div>
-                                        <div class="activity-badge-row">
-                                            <span class="activity-pill-tag">Phòng IT</span>
-                                            <span class="activity-pill-tag">Backend Engineer</span>
-                                        </div>
+                                    </c:forEach>
+                                </c:when>
+                                <c:otherwise>
+                                    <div class="text-center py-3 text-muted">
+                                        <i class="bi bi-info-circle me-1"></i> Chưa có hoạt động mới nào trong hệ thống.
                                     </div>
-                                </div>
-                                <span class="activity-time-stamp">3 phút trước</span>
-                            </div>
-
-                            <!-- Item 2 -->
-                            <div class="activity-item-clean">
-                                <div class="activity-left-side">
-                                    <div class="activity-icon-round" style="background: #eff6ff; color: #2563eb;">
-                                        <i class="bi bi-person-vcard"></i>
-                                    </div>
-                                    <div class="activity-desc-wrapper">
-                                        <div class="activity-main-line">
-                                            <strong>Trần Thị B</strong> (Kế toán) đã cập nhật thông tin cá nhân số CCCD gắn chip và tài khoản ngân hàng VCB.
-                                        </div>
-                                        <div class="activity-badge-row">
-                                            <span class="badge bg-success-subtle text-success py-1 px-2">Đã xác minh</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <span class="activity-time-stamp">15 phút trước</span>
-                            </div>
-
-                            <!-- Item 3 -->
-                            <div class="activity-item-clean">
-                                <div class="activity-left-side">
-                                    <div class="activity-icon-round" style="background: #ecfdf5; color: #10b981;">
-                                        <i class="bi bi-calendar2-check"></i>
-                                    </div>
-                                    <div class="activity-desc-wrapper">
-                                        <div class="activity-main-line">
-                                            <strong>Lê Văn C</strong> (Trưởng nhóm Kinh doanh) được phê duyệt đơn nghỉ phép 2 ngày bởi Giám đốc Chi nhánh.
-                                        </div>
-                                        <div class="activity-badge-row">
-                                            <span class="text-muted" style="font-size: 0.72rem;">Đơn: #NP-2026-88</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <span class="activity-time-stamp">45 phút trước</span>
-                            </div>
-
-                            <!-- Item 4 -->
-                            <div class="activity-item-clean">
-                                <div class="activity-left-side">
-                                    <div class="activity-icon-round" style="background: #f5f3ff; color: #8b5cf6;">
-                                        <i class="bi bi-briefcase-fill"></i>
-                                    </div>
-                                    <div class="activity-desc-wrapper">
-                                        <div class="activity-main-line">
-                                            <strong>Phòng IT</strong> đã tạo yêu cầu tuyển dụng mới: <strong>Senior DevOps Engineer (02 nhân sự)</strong>.
-                                        </div>
-                                        <div class="activity-badge-row">
-                                            <span class="activity-pill-tag">IT Operations</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <span class="activity-time-stamp">2 giờ trước</span>
-                            </div>
-
-                            <!-- Item 5 -->
-                            <div class="activity-item-clean">
-                                <div class="activity-left-side">
-                                    <div class="activity-icon-round" style="background: #fffbeb; color: #f59e0b;">
-                                        <i class="bi bi-file-earmark-text-fill"></i>
-                                    </div>
-                                    <div class="activity-desc-wrapper">
-                                        <div class="activity-main-line">
-                                            <strong>Admin</strong> đã gia hạn thành công và ký điện tử hợp đồng lao động mới mã <strong>HĐLĐ-2026-102</strong>.
-                                        </div>
-                                        <div class="activity-badge-row">
-                                            <span class="badge bg-warning-subtle text-warning py-1 px-2" style="color: #c2410c !important;">Thời hạn 3 năm</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <span class="activity-time-stamp">3 giờ trước</span>
-                            </div>
+                                </c:otherwise>
+                            </c:choose>
                         </div>
 
                         <!-- Footer -->
                         <div class="pt-3 border-top text-center">
-                            <a href="#" class="text-primary fw-bold text-decoration-none d-inline-flex align-items-center gap-1" style="font-size: 0.83rem;">
-                                Xem toàn bộ hoạt động <i class="bi bi-arrow-right"></i>
+                            <a href="${pageContext.request.contextPath}/reports" class="text-primary fw-bold text-decoration-none d-inline-flex align-items-center gap-1" style="font-size: 0.83rem;">
+                                Xem toàn bộ hoạt động & báo cáo <i class="bi bi-arrow-right"></i>
                             </a>
                         </div>
                     </div>
@@ -1361,6 +1177,59 @@
 
 <!-- Shared JavaScript dependencies -->
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
+
+<!-- Dữ liệu thực tế từ PostgreSQL cho Chart.js -->
+<script>
+window.dashboardChartData = {
+    growthTrend: {
+        labels: [
+            <c:forEach items="${monthlyGrowthTrend.labels}" var="l" varStatus="loop">
+                "${l}"${!loop.last ? ',' : ''}
+            </c:forEach>
+        ],
+        data: [
+            <c:forEach items="${monthlyGrowthTrend.data}" var="d" varStatus="loop">
+                ${d}${!loop.last ? ',' : ''}
+            </c:forEach>
+        ]
+    },
+    donut: {
+        dept: {
+            labels: [
+                <c:forEach items="${personnelStructure.deptList}" var="dept" varStatus="loop">
+                    "${dept.name}"${!loop.last ? ',' : ''}
+                </c:forEach>
+            ],
+            data: [
+                <c:forEach items="${personnelStructure.deptList}" var="dept" varStatus="loop">
+                    ${dept.count}${!loop.last ? ',' : ''}
+                </c:forEach>
+            ],
+            colors: [
+                <c:forEach items="${personnelStructure.deptList}" var="dept" varStatus="loop">
+                    "${dept.color}"${!loop.last ? ',' : ''}
+                </c:forEach>
+            ]
+        },
+        gender: {
+            labels: ['Nam', 'Nữ'],
+            data: [${personnelStructure.maleCount != null ? personnelStructure.maleCount : 0}, ${personnelStructure.femaleCount != null ? personnelStructure.femaleCount : 0}],
+            colors: ['#2563eb', '#ec4899']
+        },
+        age: {
+            labels: ['18 - 25 tuổi', '25 - 35 tuổi', '35 - 45 tuổi', '45 - 55 tuổi', 'Trên 55'],
+            data: [
+                ${personnelStructure.ageUnder25 != null ? personnelStructure.ageUnder25 : 0},
+                ${personnelStructure.age25to35 != null ? personnelStructure.age25to35 : 0},
+                ${personnelStructure.age35to45 != null ? personnelStructure.age35to45 : 0},
+                ${personnelStructure.age45to55 != null ? personnelStructure.age45to55 : 0},
+                ${personnelStructure.ageOver55 != null ? personnelStructure.ageOver55 : 0}
+            ],
+            colors: ['#38bdf8', '#2563eb', '#6366f1', '#f59e0b', '#94a3b8']
+        }
+    }
+};
+</script>
 
 <!-- Specific Dashboard Charts & Interactions Script -->
 <script src="${pageContext.request.contextPath}/assets/js/dashboard.js"></script>

@@ -94,7 +94,7 @@
                                                     class="btn btn-primary d-flex align-items-center gap-2 shadow-sm"
                                                     data-bs-toggle="modal" data-bs-target="#createJobModal">
                                                     <i class="bi bi-plus-lg"></i>
-                                                    <span>+ Tạo vị trí</span>
+                                                    <span>Tạo vị trí</span>
                                                 </button>
                                             </div>
                                         </div>

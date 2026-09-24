@@ -54,7 +54,7 @@
                         <input type="hidden" name="quarter" value="${not empty param.quarter ? param.quarter : 'Q3/2026'}">
                         <button type="submit" class="btn btn-warning text-dark fw-bold d-flex align-items-center gap-2 shadow-sm" title="Quét dữ liệu chấm công và chỉ tiêu từ CSDL để tính điểm tự động">
                             <i class="bi bi-lightning-charge-fill"></i>
-                            <span>⚡ Thuật toán tính tự động</span>
+                            <span>Thuật toán tính tự động</span>
                         </button>
                     </form>
                     <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2" onclick="window.print()">
@@ -63,7 +63,7 @@
                     </button>
                     <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#createEvaluationCycleModal">
                         <i class="bi bi-plus-lg"></i>
-                        <span>+ Tạo đợt đánh giá</span>
+                        <span>Tạo đợt đánh giá</span>
                     </button>
                 </div>
             </div>

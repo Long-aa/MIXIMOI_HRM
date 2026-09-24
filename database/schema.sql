@@ -90,8 +90,12 @@ CREATE INDEX IF NOT EXISTS idx_employees_status     ON employees(status);
 CREATE INDEX IF NOT EXISTS idx_employees_code       ON employees(employee_code);
 
 -- Thêm khóa ngoại users → employees sau khi tạo employees
-ALTER TABLE users ADD CONSTRAINT fk_users_employee
-    FOREIGN KEY (employee_id) REFERENCES employees(id);
+DO $do$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_users_employee') THEN
+        ALTER TABLE users ADD CONSTRAINT fk_users_employee
+            FOREIGN KEY (employee_id) REFERENCES employees(id);
+    END IF;
+END $do$;
 
 -- =============================================================
 -- 7. HỢP ĐỒNG LAO ĐỘNG
@@ -120,12 +124,14 @@ CREATE INDEX IF NOT EXISTS idx_contracts_status   ON contracts(status);
 
 CREATE TABLE IF NOT EXISTS work_shifts (
     id             SERIAL PRIMARY KEY,
-    name           VARCHAR(100) NOT NULL,
+    name           VARCHAR(100) NOT NULL UNIQUE,
     start_time     TIME         NOT NULL,
     end_time       TIME         NOT NULL,
     standard_hours NUMERIC(4,1) NOT NULL DEFAULT 8.0,
     description    TEXT
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_work_shifts_name ON work_shifts(name);
 
 -- =============================================================
 -- 9. CHẤM CÔNG
@@ -185,6 +191,7 @@ CREATE INDEX IF NOT EXISTS idx_leave_status   ON leave_requests(status);
 
 CREATE TABLE IF NOT EXISTS overtime (
     id             SERIAL PRIMARY KEY,
+    overtime_code  VARCHAR(50)   UNIQUE,
     employee_id    INTEGER       NOT NULL REFERENCES employees(id),
     overtime_date  DATE          NOT NULL,
     hours          NUMERIC(4,1)  NOT NULL,
@@ -398,6 +405,25 @@ ALTER TABLE contracts
 -- Attendance: thêm index cho method
 CREATE INDEX IF NOT EXISTS idx_attendance_method    ON attendance(method);
 CREATE INDEX IF NOT EXISTS idx_attendance_device    ON attendance(device_id);
+
+-- Overtime: bổ sung các trường nghiệp vụ nâng cao
+ALTER TABLE overtime
+    ADD COLUMN IF NOT EXISTS overtime_code    VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS project_name     VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS start_time       TIME,
+    ADD COLUMN IF NOT EXISTS end_time         TIME,
+    ADD COLUMN IF NOT EXISTS ot_type          VARCHAR(50) DEFAULT 'REGULAR',
+    ADD COLUMN IF NOT EXISTS lead_approver_id INTEGER REFERENCES employees(id),
+    ADD COLUMN IF NOT EXISTS lead_status      VARCHAR(20) DEFAULT 'PENDING',
+    ADD COLUMN IF NOT EXISTS lead_approved_at TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS hr_status        VARCHAR(20) DEFAULT 'PENDING',
+    ADD COLUMN IF NOT EXISTS reject_reason    TEXT;
+
+DO $do$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_overtime_code') THEN
+        ALTER TABLE overtime ADD CONSTRAINT uq_overtime_code UNIQUE (overtime_code);
+    END IF;
+END $do$;
 
 -- =============================================================
 -- 21. YÊU CẦU TUYỂN DỤNG (Recruitment Requests)

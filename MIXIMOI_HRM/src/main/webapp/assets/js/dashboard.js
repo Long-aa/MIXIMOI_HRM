@@ -6,7 +6,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     initPersonnelChart();
     initDepartmentDonutChart();
-    initPeriodFilterTabs();
     initRefreshButtons();
     initActionButtons();
     initPersonnelStructureTabs();
@@ -17,6 +16,7 @@ let departmentChartInstance = null;
 
 /**
  * 1. Biến động nhân sự (Area Spline Chart with Custom Top Badges)
+ * Đọc dữ liệu thực tế từ window.dashboardChartData.growthTrend
  */
 function initPersonnelChart() {
     const ctx = document.getElementById('personnelGrowthChart');
@@ -30,19 +30,20 @@ function initPersonnelChart() {
     gradient.addColorStop(0.7, 'rgba(37, 99, 235, 0.08)');
     gradient.addColorStop(1, 'rgba(37, 99, 235, 0.00)');
 
-    // Data points matching the 6-month progression in mockup
-    const periodData = {
-        '6m': {
-            labels: ['tháng 04', 'tháng 05', 'tháng 06', 'tháng 07', 'tháng 08', 'Tháng 09 (Hiện tại)'],
-            data: [210, 218, 225, 232, 238, 245]
-        },
-        '1y': {
-            labels: ['T10/25', 'T11/25', 'T12/25', 'T01/26', 'T02/26', 'T03/26', 'T04/26', 'T05/26', 'T06/26', 'T07/26', 'T08/26', 'T09/26'],
-            data: [178, 185, 192, 198, 204, 208, 210, 218, 225, 232, 238, 245]
-        }
-    };
+    let chartLabels = ['Tháng 04', 'Tháng 05', 'Tháng 06', 'Tháng 07', 'Tháng 08', 'Tháng 09 (Hiện tại)'];
+    let chartData = [10, 11, 12, 13, 14, 15];
 
-    // Custom Chart.js Plugin to draw numbers & the special "245 NS" badge above points
+    if (window.dashboardChartData && window.dashboardChartData.growthTrend && window.dashboardChartData.growthTrend.labels.length > 0) {
+        chartLabels = window.dashboardChartData.growthTrend.labels;
+        chartData = window.dashboardChartData.growthTrend.data;
+    }
+
+    const minVal = chartData.length > 0 ? Math.min(...chartData) : 0;
+    const maxVal = chartData.length > 0 ? Math.max(...chartData) : 10;
+    const yMin = Math.max(0, minVal - 3);
+    const yMax = maxVal + 4;
+
+    // Custom Chart.js Plugin to draw numbers & the special badge above points
     const pointAnnotationPlugin = {
         id: 'pointAnnotationPlugin',
         afterDatasetsDraw(chart) {
@@ -57,7 +58,7 @@ function initPersonnelChart() {
                 const y = element.y;
 
                 if (index === lastIndex) {
-                    // Draw highlighted badge pill: "245 NS"
+                    // Draw highlighted badge pill: "X NS"
                     ctx.save();
                     const badgeText = `${val} NS`;
                     ctx.font = 'bold 11px Plus Jakarta Sans, sans-serif';
@@ -105,10 +106,10 @@ function initPersonnelChart() {
     personnelChartInstance = new Chart(chartCtx, {
         type: 'line',
         data: {
-            labels: periodData['6m'].labels,
+            labels: chartLabels,
             datasets: [{
                 label: 'Quy mô nhân sự',
-                data: periodData['6m'].data,
+                data: chartData,
                 borderColor: '#2563eb',
                 borderWidth: 2.8,
                 backgroundColor: gradient,
@@ -149,18 +150,18 @@ function initPersonnelChart() {
                     grid: { display: false },
                     border: { display: false },
                     ticks: {
-                        color: (context) => context.index === periodData['6m'].labels.length - 1 ? '#2563eb' : '#64748b',
+                        color: (context) => context.index === chartLabels.length - 1 ? '#2563eb' : '#64748b',
                         font: (context) => ({
                             family: 'Plus Jakarta Sans',
                             size: 11,
-                            weight: context.index === periodData['6m'].labels.length - 1 ? '700' : '500'
+                            weight: context.index === chartLabels.length - 1 ? '700' : '500'
                         })
                     }
                 },
                 y: {
                     display: false,
-                    min: 190,
-                    max: 265
+                    min: yMin,
+                    max: yMax
                 }
             }
         },
@@ -170,28 +171,41 @@ function initPersonnelChart() {
 
 /**
  * 2. Cơ cấu nhân sự (Donut Chart with Center Total & Multi-View Tabs)
+ * Đọc dữ liệu thực tế từ window.dashboardChartData.donut
  */
 function initDepartmentDonutChart() {
     const ctx = document.getElementById('departmentDonutChart');
     if (!ctx) return;
 
-    const donutDataSets = {
+    let donutDataSets = {
         dept: {
-            labels: ['Kinh doanh', 'CNTT & R&D', 'Marketing', 'Kế toán', 'Nhân sự', 'Khác'],
-            data: [28, 22, 18, 15, 10, 7],
+            labels: ['Ban Giám đốc', 'Nhân sự', 'Kế toán', 'Kinh doanh', 'Marketing', 'Kỹ thuật'],
+            data: [1, 4, 3, 1, 2, 4],
             colors: ['#2563eb', '#0ea5e9', '#f97316', '#10b981', '#8b5cf6', '#64748b']
         },
         gender: {
             labels: ['Nam', 'Nữ'],
-            data: [55, 45],
+            data: [8, 7],
             colors: ['#2563eb', '#ec4899']
         },
         age: {
             labels: ['18 - 25 tuổi', '25 - 35 tuổi', '35 - 45 tuổi', '45 - 55 tuổi', 'Trên 55'],
-            data: [18, 52, 18, 12, 5],
+            data: [1, 10, 4, 0, 0],
             colors: ['#38bdf8', '#2563eb', '#6366f1', '#f59e0b', '#94a3b8']
         }
     };
+
+    if (window.dashboardChartData && window.dashboardChartData.donut) {
+        if (window.dashboardChartData.donut.dept && window.dashboardChartData.donut.dept.labels && window.dashboardChartData.donut.dept.labels.length > 0) {
+            donutDataSets.dept = window.dashboardChartData.donut.dept;
+        }
+        if (window.dashboardChartData.donut.gender) {
+            donutDataSets.gender = window.dashboardChartData.donut.gender;
+        }
+        if (window.dashboardChartData.donut.age) {
+            donutDataSets.age = window.dashboardChartData.donut.age;
+        }
+    }
 
     departmentChartInstance = new Chart(ctx.getContext('2d'), {
         type: 'doughnut',
@@ -218,7 +232,7 @@ function initDepartmentDonutChart() {
                     padding: 10,
                     cornerRadius: 8,
                     callbacks: {
-                        label: (context) => ` ${context.label}: ${context.parsed}%`
+                        label: (context) => ` ${context.label}: ${context.parsed} nhân sự`
                     }
                 }
             }
@@ -227,6 +241,8 @@ function initDepartmentDonutChart() {
 
     // Handle Donut Tabs (Phòng ban / Giới tính / Độ tuổi)
     const donutTabs = document.querySelectorAll('[data-donut-tab]');
+    const donutLegendEl = document.getElementById('donutDynamicLegend');
+
     donutTabs.forEach(tab => {
         tab.addEventListener('click', () => {
             donutTabs.forEach(t => t.classList.remove('active'));
@@ -238,40 +254,37 @@ function initDepartmentDonutChart() {
                 departmentChartInstance.data.datasets[0].data = donutDataSets[tabKey].data;
                 departmentChartInstance.data.datasets[0].backgroundColor = donutDataSets[tabKey].colors;
                 departmentChartInstance.update();
+
+                // Update Legend
+                if (donutLegendEl && donutDataSets[tabKey].labels) {
+                    const total = donutDataSets[tabKey].data.reduce((a, b) => a + b, 0);
+                    let html = '';
+                    donutDataSets[tabKey].labels.forEach((label, idx) => {
+                        const val = donutDataSets[tabKey].data[idx] || 0;
+                        const pct = total > 0 ? Math.round((val * 100 / total) * 10) / 10 : 0;
+                        const col = donutDataSets[tabKey].colors[idx] || '#2563eb';
+                        html += `
+                            <div class="donut-legend-item">
+                                <span class="legend-label">
+                                    <span class="color-square" style="background-color: ${col};"></span>
+                                    ${label}
+                                </span>
+                                <span class="legend-val">${pct}% <span class="text-muted fw-normal">(${val})</span></span>
+                            </div>
+                        `;
+                    });
+                    donutLegendEl.innerHTML = html;
+                }
             }
         });
     });
 }
 
 /**
- * 3. Period Filter Segmented Tabs Switching
- */
-function initPeriodFilterTabs() {
-    const periodButtons = document.querySelectorAll('.period-tab-btn');
-    periodButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            periodButtons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            const range = btn.getAttribute('data-range');
-            if (personnelChartInstance && (range === 'year' || range === 'quarter')) {
-                personnelChartInstance.data.labels = ['Q1', 'Q2', 'Q3', 'Q4 (Dự kiến)'];
-                personnelChartInstance.data.datasets[0].data = [215, 230, 245, 260];
-                personnelChartInstance.update();
-            } else if (personnelChartInstance && range === 'month') {
-                personnelChartInstance.data.labels = ['tháng 04', 'tháng 05', 'tháng 06', 'tháng 07', 'tháng 08', 'Tháng 09 (Hiện tại)'];
-                personnelChartInstance.data.datasets[0].data = [210, 218, 225, 232, 238, 245];
-                personnelChartInstance.update();
-            }
-        });
-    });
-}
-
-/**
- * 4. Refresh Buttons Micro-animation & Feedback
+ * 3. Refresh Buttons Micro-animation & Feedback
  */
 function initRefreshButtons() {
-    const refreshButtons = document.querySelectorAll('#btnRefreshFilters, .btn-activity-refresh');
+    const refreshButtons = document.querySelectorAll('.btn-activity-refresh');
     refreshButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();

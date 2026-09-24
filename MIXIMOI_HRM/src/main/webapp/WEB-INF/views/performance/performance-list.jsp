@@ -47,7 +47,7 @@
                     </button>
                     <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#createKpiModal">
                         <i class="bi bi-plus-lg"></i>
-                        <span>+ Tạo KPI mới</span>
+                        <span>Tạo KPI mới</span>
                     </button>
                 </div>
             </div>

@@ -25,6 +25,15 @@ public class DatabaseInitializer {
             // 1. Đồng bộ các cột còn thiếu trong DB
             migrateSchema(conn);
 
+            // 1.1 Đồng bộ thông tin mã phòng ban & trưởng phòng
+            syncDepartmentMetadata(conn);
+
+            // 1.2 Nạp dữ liệu thiết bị chấm công & sinh trắc học nếu trống
+            seedBiometricsIfEmpty(conn);
+
+            // 1.3 Nạp cấu hình hệ thống nếu trống (phục vụ AppContextListener)
+            seedSystemSettingsIfEmpty(conn);
+
             // 2. Nạp dữ liệu Overtime vào PostgreSQL nếu trống
             seedOvertimeIfEmpty(conn);
 
@@ -54,6 +63,9 @@ public class DatabaseInitializer {
 
             // 11. Nạp dữ liệu Tuyển dụng mẫu nếu trống
             seedRecruitmentIfEmpty(conn);
+
+            // 12. Nạp dữ liệu Đánh giá KPI & Hiệu suất mẫu nếu trống
+            seedPerformanceAndKpiIfEmpty(conn);
 
             initialized = true;
             System.out.println("[DatabaseInitializer] Đồng bộ CSDL và dữ liệu mẫu thành công!");
@@ -228,7 +240,56 @@ public class DatabaseInitializer {
             + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
 
             "CREATE INDEX IF NOT EXISTS idx_interview_date ON interviews(interview_date)",
-            "CREATE INDEX IF NOT EXISTS idx_interview_cand ON interviews(candidate_id)"
+            "CREATE INDEX IF NOT EXISTS idx_interview_cand ON interviews(candidate_id)",
+
+            // Bảng system_settings
+            "CREATE TABLE IF NOT EXISTS system_settings ("
+            + "setting_key VARCHAR(100) PRIMARY KEY, setting_value TEXT, "
+            + "category VARCHAR(50) NOT NULL DEFAULT 'GENERAL', description VARCHAR(255), "
+            + "updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+
+            // Bảng performance_cycles
+            "CREATE TABLE IF NOT EXISTS performance_cycles ("
+            + "id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL UNIQUE, "
+            + "start_date DATE NOT NULL, end_date DATE NOT NULL, "
+            + "status VARCHAR(30) NOT NULL DEFAULT 'OPEN', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+
+            // Bảng kpi_metrics
+            "CREATE TABLE IF NOT EXISTS kpi_metrics ("
+            + "id SERIAL PRIMARY KEY, kpi_code VARCHAR(50) NOT NULL UNIQUE, title VARCHAR(255) NOT NULL, "
+            + "employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE, "
+            + "department_id INTEGER REFERENCES departments(id), quarter VARCHAR(30) NOT NULL DEFAULT 'Q3/2026', "
+            + "target_value NUMERIC(10,2) NOT NULL DEFAULT 100.0, current_value NUMERIC(10,2) NOT NULL DEFAULT 0.0, "
+            + "unit VARCHAR(50) NOT NULL DEFAULT '%', weight_pct NUMERIC(5,2) NOT NULL DEFAULT 20.0, "
+            + "deadline DATE, status VARCHAR(30) NOT NULL DEFAULT 'IN_PROGRESS', notes TEXT, "
+            + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP)",
+
+            "CREATE INDEX IF NOT EXISTS idx_kpi_employee ON kpi_metrics(employee_id)",
+            "CREATE INDEX IF NOT EXISTS idx_kpi_dept ON kpi_metrics(department_id)",
+            "CREATE INDEX IF NOT EXISTS idx_kpi_quarter ON kpi_metrics(quarter)",
+            "CREATE INDEX IF NOT EXISTS idx_kpi_status ON kpi_metrics(status)",
+
+            // Bảng performance_evaluations
+            "CREATE TABLE IF NOT EXISTS performance_evaluations ("
+            + "id SERIAL PRIMARY KEY, evaluation_code VARCHAR(50) NOT NULL UNIQUE, "
+            + "employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE, "
+            + "evaluator_id INTEGER REFERENCES employees(id), quarter VARCHAR(30) NOT NULL DEFAULT 'Q3/2026', "
+            + "kpi_score NUMERIC(4,2) NOT NULL DEFAULT 0.0, competency_score NUMERIC(4,2) NOT NULL DEFAULT 0.0, "
+            + "culture_score NUMERIC(4,2) NOT NULL DEFAULT 0.0, innovation_score NUMERIC(4,2) NOT NULL DEFAULT 0.0, "
+            + "final_score NUMERIC(4,2) NOT NULL DEFAULT 0.0, grade VARCHAR(30) NOT NULL DEFAULT 'B', "
+            + "status VARCHAR(30) NOT NULL DEFAULT 'PENDING', feedback TEXT, "
+            + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP)",
+
+            "CREATE INDEX IF NOT EXISTS idx_eval_employee ON performance_evaluations(employee_id)",
+            "CREATE INDEX IF NOT EXISTS idx_eval_quarter ON performance_evaluations(quarter)",
+            "CREATE INDEX IF NOT EXISTS idx_eval_status ON performance_evaluations(status)",
+
+            // Bảng overtime: overtime_code
+            "ALTER TABLE overtime ADD COLUMN IF NOT EXISTS overtime_code VARCHAR(50)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_overtime_code ON overtime(overtime_code) WHERE overtime_code IS NOT NULL",
+
+            // Bảng work_shifts: unique index
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_work_shifts_name ON work_shifts(name)"
         };
 
         for (String sql : alterSqls) {
@@ -1086,6 +1147,157 @@ public class DatabaseInitializer {
         }
 
         System.out.println("[DatabaseInitializer] Đã nạp dữ liệu Tuyển dụng mẫu (12 YCTD, 86 ứng viên, 9 lịch phỏng vấn)!");
+    }
+
+    private static void syncDepartmentMetadata(Connection conn) {
+        String[] updates = {
+            "UPDATE departments SET code = 'BGD' WHERE name = 'Ban Giám đốc' AND (code IS NULL OR code = '')",
+            "UPDATE departments SET code = 'HR' WHERE name = 'Phòng Nhân sự' AND (code IS NULL OR code = '')",
+            "UPDATE departments SET code = 'KT' WHERE name = 'Phòng Kế toán' AND (code IS NULL OR code = '')",
+            "UPDATE departments SET code = 'KD' WHERE name = 'Phòng Kinh doanh' AND (code IS NULL OR code = '')",
+            "UPDATE departments SET code = 'MKT' WHERE name = 'Phòng Marketing' AND (code IS NULL OR code = '')",
+            "UPDATE departments SET code = 'TECH' WHERE name = 'Phòng Kỹ thuật' AND (code IS NULL OR code = '')",
+            "UPDATE departments SET manager_id = 1 WHERE code = 'BGD' AND manager_id IS NULL",
+            "UPDATE departments SET manager_id = 2 WHERE code = 'HR' AND manager_id IS NULL",
+            "UPDATE departments SET manager_id = 3 WHERE code = 'KT' AND manager_id IS NULL",
+            "UPDATE departments SET manager_id = 5 WHERE code = 'KD' AND manager_id IS NULL",
+            "UPDATE departments SET manager_id = 4 WHERE code = 'TECH' AND manager_id IS NULL"
+        };
+        for (String sql : updates) {
+            try (Statement st = conn.createStatement()) {
+                st.execute(sql);
+            } catch (SQLException e) {
+                System.err.println("[DatabaseInitializer] Cập nhật phòng ban cảnh báo: " + e.getMessage());
+            }
+        }
+    }
+
+    private static void seedBiometricsIfEmpty(Connection conn) throws SQLException {
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM biometric_devices")) {
+            if (rs.next() && rs.getInt(1) > 0) return;
+        }
+
+        String insertDevSql = "INSERT INTO biometric_devices (device_code, name, type, location, ip_address, status, department_id, notes) VALUES "
+            + "('FID-T1', 'Máy FaceID Cửa Chính Tầng 1', 'FACE_ID', 'Sảnh chính Tòa nhà Landmark 81', '192.168.1.201', 'ONLINE', 1, 'Hỗ trợ nhận diện AI camera góc rộng'), "
+            + "('FID-T6', 'Máy FaceID Cửa Tầng 6 Khối Kỹ Thuật', 'FACE_ID', 'Cửa ra vào P. Kỹ thuật Tầng 6', '192.168.1.202', 'ONLINE', 6, 'Tích hợp mở khóa cửa tự động'), "
+            + "('FP-T2', 'Máy Quét Vân Tay Sảnh Tầng 2', 'FINGERPRINT', 'Khu vực Lễ tân Tầng 2', '192.168.1.203', 'ONLINE', 2, 'Cảm biến vân tay quang học độ nhạy cao'), "
+            + "('FP-T3', 'Máy Quét Vân Tay Tầng 3 (Kế toán)', 'FINGERPRINT', 'Cửa P. Tài chính Tầng 3', '192.168.1.204', 'ONLINE', 3, 'Bảo mật kép') "
+            + "ON CONFLICT (device_code) DO NOTHING";
+        try (Statement st = conn.createStatement()) {
+            st.execute(insertDevSql);
+        }
+
+        String insertBioSql = "INSERT INTO employee_biometrics (employee_id, fingerprint_enrolled, fingerprint_device_id, face_enrolled, face_device_id, employee_card_id, active) VALUES "
+            + "(1, TRUE, 3, TRUE, 1, 'CARD-001', TRUE), "
+            + "(2, TRUE, 3, TRUE, 1, 'CARD-002', TRUE), "
+            + "(3, TRUE, 4, TRUE, 1, 'CARD-003', TRUE), "
+            + "(4, TRUE, 3, TRUE, 2, 'CARD-004', TRUE), "
+            + "(5, TRUE, 3, TRUE, 1, 'CARD-005', TRUE), "
+            + "(6, TRUE, 3, TRUE, 1, 'CARD-006', TRUE), "
+            + "(7, TRUE, 3, TRUE, 2, 'CARD-007', TRUE) "
+            + "ON CONFLICT (employee_id) DO NOTHING";
+        try (Statement st = conn.createStatement()) {
+            st.execute(insertBioSql);
+        }
+        System.out.println("[DatabaseInitializer] Đã nạp dữ liệu Máy chấm công và Sinh trắc học nhân viên!");
+    }
+
+    private static void seedSystemSettingsIfEmpty(Connection conn) throws SQLException {
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM system_settings")) {
+            if (rs.next() && rs.getInt(1) > 0) return;
+        }
+
+        String insertSql = "INSERT INTO system_settings (setting_key, setting_value, category, description) VALUES (?, ?, ?, ?) "
+            + "ON CONFLICT (setting_key) DO NOTHING";
+        Object[][] settings = {
+            {"company_full_name", "CÔNG TY CỔ PHẦN CÔNG NGHỆ & DỊCH VỤ MIXIMOI VIỆT NAM", "GENERAL", "Tên đầy đủ theo ĐKKD"},
+            {"company_short_name", "MIXIMOI CORP", "GENERAL", "Tên giao dịch viết tắt"},
+            {"tax_code", "0316888999", "GENERAL", "Mã số thuế doanh nghiệp"},
+            {"legal_rep", "Nguyễn Văn An", "GENERAL", "Người đại diện pháp luật"},
+            {"legal_title", "Tổng Giám Đốc", "GENERAL", "Chức danh người đại diện"},
+            {"company_address", "Tầng 18, Tòa nhà Landmark 81, 720A Điện Biên Phủ, Phường 22, Bình Thạnh, TP. Hồ Chí Minh", "GENERAL", "Trụ sở chính"},
+            {"company_phone", "028 7300 8888", "GENERAL", "Hotline tổng đài"},
+            {"company_website", "https://miximoi.vn", "GENERAL", "Website chính thức"},
+            {"system_email", "contact@miximoi.vn", "GENERAL", "Email hệ thống"},
+            {"billing_email", "accounting@miximoi.vn", "GENERAL", "Email kế toán hóa đơn"},
+            {"emp_code_prefix", "NV", "EMP_CODE", "Tiền tố mã nhân viên"},
+            {"emp_code_digits", "4", "EMP_CODE", "Độ dài số tự tăng"},
+            {"emp_code_format", "YYYY", "EMP_CODE", "Format năm"},
+            {"auto_gen_code", "true", "EMP_CODE", "Tự động tạo mã"},
+            {"work_start_time", "08:30", "TIME_ATTENDANCE", "Giờ bắt đầu làm việc"},
+            {"work_end_time", "18:00", "TIME_ATTENDANCE", "Giờ kết thúc làm việc"},
+            {"standard_daily_hours", "8.0", "TIME_ATTENDANCE", "Số giờ làm việc chuẩn/ngày"},
+            {"grace_late_minutes", "15", "TIME_ATTENDANCE", "Số phút cho phép đi muộn không phạt"},
+            {"max_late_per_month", "3", "TIME_ATTENDANCE", "Số lần đi muộn tối đa trong tháng"},
+            {"timesheet_cutoff_day", "25", "PAYROLL", "Ngày chốt bảng công hàng tháng"},
+            {"payroll_pay_day", "5", "PAYROLL", "Ngày chi trả lương chính thức"},
+            {"base_insurance_salary", "2.340.000", "PAYROLL", "Mức lương cơ sở đóng BHXH"},
+            {"personal_tax_deduction", "11.000.000", "PAYROLL", "Giảm trừ gia cảnh bản thân"},
+            {"dependent_tax_deduction", "4.400.000", "PAYROLL", "Giảm trừ mỗi người phụ thuộc"},
+            {"require_2fa", "true", "SECURITY", "Bắt buộc xác thực 2FA"}
+        };
+        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            for (Object[] s : settings) {
+                ps.setString(1, (String) s[0]);
+                ps.setString(2, (String) s[1]);
+                ps.setString(3, (String) s[2]);
+                ps.setString(4, (String) s[3]);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            System.out.println("[DatabaseInitializer] Đã nạp 25 cấu hình hệ thống mặc định!");
+        }
+    }
+
+    private static void seedPerformanceAndKpiIfEmpty(Connection conn) throws SQLException {
+        // Performance Cycles
+        try (Statement st = conn.createStatement()) {
+            st.execute("INSERT INTO performance_cycles (name, start_date, end_date, status) VALUES "
+                + "('Q3/2026', '2026-07-01', '2026-09-30', 'OPEN'), "
+                + "('Q2/2026', '2026-04-01', '2026-06-30', 'CLOSED') "
+                + "ON CONFLICT (name) DO NOTHING");
+        }
+
+        // KPI Metrics
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM kpi_metrics")) {
+            if (rs.next() && rs.getInt(1) == 0) {
+                String insertKpi = "INSERT INTO kpi_metrics (kpi_code, title, employee_id, department_id, quarter, target_value, current_value, unit, weight_pct, deadline, status) VALUES "
+                    + "('KPI-IT-042', 'Triển khai Microservices & Bảo đảm SLA Uptime 99.9%', 4, 6, 'Q3/2026', 100.0, 102.0, '%', 35.0, '2026-09-30', 'APPROVED'), "
+                    + "('KPI-IT-043', 'Tối ưu hóa chi phí AWS Cloud tiết kiệm 15%', 4, 6, 'Q3/2026', 15.0, 9.2, '%', 25.0, '2026-09-28', 'IN_PROGRESS'), "
+                    + "('KPI-IT-044', 'Code Review & Kèm cặp 2 Junior Developers', 7, 6, 'Q3/2026', 2.0, 2.0, 'Nhân sự', 20.0, '2026-09-30', 'APPROVED'), "
+                    + "('KPI-HR-012', 'Tuyển dụng 10 Kỹ sư phần mềm cho dự án Core', 2, 2, 'Q3/2026', 10.0, 8.0, 'Ứng sự', 40.0, '2026-09-30', 'IN_PROGRESS'), "
+                    + "('KPI-HR-015', 'Tổ chức đào tạo nâng cao kỹ năng quý 3', 8, 2, 'Q3/2026', 4.0, 4.0, 'Khóa học', 30.0, '2026-09-20', 'APPROVED'), "
+                    + "('KPI-KT-021', 'Quyết toán thuế & Lập báo cáo tài chính quý 3', 3, 3, 'Q3/2026', 100.0, 95.0, '%', 50.0, '2026-09-30', 'IN_PROGRESS'), "
+                    + "('KPI-KT-022', 'Rút ngắn thời gian chốt bảng lương dưới 3 ngày', 9, 3, 'Q3/2026', 3.0, 2.5, 'Ngày công', 30.0, '2026-09-30', 'APPROVED'), "
+                    + "('KPI-KD-081', 'Doanh số phát triển khách hàng Enterprise mới', 5, 4, 'Q3/2026', 500.0, 480.0, 'Triệu VNĐ', 45.0, '2026-09-30', 'IN_PROGRESS'), "
+                    + "('KPI-MKT-031', 'Tăng nhận diện thương hiệu & Lead chuyển đổi', 6, 5, 'Q3/2026', 1200.0, 1350.0, 'Lead', 35.0, '2026-09-30', 'APPROVED') "
+                    + "ON CONFLICT (kpi_code) DO NOTHING";
+                try (Statement stKpi = conn.createStatement()) {
+                    stKpi.execute(insertKpi);
+                }
+            }
+        }
+
+        // Performance Evaluations
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM performance_evaluations")) {
+            if (rs.next() && rs.getInt(1) == 0) {
+                String insertEval = "INSERT INTO performance_evaluations (evaluation_code, employee_id, evaluator_id, quarter, kpi_score, competency_score, culture_score, innovation_score, final_score, grade, status, feedback) VALUES "
+                    + "('EVAL-Q3-042', 4, 1, 'Q3/2026', 9.4, 8.8, 9.0, 7.6, 8.96, 'A+', 'CONFIRMED', 'Hoàn thành xuất sắc nhiệm vụ kiến trúc và tối ưu hệ thống, phối hợp nhóm hiệu quả.'), "
+                    + "('EVAL-Q3-018', 6, 1, 'Q3/2026', 8.8, 8.5, 8.2, 7.0, 8.36, 'A', 'CONFIRMED', 'Dẫn dắt các chiến dịch Marketing hiệu quả vượt chỉ tiêu lead thu về.'), "
+                    + "('EVAL-Q3-089', 5, 1, 'Q3/2026', 8.0, 7.8, 8.0, 7.0, 7.84, 'B', 'SUBMITTED', 'Nỗ lực mở rộng khách hàng doanh nghiệp, cần cải thiện năng lực đàm phán hợp đồng lớn.'), "
+                    + "('EVAL-Q3-007', 7, 4, 'Q3/2026', 9.0, 8.5, 8.5, 8.0, 8.65, 'A', 'CONFIRMED', 'Kỹ năng lập trình tốt, tích cực hỗ trợ đồng đội trong sprint.'), "
+                    + "('EVAL-Q3-002', 2, 1, 'Q3/2026', 8.5, 8.5, 9.0, 8.0, 8.55, 'A', 'CONFIRMED', 'Tuyển dụng đáp ứng đúng tiến độ mở rộng các phòng ban.') "
+                    + "ON CONFLICT (evaluation_code) DO NOTHING";
+                try (Statement stEval = conn.createStatement()) {
+                    stEval.execute(insertEval);
+                }
+            }
+        }
+        System.out.println("[DatabaseInitializer] Đã nạp dữ liệu Kỳ đánh giá, KPI và Hiệu suất nhân sự mẫu!");
     }
 }
 

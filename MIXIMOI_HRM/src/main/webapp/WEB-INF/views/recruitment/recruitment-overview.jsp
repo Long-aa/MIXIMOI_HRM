@@ -70,7 +70,7 @@
                     <!-- Nút Tạo yêu cầu tuyển dụng -->
                     <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#createJobReqModal">
                         <i class="bi bi-plus-lg"></i>
-                        <span>+ Tạo yêu cầu tuyển dụng</span>
+                        <span>Tạo yêu cầu tuyển dụng</span>
                     </button>
                 </div>
             </div>
@@ -707,7 +707,7 @@
                     <button type="button" class="btn btn-sm btn-light fw-semibold text-primary d-flex align-items-center gap-1 shadow-sm" 
                             data-bs-toggle="modal" data-bs-target="#scheduleInterviewModal">
                         <i class="bi bi-plus-circle-fill"></i>
-                        <span>+ Xếp lịch phỏng vấn mới</span>
+                        <span>Xếp lịch phỏng vấn mới</span>
                     </button>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

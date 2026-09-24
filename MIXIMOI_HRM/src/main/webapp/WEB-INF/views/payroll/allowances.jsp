@@ -58,9 +58,9 @@
                         <span>In danh mục</span>
                     </button>
 
-                    <button type="button" class="btn-action-primary" data-bs-toggle="modal" data-bs-target="#addAllowanceModal">
-                        <i class="bi bi-plus-circle"></i>
-                        <span>+ Thêm phụ cấp mới</span>
+                    <button type="button" class="btn-action-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addAllowanceModal">
+                        <i class="bi bi-plus-circle-fill"></i>
+                        <span>Thêm phụ cấp mới</span>
                     </button>
                 </div>
             </div>
@@ -272,8 +272,8 @@
                                         <td colspan="9" class="text-center py-5 text-muted">
                                             <i class="bi bi-wallet2 fs-2 d-block mb-2 text-primary opacity-50"></i>
                                             Chưa có khoản phụ cấp nào phù hợp bộ lọc.<br>
-                                            <button type="button" class="btn btn-sm btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addAllowanceModal">
-                                                + Thêm phụ cấp mới
+                                            <button type="button" class="btn btn-sm btn-primary mt-3 shadow-sm d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#addAllowanceModal">
+                                                <i class="bi bi-plus-circle-fill"></i> Thêm phụ cấp mới
                                             </button>
                                         </td>
                                     </tr>

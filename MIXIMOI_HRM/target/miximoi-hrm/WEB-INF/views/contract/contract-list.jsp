@@ -429,7 +429,7 @@
                             </button>
                         </c:if>
                         <button type="button" class="btn-add-contract" data-bs-toggle="modal" data-bs-target="#newContractModal">
-                            <i class="bi bi-file-earmark-plus-fill"></i> + Tạo hợp đồng mới
+                            <i class="bi bi-file-earmark-plus-fill"></i> Tạo hợp đồng mới
                         </button>
                     </div>
                 </div>

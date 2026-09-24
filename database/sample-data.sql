@@ -11,7 +11,8 @@ INSERT INTO roles (name, description) VALUES
     ('HR',         'Quản lý nhân sự, hợp đồng, chấm công, nghỉ phép'),
     ('ACCOUNTANT', 'Quản lý bảng lương, tính lương, thanh toán'),
     ('MANAGER',    'Theo dõi nhân sự và phê duyệt nghiệp vụ'),
-    ('EMPLOYEE',   'Xem thông tin cá nhân và nghiệp vụ liên quan');
+    ('EMPLOYEE',   'Xem thông tin cá nhân và nghiệp vụ liên quan')
+ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description;
 
 -- =============================================================
 -- 2. LOẠI NHÂN VIÊN
@@ -20,7 +21,8 @@ INSERT INTO employee_types (name, description) VALUES
     ('Nhân viên chính thức', 'Hợp đồng không xác định thời hạn'),
     ('Nhân viên thử việc',   'Đang trong thời gian thử việc'),
     ('Nhân viên thời vụ',    'Hợp đồng ngắn hạn theo mùa'),
-    ('Cộng tác viên',        'Làm việc theo hợp đồng dịch vụ');
+    ('Cộng tác viên',        'Làm việc theo hợp đồng dịch vụ')
+ON CONFLICT (name) DO NOTHING;
 
 -- =============================================================
 -- 3. PHÒNG BAN
@@ -31,7 +33,8 @@ INSERT INTO departments (name, code, description, status) VALUES
     ('Phòng Kế toán',   'KT',  'Quản lý tài chính và kế toán',          'ACTIVE'),
     ('Phòng Kinh doanh','KD',  'Phát triển kinh doanh và bán hàng',      'ACTIVE'),
     ('Phòng Marketing', 'MKT', 'Tiếp thị và quảng bá thương hiệu',      'ACTIVE'),
-    ('Phòng Kỹ thuật',  'TECH','Phát triển phần mềm và hệ thống',       'ACTIVE');
+    ('Phòng Kỹ thuật',  'TECH','Phát triển phần mềm và hệ thống',       'ACTIVE')
+ON CONFLICT (name) DO UPDATE SET code = EXCLUDED.code, description = EXCLUDED.description, status = EXCLUDED.status;
 
 -- =============================================================
 -- 4. CHỨC VỤ
@@ -46,7 +49,8 @@ INSERT INTO positions (name, description) VALUES
     ('Kỹ sư phần mềm',     'Phát triển và duy trì phần mềm'),
     ('Chuyên viên HR',      'Chuyên trách nghiệp vụ nhân sự'),
     ('Kế toán viên',        'Thực hiện công tác kế toán'),
-    ('Chuyên viên kinh doanh','Phụ trách hoạt động kinh doanh');
+    ('Chuyên viên kinh doanh','Phụ trách hoạt động kinh doanh')
+ON CONFLICT (name) DO NOTHING;
 
 -- =============================================================
 -- 5. NHÂN VIÊN MẪU
@@ -62,7 +66,8 @@ INSERT INTO employees (employee_code, full_name, date_of_birth, gender, phone, e
     ('NV007', 'Đặng Văn Giang',   '1997-12-03', 'MALE',   '0967890123', 'giang.dv@miximoi.vn', 'TP.HCM', 6, 7, 2, '2024-01-15', 'ACTIVE'),
     ('NV008', 'Bùi Thị Hoa',      '1991-08-20', 'FEMALE', '0978901234', 'hoa.bt@miximoi.vn',   'TP.HCM', 2, 8, 1, '2021-01-04', 'ACTIVE'),
     ('NV009', 'Ngô Văn Inh',      '1994-04-11', 'MALE',   '0989012345', 'inh.nv@miximoi.vn',   'HN',     3, 9, 1, '2022-09-01', 'ACTIVE'),
-    ('NV010', 'Lý Thị Kim',       '1998-06-25', 'FEMALE', '0990123456', 'kim.lt@miximoi.vn',   'TP.HCM', 6, 6, 3, '2025-06-01', 'ACTIVE');
+    ('NV010', 'Lý Thị Kim',       '1998-06-25', 'FEMALE', '0990123456', 'kim.lt@miximoi.vn',   'TP.HCM', 6, 6, 3, '2025-06-01', 'ACTIVE')
+ON CONFLICT (employee_code) DO NOTHING;
 
 -- =============================================================
 -- 6. TÀI KHOẢN NGƯỜI DÙNG
@@ -74,7 +79,8 @@ INSERT INTO users (username, password, role, employee_id, active) VALUES
     ('accountant','$2a$12$RKn6YXs8E0Vg7A.wHsgC8O9L3uLuBlyynP7d0ob0X6SWWxdjKOmwC', 'ACCOUNTANT', 3,    TRUE),
     ('manager01', '$2a$12$RKn6YXs8E0Vg7A.wHsgC8O9L3uLuBlyynP7d0ob0X6SWWxdjKOmwC', 'MANAGER',    1,    TRUE),
     ('nv004',     '$2a$12$RKn6YXs8E0Vg7A.wHsgC8O9L3uLuBlyynP7d0ob0X6SWWxdjKOmwC', 'EMPLOYEE',   4,    TRUE),
-    ('nv005',     '$2a$12$RKn6YXs8E0Vg7A.wHsgC8O9L3uLuBlyynP7d0ob0X6SWWxdjKOmwC', 'EMPLOYEE',   5,    TRUE);
+    ('nv005',     '$2a$12$RKn6YXs8E0Vg7A.wHsgC8O9L3uLuBlyynP7d0ob0X6SWWxdjKOmwC', 'EMPLOYEE',   5,    TRUE)
+ON CONFLICT (username) DO NOTHING;
 
 -- =============================================================
 -- 7. HỢP ĐỒNG LAO ĐỘNG MẪU
@@ -90,7 +96,8 @@ INSERT INTO contracts (contract_code, employee_id, contract_type, start_date, en
     ('HD008', 7, 'FIXED_TERM',  '2025-01-15', '2026-01-14', 14000000, 'ACTIVE'),
     ('HD009', 8, 'INDEFINITE',  '2021-01-04', NULL,         17500000, 'ACTIVE'),
     ('HD010', 9, 'INDEFINITE',  '2022-09-01', NULL,         16500000, 'ACTIVE'),
-    ('HD011',10, 'SEASONAL',    '2025-06-01', '2025-12-31',  9000000, 'ACTIVE');
+    ('HD011',10, 'SEASONAL',    '2025-06-01', '2025-12-31',  9000000, 'ACTIVE')
+ON CONFLICT (contract_code) DO NOTHING;
 
 -- =============================================================
 -- 8. CA LÀM VIỆC
@@ -99,19 +106,26 @@ INSERT INTO work_shifts (name, start_time, end_time, standard_hours) VALUES
     ('Ca hành chính', '08:00', '17:00', 8.0),
     ('Ca sáng',       '06:00', '14:00', 8.0),
     ('Ca chiều',      '14:00', '22:00', 8.0),
-    ('Ca tối',        '22:00', '06:00', 8.0);
+    ('Ca tối',        '22:00', '06:00', 8.0)
+ON CONFLICT (name) DO NOTHING;
 
 -- =============================================================
 -- 9. PHỤ CẤP MẪU
 -- =============================================================
-INSERT INTO allowances (employee_id, name, amount, start_date, active) VALUES
+INSERT INTO allowances (employee_id, name, amount, start_date, active)
+SELECT v.employee_id, v.name, v.amount, v.start_date::date, v.active
+FROM (VALUES
     (1, 'Phụ cấp chức vụ',    3000000, '2020-01-06', TRUE),
     (2, 'Phụ cấp ăn trưa',     800000, '2021-03-01', TRUE),
     (3, 'Phụ cấp ăn trưa',     800000, '2020-06-15', TRUE),
     (4, 'Phụ cấp điện thoại',  300000, '2022-01-10', TRUE),
     (4, 'Phụ cấp xăng xe',     500000, '2022-01-10', TRUE),
     (5, 'Phụ cấp xăng xe',     500000, '2021-08-01', TRUE),
-    (6, 'Phụ cấp ăn trưa',     800000, '2022-04-01', TRUE);
+    (6, 'Phụ cấp ăn trưa',     800000, '2022-04-01', TRUE)
+) AS v(employee_id, name, amount, start_date, active)
+WHERE NOT EXISTS (
+    SELECT 1 FROM allowances a WHERE a.employee_id = v.employee_id AND a.name = v.name
+);
 
 -- =============================================================
 -- 10. ĐƠN NGHỈ PHÉP MẪU
@@ -120,7 +134,8 @@ INSERT INTO leave_requests (leave_code, employee_id, leave_type, start_date, end
                              total_days, reason, status) VALUES
     ('LP001', 4, 'ANNUAL',   '2026-09-10', '2026-09-11', 2, 'Nghỉ phép năm',       'PENDING'),
     ('LP002', 5, 'SICK',     '2026-09-05', '2026-09-06', 2, 'Ốm — có đơn bác sĩ', 'APPROVED'),
-    ('LP003', 6, 'PERSONAL', '2026-09-15', '2026-09-15', 1, 'Việc gia đình',       'PENDING');
+    ('LP003', 6, 'PERSONAL', '2026-09-15', '2026-09-15', 1, 'Việc gia đình',       'PENDING')
+ON CONFLICT (leave_code) DO NOTHING;
 
 -- =============================================================
 -- 11. CẬP NHẬT TRƯỞNG PHÒNG BAN (MANAGER_ID)
@@ -138,7 +153,8 @@ INSERT INTO biometric_devices (device_code, name, type, location, ip_address, st
     ('FID-T1', 'Máy FaceID Cửa Chính Tầng 1', 'FACE_ID',     'Sảnh chính Tòa nhà Landmark 81', '192.168.1.201', 'ONLINE', 1, 'Hỗ trợ nhận diện AI camera góc rộng'),
     ('FID-T6', 'Máy FaceID Cửa Tầng 6 Khối Kỹ Thuật', 'FACE_ID', 'Cửa ra vào P. Kỹ thuật Tầng 6', '192.168.1.202', 'ONLINE', 6, 'Tích hợp mở khóa cửa tự động'),
     ('FP-T2',  'Máy Quét Vân Tay Sảnh Tầng 2', 'FINGERPRINT', 'Khu vực Lễ tân Tầng 2',        '192.168.1.203', 'ONLINE', 2, 'Cảm biến vân tay quang học độ nhạy cao'),
-    ('FP-T3',  'Máy Quét Vân Tay Tầng 3 (Kế toán)', 'FINGERPRINT', 'Cửa P. Tài chính Tầng 3',  '192.168.1.204', 'ONLINE', 3, 'Bảo mật kép');
+    ('FP-T3',  'Máy Quét Vân Tay Tầng 3 (Kế toán)', 'FINGERPRINT', 'Cửa P. Tài chính Tầng 3',  '192.168.1.204', 'ONLINE', 3, 'Bảo mật kép')
+ON CONFLICT (device_code) DO NOTHING;
 
 -- =============================================================
 -- 13. DỮ LIỆU SINH TRẮC HỌC NHÂN VIÊN MẪU
@@ -150,7 +166,8 @@ INSERT INTO employee_biometrics (employee_id, fingerprint_enrolled, fingerprint_
     (4, TRUE, 3, TRUE, 2, 'CARD-004', TRUE),
     (5, TRUE, 3, TRUE, 1, 'CARD-005', TRUE),
     (6, TRUE, 3, TRUE, 1, 'CARD-006', TRUE),
-    (7, TRUE, 3, TRUE, 2, 'CARD-007', TRUE);
+    (7, TRUE, 3, TRUE, 2, 'CARD-007', TRUE)
+ON CONFLICT (employee_id) DO NOTHING;
 
 -- =============================================================
 -- 14. NHÂN VIÊN PHỤ TRÁCH & PHỎNG VẤN BỔ SUNG
@@ -270,7 +287,7 @@ ON CONFLICT DO NOTHING;
 -- =============================================================
 -- 21. DỮ LIỆU TĂNG CA MẪU (Overtime)
 -- =============================================================
-INSERT INTO overtime (overtime_code, employee_id, overtime_date, start_time, end_time, hours, multiplier, amount, reason, status) VALUES
+INSERT INTO overtime (overtime_code, employee_id, overtime_date, start_time, end_time, hours, coefficient, amount, reason, status) VALUES
     ('OT-2609-01', 4, '2026-09-12', '18:30', '21:30', 3.0, 1.5, 337500, 'Triển khai release bản vá lỗi máy chủ', 'APPROVED'),
     ('OT-2609-02', 7, '2026-09-15', '18:30', '20:30', 2.0, 1.5, 195000, 'Hỗ trợ migration cơ sở dữ liệu', 'APPROVED'),
     ('OT-2608-01', 4, '2026-08-18', '18:30', '21:30', 3.0, 1.5, 337500, 'Bảo trì hệ thống định kỳ', 'APPROVED'),

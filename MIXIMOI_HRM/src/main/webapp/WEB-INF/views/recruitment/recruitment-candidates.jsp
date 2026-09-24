@@ -88,7 +88,7 @@
                     </button>
                     <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#addCandidateModal">
                         <i class="bi bi-person-plus-fill"></i>
-                        <span>+ Thêm ứng viên</span>
+                        <span>Thêm ứng viên</span>
                     </button>
                 </div>
             </div>

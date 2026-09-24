@@ -63,9 +63,9 @@
                     </button>
 
                     <c:if test="${sessionScope.currentUser.role eq 'ADMIN' or sessionScope.currentUser.role eq 'ACCOUNTANT'}">
-                        <button type="button" class="btn-action-primary" data-bs-toggle="modal" data-bs-target="#addConfigModal">
-                            <i class="bi bi-plus-circle"></i>
-                            <span>+ Thêm tham số mới</span>
+                        <button type="button" class="btn-action-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addConfigModal" style="padding: 0.6rem 1.25rem; font-weight: 600; border-radius: 10px;">
+                            <i class="bi bi-plus-circle-fill"></i>
+                            <span>Thêm tham số mới</span>
                         </button>
                     </c:if>
                 </div>
