@@ -1,6 +1,0 @@
-com\miximoi\hrm\model\ContractTest.class
-com\miximoi\hrm\dao\BiometricAndContractTest.class
-com\miximoi\hrm\dao\DashboardDAOTest.class
-com\miximoi\hrm\util\ValidationUtilTest.class
-com\miximoi\hrm\util\DBConnectionTest.class
-com\miximoi\hrm\service\RecruitmentServiceTest.class
