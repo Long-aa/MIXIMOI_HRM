@@ -66,26 +66,28 @@
     </div>
     <div class="party-info-row">
         <div class="party-label">Mã nhân sự:</div>
-        <div class="party-val"><strong>${employee.employeeCode}</strong></div>
+        <div class="party-val"><strong>${employee.employeeCode}</strong> &nbsp;&nbsp;&nbsp;&nbsp; Quốc tịch: ${not empty employee.nationality ? employee.nationality : 'Việt Nam'} &nbsp;&nbsp;&nbsp;&nbsp; Dân tộc: ${not empty employee.ethnicity ? employee.ethnicity : 'Kinh'}</div>
     </div>
     <div class="party-info-row">
         <div class="party-label">Số CCCD / Hộ chiếu:</div>
         <div class="party-val">
+            <strong>
             <c:choose>
                 <c:when test="${not empty contract.identityNumber}"><c:out value="${contract.identityNumber}"/></c:when>
                 <c:when test="${not empty employee.identityNumber}"><c:out value="${employee.identityNumber}"/></c:when>
                 <c:otherwise>Theo hồ sơ nhân sự</c:otherwise>
             </c:choose>
+            </strong>
             &nbsp;&nbsp;&nbsp;&nbsp; Ngày cấp: 
             <c:choose>
                 <c:when test="${not empty contract.identityDate}"><c:out value="${contract.identityDate}"/></c:when>
-                <c:when test="${not empty employee.identityIssueDate}"><c:out value="${employee.identityIssueDate}"/></c:when>
+                <c:when test="${not empty employee.identityDate}"><c:out value="${employee.identityDate}"/></c:when>
                 <c:otherwise>Theo hồ sơ gốc</c:otherwise>
             </c:choose>
             &nbsp;&nbsp;&nbsp;&nbsp; Nơi cấp: 
             <c:choose>
                 <c:when test="${not empty contract.identityPlace}"><c:out value="${contract.identityPlace}"/></c:when>
-                <c:when test="${not empty employee.identityIssuePlace}"><c:out value="${employee.identityIssuePlace}"/></c:when>
+                <c:when test="${not empty employee.identityPlace}"><c:out value="${employee.identityPlace}"/></c:when>
                 <c:otherwise>Cục Cảnh sát QLHC về TTXH</c:otherwise>
             </c:choose>
         </div>
@@ -99,8 +101,22 @@
         <div class="party-val">${employee.phone != null ? employee.phone : '—'} &nbsp;&nbsp;&nbsp;&nbsp; Email: ${not empty employee.email ? employee.email : '—'}</div>
     </div>
     <div class="party-info-row">
-        <div class="party-label">Địa chỉ thường trú / cư trú:</div>
+        <div class="party-label">Địa chỉ thường trú (theo CCCD):</div>
         <div class="party-val">${not empty employee.address ? employee.address : 'Theo hồ sơ lưu trữ'}</div>
+    </div>
+    <c:if test="${not empty employee.tempAddress and employee.tempAddress ne employee.address}">
+    <div class="party-info-row">
+        <div class="party-label">Chỗ ở hiện nay (tạm trú):</div>
+        <div class="party-val">${employee.tempAddress}</div>
+    </div>
+    </c:if>
+    <div class="party-info-row">
+        <div class="party-label">Tài khoản nhận lương:</div>
+        <div class="party-val">${not empty employee.bankAccount ? employee.bankAccount : '—'} tại ${not empty employee.bankName ? employee.bankName : 'Ngân hàng'} <c:if test="${not empty employee.bankBranch}">(Chi nhánh: ${employee.bankBranch})</c:if></div>
+    </div>
+    <div class="party-info-row">
+        <div class="party-label">Mã số thuế &amp; BHXH:</div>
+        <div class="party-val">MST cá nhân: <strong>${not empty employee.taxCode ? employee.taxCode : 'Theo cơ quan Thuế'}</strong> &nbsp;&nbsp;&nbsp;&nbsp; Mã số BHXH: <strong>${not empty employee.insuranceNumber ? employee.insuranceNumber : 'Theo sổ BHXH'}</strong></div>
     </div>
 
     <p class="contract-intro" style="margin-top:1rem;">

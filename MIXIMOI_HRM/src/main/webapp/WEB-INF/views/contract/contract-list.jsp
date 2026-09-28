@@ -114,7 +114,7 @@
                     <div>
                         <h1 style="font-size:1.4rem; font-weight:800; color:#0f172a; margin-bottom:4px;">
                             Hợp đồng lao động
-                            <span class="page-header-badge"><i class="bi bi-file-earmark-text"></i> ${contracts.size()} hợp đồng</span>
+                            <span class="page-header-badge"><i class="bi bi-file-earmark-text"></i> ${totalFiltered} hợp đồng</span>
                         </h1>
                         <p style="font-size:0.83rem; color:#64748b; margin:0;">Xem hợp đồng nhân viên trong phòng ban của bạn</p>
                     </div>
@@ -241,7 +241,7 @@
                     <div>
                         <h1 style="font-size:1.4rem; font-weight:800; color:#0f172a; margin-bottom:4px;">
                             Hợp đồng lao động
-                            <span class="page-header-badge"><i class="bi bi-file-earmark-text"></i> ${contracts.size()} hợp đồng</span>
+                            <span class="page-header-badge"><i class="bi bi-file-earmark-text"></i> ${totalFiltered} hợp đồng</span>
                         </h1>
                         <p style="font-size:0.83rem; color:#64748b; margin:0;">Xem thông tin mức lương hợp đồng phục vụ tính lương</p>
                     </div>
@@ -513,6 +513,15 @@
                                     <option value="ACTIVE" ${status eq 'ACTIVE' ? 'selected' : ''}>Còn hiệu lực</option>
                                     <option value="EXPIRING_SOON" ${status eq 'EXPIRING_SOON' ? 'selected' : ''}>Sắp hết hạn</option>
                                     <option value="EXPIRED" ${status eq 'EXPIRED' ? 'selected' : ''}>Đã hết hạn</option>
+                                    <option value="TERMINATED" ${status eq 'TERMINATED' ? 'selected' : ''}>Đã thanh lý</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select filter-select" name="pageSize" id="filterPageSize" onchange="this.form.submit()">
+                                    <option value="20" ${pageSize == 20 ? 'selected' : ''}>20 dòng / trang</option>
+                                    <option value="50" ${pageSize == 50 ? 'selected' : ''}>50 dòng / trang</option>
+                                    <option value="100" ${pageSize == 100 ? 'selected' : ''}>100 dòng / trang</option>
+                                    <option value="all" ${pageSize >= totalFiltered && totalFiltered > 0 ? 'selected' : ''}>Hiển thị tất cả</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -650,8 +659,8 @@
                                                 </td>
                                                 <td class="text-center">
                                                     <c:choose>
-                                                        <c:when test="${not empty c.fileUrl}">
-                                                            <a href="${c.fileUrl}" class="action-btn" title="Tải file HĐ" style="color:#dc2626; border-color:#fca5a5; background:#fef2f2;">
+                                                        <c:when test="${not empty c.contractFileUrl}">
+                                                            <a href="${pageContext.request.contextPath}${c.contractFileUrl}" target="_blank" class="action-btn" title="Tải file HĐ" style="color:#dc2626; border-color:#fca5a5; background:#fef2f2;">
                                                                 <i class="bi bi-file-pdf"></i>
                                                             </a>
                                                         </c:when>
@@ -663,6 +672,11 @@
                                                 <td style="padding-right:1.25rem; text-align:center;">
                                                     <div class="action-btn-group justify-content-center">
                                                         <a href="${pageContext.request.contextPath}/contracts?action=view&id=${c.id}" class="action-btn" title="Xem chi tiết"><i class="bi bi-eye"></i></a>
+                                                        <c:if test="${empty c.signedDate or c.status ne 'ACTIVE'}">
+                                                            <a href="${pageContext.request.contextPath}/contracts?action=sign&id=${c.id}" class="action-btn" title="Ký chính thức hợp đồng" style="color:#059669; border-color:#a7f3d0; background:#ecfdf5;">
+                                                                <i class="bi bi-pen"></i>
+                                                            </a>
+                                                        </c:if>
                                                         <button type="button" class="action-btn edit" title="Chỉnh sửa"
                                                                 data-id="${c.id}"
                                                                 data-code="${c.contractCode}"
@@ -676,6 +690,24 @@
                                                                 onclick="openEditContractModal(this)">
                                                             <i class="bi bi-pencil"></i>
                                                         </button>
+                                                        <c:if test="${c.status ne 'TERMINATED'}">
+                                                            <button type="button" class="action-btn" title="Gia hạn hợp đồng"
+                                                                    data-id="${c.id}"
+                                                                    data-code="${c.contractCode}"
+                                                                    data-end="${c.endDate}"
+                                                                    data-salary="${c.baseSalary}"
+                                                                    onclick="openRenewModal(this)"
+                                                                    style="color:#d97706; border-color:#fde68a; background:#fffbeb;">
+                                                                <i class="bi bi-arrow-repeat"></i>
+                                                            </button>
+                                                            <button type="button" class="action-btn" title="Thanh lý hợp đồng"
+                                                                    data-id="${c.id}"
+                                                                    data-code="${c.contractCode}"
+                                                                    onclick="openTerminateModal(this)"
+                                                                    style="color:#dc2626; border-color:#fca5a5; background:#fef2f2;">
+                                                                <i class="bi bi-slash-circle"></i>
+                                                            </button>
+                                                        </c:if>
                                                         <a href="${pageContext.request.contextPath}/contracts?action=print&id=${c.id}" class="action-btn print" title="In hợp đồng"><i class="bi bi-printer"></i></a>
                                                         <c:if test="${sessionScope.currentUser.admin}">
                                                             <button type="button" class="action-btn del"
@@ -933,6 +965,88 @@
                     </button>
                 </form>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Gia hạn HĐ -->
+<div class="modal fade" id="renewContractModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:500px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px; overflow:hidden;">
+            <form method="post" action="${pageContext.request.contextPath}/contracts">
+                <input type="hidden" name="action" value="renew">
+                <input type="hidden" name="id" id="renewContractId">
+
+                <div class="modal-header border-0" style="background:linear-gradient(135deg, #eff6ff, #fffbeb); padding:1.25rem 1.5rem;">
+                    <div>
+                        <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2 mb-1">
+                            <i class="bi bi-arrow-repeat text-warning" style="font-size:1.1rem;"></i>
+                            Gia hạn hợp đồng lao động
+                        </h6>
+                        <p class="text-muted mb-0" style="font-size:0.79rem;">Hợp đồng: <strong id="renewContractCode" class="text-primary font-monospace"></strong></p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark mb-1" style="font-size:0.83rem;">Ngày kết thúc mới <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="endDate" id="renewEndDate" required style="border-radius:9px; font-size:0.875rem;">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark mb-1" style="font-size:0.83rem;">Mức lương mới (VNĐ) <small class="text-muted">(Để trống nếu giữ nguyên)</small></label>
+                            <input type="number" class="form-control" name="baseSalary" id="renewSalary" min="0" step="500000" style="border-radius:9px; font-size:0.875rem;">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark mb-1" style="font-size:0.83rem;">Ghi chú gia hạn</label>
+                            <textarea class="form-control" name="notes" rows="2" placeholder="VD: Tái ký hợp đồng 1 năm tiếp theo..." style="border-radius:9px; font-size:0.875rem;"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4 gap-2" style="background:#f8fafc;">
+                    <button type="button" class="btn btn-light px-3" data-bs-dismiss="modal" style="border-radius:8px;">Hủy</button>
+                    <button type="submit" class="btn btn-warning px-4 fw-semibold text-dark" style="border-radius:8px;">
+                        <i class="bi bi-check2-circle me-1"></i> Xác nhận gia hạn
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thanh lý HĐ -->
+<div class="modal fade" id="terminateContractModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:450px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px; overflow:hidden;">
+            <form method="post" action="${pageContext.request.contextPath}/contracts">
+                <input type="hidden" name="action" value="terminate">
+                <input type="hidden" name="id" id="terminateContractId">
+
+                <div class="modal-header border-0" style="background:#fef2f2; padding:1.25rem 1.5rem 0.75rem;">
+                    <div>
+                        <h6 class="modal-title fw-bold text-danger d-flex align-items-center gap-2 mb-1">
+                            <i class="bi bi-slash-circle"></i> Thanh lý / Chấm dứt hợp đồng
+                        </h6>
+                        <p class="text-muted mb-0" style="font-size:0.79rem;">Hợp đồng: <strong id="terminateContractCode" class="text-dark font-monospace"></strong></p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark mb-1" style="font-size:0.83rem;">Lý do thanh lý / chấm dứt <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="reason" rows="3" required placeholder="VD: Hết hạn hợp đồng, Thỏa thuận chấm dứt HĐLĐ, Nhân viên nghỉ việc..." style="border-radius:9px; font-size:0.875rem;"></textarea>
+                    </div>
+                    <div class="p-2 rounded" style="background:#f8fafc; font-size:0.8rem; color:#64748b;">
+                        <i class="bi bi-info-circle me-1"></i> Trạng thái hợp đồng sẽ chuyển sang <strong>Đã thanh lý</strong> và dừng các quyền lợi hợp đồng tương ứng.
+                    </div>
+                </div>
+                <div class="modal-footer border-0 px-4 pt-0 pb-4 gap-2">
+                    <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4 fw-semibold">
+                        <i class="bi bi-slash-circle me-1"></i> Xác nhận thanh lý
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

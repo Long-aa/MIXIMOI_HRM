@@ -1,6 +1,11 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" import="java.time.LocalDate,java.time.LocalDateTime" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%
+    // Tính ngày 7 ngày trước để check nhân viên mới
+    java.time.LocalDateTime sevenDaysAgo = java.time.LocalDateTime.now().minusDays(7);
+    request.setAttribute("sevenDaysAgo", sevenDaysAgo);
+%>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -245,7 +250,7 @@
                                                     <div class="emp-avatar ${emp.gender eq 'FEMALE' ? 'avatar-f' : 'avatar-m'}" style="overflow:hidden; display:flex; align-items:center; justify-content:center;">
                                                         <c:choose>
                                                             <c:when test="${not empty emp.avatarUrl}">
-                                                                <img src="${emp.avatarUrl}" alt="<c:out value='${emp.fullName}'/>" style="width:100%; height:100%; object-fit:cover;">
+                                                                <img src="${emp.avatarUrl.startsWith('http') ? emp.avatarUrl : pageContext.request.contextPath += emp.avatarUrl}" alt="<c:out value='${emp.fullName}'/>" style="width:100%; height:100%; object-fit:cover;">
                                                             </c:when>
                                                             <c:when test="${not empty emp.fullName}">
                                                                 ${fn:toUpperCase(fn:substring(fn:trim(emp.fullName), 0, 1))}
@@ -254,7 +259,12 @@
                                                         </c:choose>
                                                     </div>
                                                     <div>
-                                                        <div class="emp-name"><c:out value="${emp.fullName}"/></div>
+                                                        <div class="emp-name" style="display:flex; align-items:center; gap:6px;">
+                                                            <c:out value="${emp.fullName}"/>
+                                                            <c:if test="${not empty emp.createdAt and emp.createdAt.isAfter(sevenDaysAgo)}">
+                                                                <span style="display:inline-flex; align-items:center; gap:3px; background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; font-size:0.6rem; font-weight:800; padding:1px 7px; border-radius:999px; letter-spacing:0.5px; text-transform:uppercase; animation:pulse 2s infinite;">✦ NEW</span>
+                                                            </c:if>
+                                                        </div>
                                                         <c:if test="${not empty emp.employeeTypeName}">
                                                             <span class="emp-type-badge"><c:out value="${emp.employeeTypeName}"/></span>
                                                         </c:if>

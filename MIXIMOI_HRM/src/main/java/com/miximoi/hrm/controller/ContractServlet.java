@@ -7,11 +7,15 @@ import com.miximoi.hrm.model.Contract;
 import com.miximoi.hrm.model.Employee;
 import com.miximoi.hrm.model.User;
 import jakarta.servlet.ServletException;
+import com.miximoi.hrm.util.FileUploadUtil;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -25,6 +29,11 @@ import java.util.List;
  * URL: /contracts
  */
 @WebServlet("/contracts")
+@MultipartConfig(
+    fileSizeThreshold = 1024 * 1024 * 2, // 2MB
+    maxFileSize = 1024 * 1024 * 10,      // 10MB
+    maxRequestSize = 1024 * 1024 * 20    // 20MB
+)
 public class ContractServlet extends HttpServlet {
 
     private final ContractDAO   contractDAO   = new ContractDAO();
@@ -57,6 +66,23 @@ public class ContractServlet extends HttpServlet {
             }
         }
 
+        if ("sign".equalsIgnoreCase(action)) {
+            String idStr = request.getParameter("id");
+            if (idStr != null && !idStr.trim().isEmpty()) {
+                contractDAO.sign(Integer.parseInt(idStr.trim()));
+                response.sendRedirect(request.getContextPath() + "/contracts?success=signed");
+                return;
+            }
+        }
+        if ("terminate".equalsIgnoreCase(action)) {
+            String idStr = request.getParameter("id");
+            if (idStr != null && !idStr.trim().isEmpty()) {
+                contractDAO.terminate(Integer.parseInt(idStr.trim()), "Thanh lý hợp đồng");
+                response.sendRedirect(request.getContextPath() + "/contracts?success=updated");
+                return;
+            }
+        }
+
         User user = (User) request.getSession().getAttribute("currentUser");
 
         String keyword      = request.getParameter("keyword");
@@ -76,7 +102,16 @@ public class ContractServlet extends HttpServlet {
         }
 
         int totalFiltered = contracts != null ? contracts.size() : 0;
-        int pageSize = 10;
+        String pageSizeStr = request.getParameter("pageSize");
+        int pageSize = 20; // mặc định 20 để hiển thị danh sách đầy đủ
+        if ("all".equalsIgnoreCase(pageSizeStr)) {
+            pageSize = Math.max(1, totalFiltered);
+        } else if (pageSizeStr != null && !pageSizeStr.trim().isEmpty()) {
+            try {
+                pageSize = Math.max(1, Integer.parseInt(pageSizeStr.trim()));
+            } catch (NumberFormatException ignored) {}
+        }
+
         int totalPages = Math.max(1, (int) Math.ceil((double) totalFiltered / pageSize));
         int page = 1;
         String pageStr = request.getParameter("page");
@@ -149,6 +184,30 @@ public class ContractServlet extends HttpServlet {
                 }
                 c.setStatus(request.getParameter("status") != null ? request.getParameter("status") : "ACTIVE");
                 c.setNotes(request.getParameter("notes"));
+
+                // Lưu file hợp đồng nếu có tải lên
+                try {
+                    Part filePart = request.getPart("contractFile");
+                    String savedFileUrl = FileUploadUtil.saveFile(filePart, "contracts", request);
+                    if (savedFileUrl != null) {
+                        c.setContractFileUrl(savedFileUrl);
+                    }
+                } catch (Exception ignored) {}
+                // Đồng bộ thông tin pháp lý từ nhân sự vào hợp đồng
+                Employee emp = employeeDAO.findById(c.getEmployeeId());
+                if (emp != null) {
+                    c.setIdentityNumber(emp.getIdentityNumber());
+                    c.setIdentityDate(emp.getIdentityDate());
+                    c.setIdentityPlace(emp.getIdentityPlace());
+                    c.setSignerName("Nguyễn Văn An");
+                    c.setSignerTitle("Tổng Giám Đốc");
+                    c.setWorkLocation("Trụ sở Công ty Cổ phần Tập đoàn MIXIMOI (Landmark 81, TP.HCM / MIXIMOI Tower Hà Nội)");
+                    c.setJobDescription("Thực hiện nhiệm vụ chuyên môn theo vị trí được phân công.");
+                    if (c.getAllowanceAmount() == null) {
+                        c.setAllowanceAmount(new BigDecimal("2500000"));
+                    }
+                }
+
                 contractDAO.insert(c);
 
                 String from = request.getParameter("from");
@@ -178,9 +237,46 @@ public class ContractServlet extends HttpServlet {
                     String st = request.getParameter("status");
                     if (st != null && !st.trim().isEmpty()) c.setStatus(st.trim());
                     c.setNotes(request.getParameter("notes"));
+
+                    // Lưu file hợp đồng mới nếu có tải lên
+                    try {
+                        Part filePart = request.getPart("contractFile");
+                        String savedFileUrl = FileUploadUtil.saveFile(filePart, "contracts", request);
+                        if (savedFileUrl != null) {
+                            c.setContractFileUrl(savedFileUrl);
+                        }
+                    } catch (Exception ignored) {}
+
                     contractDAO.update(c);
                 }
                 response.sendRedirect(request.getContextPath() + "/contracts?success=updated");
+                break;
+            }
+            case "renew": {
+                int id = Integer.parseInt(request.getParameter("id"));
+                String ed = request.getParameter("endDate");
+                LocalDate newEnd = (ed != null && !ed.trim().isEmpty()) ? LocalDate.parse(ed.trim()) : null;
+                String sal = request.getParameter("baseSalary");
+                BigDecimal newSal = null;
+                if (sal != null && !sal.trim().isEmpty()) {
+                    newSal = new BigDecimal(sal.replace(".", "").replace(",", "").trim());
+                }
+                String notes = request.getParameter("notes");
+                contractDAO.renew(id, newEnd, newSal, notes);
+                response.sendRedirect(request.getContextPath() + "/contracts?success=updated");
+                break;
+            }
+            case "terminate": {
+                int id = Integer.parseInt(request.getParameter("id"));
+                String reason = request.getParameter("reason");
+                contractDAO.terminate(id, reason);
+                response.sendRedirect(request.getContextPath() + "/contracts?success=updated");
+                break;
+            }
+            case "sign": {
+                int id = Integer.parseInt(request.getParameter("id"));
+                contractDAO.sign(id);
+                response.sendRedirect(request.getContextPath() + "/contracts?success=signed");
                 break;
             }
             case "delete": {

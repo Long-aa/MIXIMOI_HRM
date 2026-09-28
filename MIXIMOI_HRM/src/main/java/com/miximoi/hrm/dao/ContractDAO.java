@@ -179,7 +179,18 @@ public class ContractDAO {
 
     public boolean update(Contract c) {
         String sql = "UPDATE contracts SET contract_type=?, start_date=?, end_date=?, "
-                   + "base_salary=?, status=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?";
+                   + "base_salary=?, status=?, notes=?, contract_file_url = COALESCE(?, contract_file_url), "
+                   + "signer_name = COALESCE(?, signer_name), signer_title = COALESCE(?, signer_title), "
+                   + "work_location = COALESCE(?, work_location), "
+                   + "identity_number = COALESCE(?, identity_number), "
+                   + "identity_date = COALESCE(?, identity_date), "
+                   + "identity_place = COALESCE(?, identity_place), "
+                   + "contract_code = COALESCE(?, contract_code), "
+                   + "signed_date = COALESCE(?, signed_date), "
+                   + "allowance_amount = COALESCE(?, allowance_amount), "
+                   + "probation_months = COALESCE(?, probation_months), "
+                   + "probation_salary_pct = COALESCE(?, probation_salary_pct), "
+                   + "updated_at=CURRENT_TIMESTAMP WHERE id=?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, c.getContractType());
@@ -188,10 +199,78 @@ public class ContractDAO {
             ps.setBigDecimal(4, c.getBaseSalary());
             ps.setString(5, c.getStatus());
             ps.setString(6, c.getNotes());
-            ps.setInt(7, c.getId());
+            ps.setString(7, c.getContractFileUrl());
+            ps.setString(8, c.getSignerName());
+            ps.setString(9, c.getSignerTitle());
+            ps.setString(10, c.getWorkLocation());
+            ps.setString(11, c.getIdentityNumber());
+            ps.setDate(12, c.getIdentityDate() != null ? Date.valueOf(c.getIdentityDate()) : null);
+            ps.setString(13, c.getIdentityPlace());
+            ps.setString(14, c.getContractCode());
+            ps.setDate(15, c.getSignedDate() != null ? Date.valueOf(c.getSignedDate()) : null);
+            ps.setBigDecimal(16, c.getAllowanceAmount());
+            if (c.getProbationMonths() != null) ps.setInt(17, c.getProbationMonths());
+            else ps.setNull(17, Types.INTEGER);
+            ps.setBigDecimal(18, c.getProbationSalaryPct());
+            ps.setInt(19, c.getId());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("ContractDAO.update lỗi: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /** Gia hạn hợp đồng */
+    public boolean renew(int contractId, java.time.LocalDate newEndDate, java.math.BigDecimal newSalary, String notes) {
+        String sql = "UPDATE contracts SET end_date = ?, "
+                   + "base_salary = COALESCE(?, base_salary), "
+                   + "status = 'ACTIVE', "
+                   + "notes = CASE WHEN notes IS NULL OR notes = '' THEN ? ELSE notes || ' | ' || ? END, "
+                   + "updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, newEndDate != null ? Date.valueOf(newEndDate) : null);
+            ps.setBigDecimal(2, newSalary);
+            String noteText = "Gia hạn HĐ đến " + (newEndDate != null ? newEndDate.toString() : "Vô thời hạn")
+                    + (notes != null && !notes.trim().isEmpty() ? " (" + notes.trim() + ")" : "");
+            ps.setString(3, noteText);
+            ps.setString(4, noteText);
+            ps.setInt(5, contractId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.renew lỗi: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /** Thanh lý / Chấm dứt hợp đồng */
+    public boolean terminate(int contractId, String reason) {
+        String sql = "UPDATE contracts SET status = 'TERMINATED', "
+                   + "notes = CASE WHEN notes IS NULL OR notes = '' THEN ? ELSE notes || ' | ' || ? END, "
+                   + "updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            String noteText = "Thanh lý HĐ ngày " + java.time.LocalDate.now()
+                    + (reason != null && !reason.trim().isEmpty() ? ": " + reason.trim() : "");
+            ps.setString(1, noteText);
+            ps.setString(2, noteText);
+            ps.setInt(3, contractId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.terminate lỗi: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /** Ký duyệt / Xác nhận hợp đồng chính thức */
+    public boolean sign(int contractId) {
+        String sql = "UPDATE contracts SET status = 'ACTIVE', signed_date = CURRENT_DATE, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, contractId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.sign lỗi: " + e.getMessage());
         }
         return false;
     }

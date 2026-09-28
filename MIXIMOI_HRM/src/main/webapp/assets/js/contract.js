@@ -278,7 +278,61 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // 6. Form Validation
+    // 6. Open Renew Contract Modal
+    window.openRenewModal = function(btn) {
+        const id = btn.getAttribute('data-id');
+        const code = btn.getAttribute('data-code');
+        const end = btn.getAttribute('data-end');
+        const salary = btn.getAttribute('data-salary');
+
+        const renewId = document.getElementById('renewContractId');
+        const renewCode = document.getElementById('renewContractCode');
+        const renewEndDate = document.getElementById('renewEndDate');
+        const renewSalary = document.getElementById('renewSalary');
+
+        if (renewId) renewId.value = id || '';
+        if (renewCode) renewCode.textContent = code || '';
+        if (renewEndDate) {
+            if (end) {
+                const parts = end.split('-');
+                if (parts.length === 3) {
+                    const nextYear = parseInt(parts[0], 10) + 1;
+                    renewEndDate.value = nextYear + '-' + parts[1] + '-' + parts[2];
+                } else {
+                    renewEndDate.value = end;
+                }
+            } else {
+                renewEndDate.value = '';
+            }
+        }
+        if (renewSalary) renewSalary.value = salary || '';
+
+        const modalEl = document.getElementById('renewContractModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    };
+
+    // 7. Open Terminate Contract Modal
+    window.openTerminateModal = function(btn) {
+        const id = btn.getAttribute('data-id');
+        const code = btn.getAttribute('data-code');
+
+        const termId = document.getElementById('terminateContractId');
+        const termCode = document.getElementById('terminateContractCode');
+
+        if (termId) termId.value = id || '';
+        if (termCode) termCode.textContent = code || '';
+
+        const modalEl = document.getElementById('terminateContractModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    };
+
+    // 8. Form Validation
     const forms = document.querySelectorAll('.needs-validation');
     Array.prototype.slice.call(forms).forEach(function(form) {
         form.addEventListener('submit', function(event) {

@@ -125,6 +125,9 @@ public class Contract {
     public String getContractFileUrl() { return contractFileUrl; }
     public void setContractFileUrl(String contractFileUrl) { this.contractFileUrl = contractFileUrl; }
 
+    public String getFileUrl() { return contractFileUrl; }
+    public void setFileUrl(String fileUrl) { this.contractFileUrl = fileUrl; }
+
     @Override
     public String toString() {
         return "Contract{id=" + id + ", code='" + contractCode + "', employee=" + employeeId + "}";

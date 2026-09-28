@@ -86,15 +86,21 @@ public class EmployeeService {
     public String updateEmployee(Employee emp) {
         if (!ValidationUtil.isNotBlank(emp.getFullName()))
             return "Họ tên không được để trống.";
+        if (!ValidationUtil.isNotBlank(emp.getEmployeeCode()))
+            return "Mã nhân viên không được để trống.";
         if (emp.getEmail() != null && !emp.getEmail().isEmpty()
                 && !ValidationUtil.isValidEmail(emp.getEmail()))
             return "Email không hợp lệ.";
         if (emp.getPhone() != null && !emp.getPhone().isEmpty()
                 && !ValidationUtil.isValidPhone(emp.getPhone()))
-            return "Số điện thoại không hợp lệ.";
+            return "Số điện thoại không hợp lệ (10 số, bắt đầu 03/05/07/08/09).";
+        if (emp.getDepartmentId() <= 0)
+            return "Vui lòng chọn phòng ban.";
+        if (emp.getPositionId() <= 0)
+            return "Vui lòng chọn chức vụ.";
 
         boolean ok = employeeDAO.update(emp);
-        return ok ? null : "Lỗi khi cập nhật nhân viên.";
+        return ok ? null : "Lỗi khi cập nhật nhân viên. Có thể mã nhân viên đã tồn tại.";
     }
 
     /**

@@ -16,8 +16,9 @@ public class EmployeeDAO {
 
     private static final String BASE_SELECT =
         "SELECT e.id, e.employee_code, e.full_name, e.date_of_birth, e.gender, "
-      + "e.phone, e.email, e.address, e.temp_address, e.nationality, e.ethnicity, e.avatar_url, "
+      + "e.phone, e.email, e.address, e.temp_address, e.nationality, e.ethnicity, e.religion, e.marital_status, e.avatar_url, "
       + "e.identity_number, e.identity_date, e.identity_place, "
+      + "e.id_card_front_url, e.id_card_back_url, e.resume_url, "
       + "e.department_id, d.name AS department_name, "
       + "e.position_id, p.name AS position_name, "
       + "e.employee_type_id, et.name AS employee_type_name, "
@@ -136,13 +137,13 @@ public class EmployeeDAO {
     /** Thêm nhân viên mới (đầy đủ các trường mở rộng) */
     public boolean insert(Employee emp) {
         String sql = "INSERT INTO employees (employee_code, full_name, date_of_birth, gender, "
-                   + "phone, email, address, temp_address, nationality, ethnicity, avatar_url, "
-                   + "identity_number, identity_date, identity_place, "
+                   + "phone, email, address, temp_address, nationality, ethnicity, religion, marital_status, avatar_url, "
+                   + "identity_number, identity_date, identity_place, id_card_front_url, id_card_back_url, resume_url, "
                    + "department_id, position_id, employee_type_id, "
                    + "start_date, status, base_salary, bank_account, bank_name, bank_branch, "
                    + "tax_code, insurance_number, "
                    + "emergency_contact_name, emergency_contact_phone, emergency_contact_relation) "
-                   + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                   + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, emp.getEmployeeCode());
@@ -155,28 +156,33 @@ public class EmployeeDAO {
             ps.setString(8, emp.getTempAddress());
             ps.setString(9, emp.getNationality() != null ? emp.getNationality() : "Việt Nam");
             ps.setString(10, emp.getEthnicity());
-            ps.setString(11, emp.getAvatarUrl());
-            ps.setString(12, emp.getIdentityNumber());
-            ps.setDate(13, emp.getIdentityDate() != null ? Date.valueOf(emp.getIdentityDate()) : null);
-            ps.setString(14, emp.getIdentityPlace());
-            if (emp.getDepartmentId() > 0) ps.setInt(15, emp.getDepartmentId());
-            else ps.setNull(15, Types.INTEGER);
-            if (emp.getPositionId() > 0) ps.setInt(16, emp.getPositionId());
-            else ps.setNull(16, Types.INTEGER);
-            if (emp.getEmployeeTypeId() > 0) ps.setInt(17, emp.getEmployeeTypeId());
-            else ps.setInt(17, 1);
-            ps.setDate(18, emp.getStartDate() != null ? Date.valueOf(emp.getStartDate()) : Date.valueOf(java.time.LocalDate.now()));
-            ps.setString(19, emp.getStatus() != null && !emp.getStatus().isEmpty() ? emp.getStatus() : "ACTIVE");
-            if (emp.getBaseSalary() != null) ps.setBigDecimal(20, emp.getBaseSalary());
-            else ps.setNull(20, Types.NUMERIC);
-            ps.setString(21, emp.getBankAccount());
-            ps.setString(22, emp.getBankName());
-            ps.setString(23, emp.getBankBranch());
-            ps.setString(24, emp.getTaxCode());
-            ps.setString(25, emp.getInsuranceNumber());
-            ps.setString(26, emp.getEmergencyContactName());
-            ps.setString(27, emp.getEmergencyContactPhone());
-            ps.setString(28, emp.getEmergencyContactRelation());
+            ps.setString(11, emp.getReligion());
+            ps.setString(12, emp.getMaritalStatus());
+            ps.setString(13, emp.getAvatarUrl());
+            ps.setString(14, emp.getIdentityNumber());
+            ps.setDate(15, emp.getIdentityDate() != null ? Date.valueOf(emp.getIdentityDate()) : null);
+            ps.setString(16, emp.getIdentityPlace());
+            ps.setString(17, emp.getIdCardFrontUrl());
+            ps.setString(18, emp.getIdCardBackUrl());
+            ps.setString(19, emp.getResumeUrl());
+            if (emp.getDepartmentId() > 0) ps.setInt(20, emp.getDepartmentId());
+            else ps.setNull(20, Types.INTEGER);
+            if (emp.getPositionId() > 0) ps.setInt(21, emp.getPositionId());
+            else ps.setNull(21, Types.INTEGER);
+            if (emp.getEmployeeTypeId() > 0) ps.setInt(22, emp.getEmployeeTypeId());
+            else ps.setInt(22, 1);
+            ps.setDate(23, emp.getStartDate() != null ? Date.valueOf(emp.getStartDate()) : Date.valueOf(java.time.LocalDate.now()));
+            ps.setString(24, emp.getStatus() != null && !emp.getStatus().isEmpty() ? emp.getStatus() : "ACTIVE");
+            if (emp.getBaseSalary() != null) ps.setBigDecimal(25, emp.getBaseSalary());
+            else ps.setNull(25, Types.NUMERIC);
+            ps.setString(26, emp.getBankAccount());
+            ps.setString(27, emp.getBankName());
+            ps.setString(28, emp.getBankBranch());
+            ps.setString(29, emp.getTaxCode());
+            ps.setString(30, emp.getInsuranceNumber());
+            ps.setString(31, emp.getEmergencyContactName());
+            ps.setString(32, emp.getEmergencyContactPhone());
+            ps.setString(33, emp.getEmergencyContactRelation());
 
             int affected = ps.executeUpdate();
             if (affected > 0) {
@@ -193,9 +199,10 @@ public class EmployeeDAO {
 
     /** Cập nhật thông tin nhân viên (đầy đủ) */
     public boolean update(Employee emp) {
-        String sql = "UPDATE employees SET full_name=?, date_of_birth=?, gender=?, phone=?, "
-                   + "email=?, address=?, temp_address=?, nationality=?, ethnicity=?, avatar_url=?, "
+        String sql = "UPDATE employees SET employee_code=?, full_name=?, date_of_birth=?, gender=?, phone=?, "
+                   + "email=?, address=?, temp_address=?, nationality=?, ethnicity=?, religion=?, marital_status=?, avatar_url=?, "
                    + "identity_number=?, identity_date=?, identity_place=?, "
+                   + "id_card_front_url=?, id_card_back_url=?, resume_url=?, "
                    + "department_id=?, position_id=?, employee_type_id=?, "
                    + "start_date=?, end_date=?, termination_reason=?, status=?, "
                    + "base_salary=?, bank_account=?, bank_name=?, bank_branch=?, "
@@ -204,37 +211,43 @@ public class EmployeeDAO {
                    + "updated_at=CURRENT_TIMESTAMP WHERE id=?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, emp.getFullName());
-            ps.setDate(2, emp.getDateOfBirth() != null ? Date.valueOf(emp.getDateOfBirth()) : null);
-            ps.setString(3, emp.getGender());
-            ps.setString(4, emp.getPhone());
-            ps.setString(5, emp.getEmail());
-            ps.setString(6, emp.getAddress());
-            ps.setString(7, emp.getTempAddress());
-            ps.setString(8, emp.getNationality());
-            ps.setString(9, emp.getEthnicity());
-            ps.setString(10, emp.getAvatarUrl());
-            ps.setString(11, emp.getIdentityNumber());
-            ps.setDate(12, emp.getIdentityDate() != null ? Date.valueOf(emp.getIdentityDate()) : null);
-            ps.setString(13, emp.getIdentityPlace());
-            ps.setInt(14, emp.getDepartmentId());
-            ps.setInt(15, emp.getPositionId());
-            ps.setInt(16, emp.getEmployeeTypeId());
-            ps.setDate(17, emp.getStartDate() != null ? Date.valueOf(emp.getStartDate()) : null);
-            ps.setDate(18, emp.getEndDate() != null ? Date.valueOf(emp.getEndDate()) : null);
-            ps.setString(19, emp.getTerminationReason());
-            ps.setString(20, emp.getStatus());
-            if (emp.getBaseSalary() != null) ps.setBigDecimal(21, emp.getBaseSalary());
-            else ps.setNull(21, Types.NUMERIC);
-            ps.setString(22, emp.getBankAccount());
-            ps.setString(23, emp.getBankName());
-            ps.setString(24, emp.getBankBranch());
-            ps.setString(25, emp.getTaxCode());
-            ps.setString(26, emp.getInsuranceNumber());
-            ps.setString(27, emp.getEmergencyContactName());
-            ps.setString(28, emp.getEmergencyContactPhone());
-            ps.setString(29, emp.getEmergencyContactRelation());
-            ps.setInt(30, emp.getId());
+            ps.setString(1, emp.getEmployeeCode());
+            ps.setString(2, emp.getFullName());
+            ps.setDate(3, emp.getDateOfBirth() != null ? Date.valueOf(emp.getDateOfBirth()) : null);
+            ps.setString(4, emp.getGender());
+            ps.setString(5, emp.getPhone());
+            ps.setString(6, emp.getEmail());
+            ps.setString(7, emp.getAddress());
+            ps.setString(8, emp.getTempAddress());
+            ps.setString(9, emp.getNationality());
+            ps.setString(10, emp.getEthnicity());
+            ps.setString(11, emp.getReligion());
+            ps.setString(12, emp.getMaritalStatus());
+            ps.setString(13, emp.getAvatarUrl());
+            ps.setString(14, emp.getIdentityNumber());
+            ps.setDate(15, emp.getIdentityDate() != null ? Date.valueOf(emp.getIdentityDate()) : null);
+            ps.setString(16, emp.getIdentityPlace());
+            ps.setString(17, emp.getIdCardFrontUrl());
+            ps.setString(18, emp.getIdCardBackUrl());
+            ps.setString(19, emp.getResumeUrl());
+            ps.setInt(20, emp.getDepartmentId());
+            ps.setInt(21, emp.getPositionId());
+            ps.setInt(22, emp.getEmployeeTypeId());
+            ps.setDate(23, emp.getStartDate() != null ? Date.valueOf(emp.getStartDate()) : null);
+            ps.setDate(24, emp.getEndDate() != null ? Date.valueOf(emp.getEndDate()) : null);
+            ps.setString(25, emp.getTerminationReason());
+            ps.setString(26, emp.getStatus());
+            if (emp.getBaseSalary() != null) ps.setBigDecimal(27, emp.getBaseSalary());
+            else ps.setNull(27, Types.NUMERIC);
+            ps.setString(28, emp.getBankAccount());
+            ps.setString(29, emp.getBankName());
+            ps.setString(30, emp.getBankBranch());
+            ps.setString(31, emp.getTaxCode());
+            ps.setString(32, emp.getInsuranceNumber());
+            ps.setString(33, emp.getEmergencyContactName());
+            ps.setString(34, emp.getEmergencyContactPhone());
+            ps.setString(35, emp.getEmergencyContactRelation());
+            ps.setInt(36, emp.getId());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("EmployeeDAO.update lỗi: " + e.getMessage());
@@ -377,11 +390,16 @@ public class EmployeeDAO {
         e.setTempAddress(rs.getString("temp_address"));
         e.setNationality(rs.getString("nationality"));
         e.setEthnicity(rs.getString("ethnicity"));
+        try { e.setReligion(rs.getString("religion")); } catch (SQLException ignored) {}
+        try { e.setMaritalStatus(rs.getString("marital_status")); } catch (SQLException ignored) {}
         e.setAvatarUrl(rs.getString("avatar_url"));
         e.setIdentityNumber(rs.getString("identity_number"));
         Date idDate = rs.getDate("identity_date");
         if (idDate != null) e.setIdentityDate(idDate.toLocalDate());
         e.setIdentityPlace(rs.getString("identity_place"));
+        try { e.setIdCardFrontUrl(rs.getString("id_card_front_url")); } catch (SQLException ignored) {}
+        try { e.setIdCardBackUrl(rs.getString("id_card_back_url")); } catch (SQLException ignored) {}
+        try { e.setResumeUrl(rs.getString("resume_url")); } catch (SQLException ignored) {}
         e.setDepartmentId(rs.getInt("department_id"));
         e.setDepartmentName(rs.getString("department_name"));
         e.setPositionId(rs.getInt("position_id"));

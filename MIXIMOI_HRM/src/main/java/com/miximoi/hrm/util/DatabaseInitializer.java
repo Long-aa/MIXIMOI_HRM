@@ -58,6 +58,9 @@ public class DatabaseInitializer {
             // 9. Nạp khấu trừ & tạm ứng mẫu nếu trống
             seedSalaryDeductionsIfEmpty(conn);
 
+            // 9.5 Đồng bộ Hợp đồng lao động cho tất cả nhân sự
+            syncContractsIfEmpty(conn);
+
             // 10. Nạp bảng lương & lệnh chi mẫu nếu trống
             seedPayrollAndPaymentsIfEmpty(conn);
 
@@ -150,6 +153,8 @@ public class DatabaseInitializer {
             // Quốc tịch / dân tộc
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS nationality VARCHAR(100) DEFAULT 'Việt Nam'",
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS ethnicity VARCHAR(100)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS religion VARCHAR(50)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS marital_status VARCHAR(20)",
             // Ảnh đại diện
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)",
             // Lương cơ bản (đồng bộ với contract/payroll)
@@ -168,6 +173,10 @@ public class DatabaseInitializer {
             // Ngày kết thúc/thôi việc
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS end_date DATE",
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS termination_reason TEXT",
+            // Giấy tờ tùy thân & Hồ sơ đính kèm
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS id_card_front_url VARCHAR(500)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS id_card_back_url VARCHAR(500)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS resume_url VARCHAR(500)",
 
             // Bảng cấu hình lương & quy chế
             "CREATE TABLE IF NOT EXISTS salary_configs ("
@@ -800,6 +809,91 @@ public class DatabaseInitializer {
             ps.executeBatch();
             System.out.println("[DatabaseInitializer] Đã nạp danh sách Khấu trừ/Tạm ứng mẫu vào PostgreSQL!");
         }
+    }
+
+    private static void syncContractsIfEmpty(Connection conn) throws SQLException {
+        // Kiểm tra xem đã có hợp đồng chưa
+        String countSql = "SELECT COUNT(*) FROM contracts";
+        int count = 0;
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(countSql)) {
+            if (rs.next()) count = rs.getInt(1);
+        }
+
+        // Lấy danh sách nhân viên chưa có hợp đồng
+        String missingSql = "SELECT e.id, e.employee_code, e.full_name, e.start_date, e.base_salary "
+                          + "FROM employees e "
+                          + "LEFT JOIN contracts c ON e.id = c.employee_id "
+                          + "WHERE c.id IS NULL AND (e.status IS NULL OR e.status != 'INACTIVE') "
+                          + "ORDER BY e.id";
+
+        List<Object[]> missingList = new ArrayList<>();
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(missingSql)) {
+            while (rs.next()) {
+                missingList.add(new Object[]{
+                    rs.getInt("id"),
+                    rs.getString("employee_code"),
+                    rs.getString("full_name"),
+                    rs.getDate("start_date"),
+                    rs.getBigDecimal("base_salary")
+                });
+            }
+        }
+
+        if (missingList.isEmpty()) return;
+
+        String insertContractSql = "INSERT INTO contracts (contract_code, employee_id, contract_type, start_date, end_date, "
+                                 + "base_salary, status, notes, signer_name, signer_title, work_location, "
+                                 + "allowance_amount, signed_date, contract_file_url) "
+                                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        int contractNum = count + 1;
+        try (PreparedStatement ps = conn.prepareStatement(insertContractSql)) {
+            for (int i = 0; i < missingList.size(); i++) {
+                Object[] row = missingList.get(i);
+                int empId = (Integer) row[0];
+                Date startDate = (Date) row[3];
+                BigDecimal salary = (BigDecimal) row[4];
+                if (salary == null || salary.compareTo(BigDecimal.ZERO) <= 0) {
+                    salary = new BigDecimal("22500000");
+                }
+
+                String code = String.format("HD%03d", contractNum++);
+                String cType = (i % 3 == 0) ? "INDEFINITE" : "FIXED_TERM";
+                LocalDate sDate = (startDate != null) ? startDate.toLocalDate() : LocalDate.of(2024, 1, 15);
+                LocalDate eDate = "INDEFINITE".equals(cType) ? null : sDate.plusYears(2);
+                String status = "ACTIVE";
+                // Tạo 1-2 hợp đồng sắp hết hạn để test cảnh báo
+                if (i == 1 && !"INDEFINITE".equals(cType)) {
+                    status = "EXPIRING_SOON";
+                    eDate = LocalDate.now().plusDays(20);
+                }
+
+                ps.setString(1, code);
+                ps.setInt(2, empId);
+                ps.setString(3, cType);
+                ps.setDate(4, Date.valueOf(sDate));
+                ps.setDate(5, eDate != null ? Date.valueOf(eDate) : null);
+                ps.setBigDecimal(6, salary);
+                ps.setString(7, status);
+                ps.setString(8, "Hợp đồng lao động tiêu chuẩn Tập đoàn MIXIMOI");
+                ps.setString(9, "Nguyễn Văn An");
+                ps.setString(10, "Tổng Giám Đốc");
+                ps.setString(11, "Trụ sở chính Landmark 81, TP. HCM");
+                ps.setBigDecimal(12, new BigDecimal("2500000"));
+                ps.setDate(13, Date.valueOf(sDate));
+                ps.setString(14, "/assets/docs/hop_dong_lao_dong_miximoi.pdf");
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            System.out.println("[DatabaseInitializer] Đã đồng bộ " + missingList.size() + " hợp đồng lao động mẫu cho nhân sự!");
+        }
+
+        // Đảm bảo nhân viên mới nhất có ngày tạo gần đây để kiểm tra tag NEW
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate("UPDATE employees SET created_at = CURRENT_TIMESTAMP, start_date = CURRENT_DATE WHERE employee_code = 'NV015'");
+        } catch (SQLException ignored) {}
     }
 
     private static void seedPayrollAndPaymentsIfEmpty(Connection conn) throws SQLException {

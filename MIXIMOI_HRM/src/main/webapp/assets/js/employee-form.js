@@ -136,11 +136,22 @@
             if (deptSelect && deptSelect.value) {
                 updateDeptQuotaBannerOnly(deptSelect.value);
             }
+            // In edit mode: init position alert/salary hint without replacing dropdown
+            const posSelect = document.getElementById("positionId");
+            if (posSelect && posSelect.value) {
+                handlePositionChange(posSelect.value);
+            }
         }
 
         // Calculations
         recalcCompensation();
         calculateAge();
+
+        // Status field initialization
+        const statusSelect = document.getElementById("empStatus");
+        if (statusSelect) {
+            handleStatusChange(statusSelect.value);
+        }
 
         // Start auto-save timer
         startAutoSaveInterval();
@@ -174,10 +185,30 @@
         const banner = document.getElementById("deptQuotaBanner");
         const posSelect = document.getElementById("positionId");
 
+        // In edit mode: capture the current selected position text BEFORE overwriting
+        let savedPosId = null;
+        let savedPosText = null;
+        if (window.IS_EDIT_MODE && posSelect.value) {
+            savedPosId = posSelect.value;
+            const selOpt = posSelect.options[posSelect.selectedIndex];
+            // Keep the original server-rendered text (not the JS-generated placeholder)
+            if (selOpt && selOpt.value) {
+                savedPosText = selOpt.innerText;
+            }
+        }
+
         if (!data) {
             banner.classList.remove("has-dept");
             banner.innerHTML = `<div class="text-muted" style="font-size:0.8rem;">Vui lòng chọn một phòng ban để xem chỉ tiêu định biên và các vị trí phù hợp.</div>`;
             posSelect.innerHTML = `<option value="">— Chọn chức vụ —</option>`;
+            // Re-add the saved position if in edit mode
+            if (window.IS_EDIT_MODE && savedPosId && savedPosText) {
+                const opt = document.createElement("option");
+                opt.value = savedPosId;
+                opt.innerText = savedPosText;
+                opt.selected = true;
+                posSelect.appendChild(opt);
+            }
             return;
         }
 
@@ -221,13 +252,19 @@
 
         // Update default line manager
         const managerInput = document.getElementById("lineManager");
-        if (managerInput && data.manager) {
+        if (managerInput && data.manager && !window.IS_EDIT_MODE) {
             managerInput.value = data.manager;
         }
 
         // Populate positions matching this department
         posSelect.innerHTML = `<option value="">— Chọn chức vụ phù hợp (${data.positions.length} vị trí) —</option>`;
+        let hasCurrentPos = false;
+        const currentPosId = window.IS_EDIT_MODE ? (savedPosId || window.CURRENT_EMP_POS_ID) : null;
+
         data.positions.forEach(p => {
+            if (currentPosId && String(p.id) === String(currentPosId)) {
+                hasCurrentPos = true;
+            }
             const vacantNote = p.vacant > 0 ? `(Đang thiếu ${p.vacant} vị trí)` : `(Đã đủ định biên ${p.current}/${p.quota})`;
             const opt = document.createElement("option");
             opt.value = p.id;
@@ -239,11 +276,22 @@
             posSelect.appendChild(opt);
         });
 
+        // In edit mode, if employee's position is not in DEPARTMENT_DATA, append it with real name
+        if (window.IS_EDIT_MODE && currentPosId && !hasCurrentPos) {
+            const opt = document.createElement("option");
+            opt.value = currentPosId;
+            // Use the saved real name if available, else generic fallback
+            opt.innerText = savedPosText || ("Chức vụ hiện tại (ID: " + currentPosId + ")");
+            opt.dataset.level = "L3";
+            opt.dataset.salary = window.CURRENT_EMP_SALARY || "28.500.000";
+            posSelect.appendChild(opt);
+        }
+
         // Select appropriate position
-        if (window.IS_EDIT_MODE && window.CURRENT_EMP_POS_ID) {
-            posSelect.value = window.CURRENT_EMP_POS_ID;
-            handlePositionChange(window.CURRENT_EMP_POS_ID);
-        } else if (data.positions.length > 0) {
+        if (window.IS_EDIT_MODE && currentPosId) {
+            posSelect.value = currentPosId;
+            handlePositionChange(currentPosId);
+        } else if (!window.IS_EDIT_MODE && data.positions.length > 0) {
             posSelect.selectedIndex = 1;
             handlePositionChange(data.positions[0].id);
         }
@@ -261,9 +309,9 @@
         const salaryRange = selectedOpt.dataset.salaryRange || "25.000.000 – 35.000.000 VNĐ";
         const vacant = parseInt(selectedOpt.dataset.vacant || "1");
 
-        // Update Level dropdown
+        // Update Level dropdown (always)
         const levelSelect = document.getElementById("employeeLevel");
-        if (levelSelect) levelSelect.value = level;
+        if (levelSelect && !window.IS_EDIT_MODE) levelSelect.value = level;
 
         // Update Position vacant alert
         const alertBox = document.getElementById("positionVacantAlert");
@@ -279,9 +327,14 @@
             }
         }
 
-        // Suggest salary in Step 3
+        // Suggest salary in Step 3 ONLY for new employee mode or when salary is not yet entered
         const salaryInput = document.getElementById("baseSalary");
-        if (salaryInput && (!window.IS_EDIT_MODE || !salaryInput.value || salaryInput.value === '0')) {
+        if (salaryInput && !window.IS_EDIT_MODE) {
+            // New mode: always suggest default salary from position
+            salaryInput.value = defSalary;
+            recalcCompensation();
+        } else if (salaryInput && window.IS_EDIT_MODE && !salaryInput.value.trim()) {
+            // Edit mode: only suggest if salary field is completely empty
             salaryInput.value = defSalary;
             recalcCompensation();
         }
@@ -298,11 +351,13 @@
     // =========================================================================
     function jumpToStep(target) {
         if (target === currentStep) return;
+        // In edit mode, allow free navigation; in new mode, validate before going forward
         if (!window.IS_EDIT_MODE && target > currentStep && !validateCurrentStep()) return;
         goToStep(target);
     }
 
     function nextStep() {
+        // In edit mode, skip step validation to allow free navigation
         if (!window.IS_EDIT_MODE && !validateCurrentStep()) return;
         if (currentStep < TOTAL_STEPS) {
             goToStep(currentStep + 1);
@@ -400,18 +455,31 @@
 
         const inputs = currentPanel.querySelectorAll("input[required], select[required]");
         let valid = true;
+        let firstInvalid = null;
 
         inputs.forEach(input => {
-            if (!input.value || !input.value.trim()) {
+            const val = input.value ? input.value.trim() : "";
+            if (!val) {
                 input.classList.add("is-invalid");
                 valid = false;
+                if (!firstInvalid) firstInvalid = input;
             } else {
                 input.classList.remove("is-invalid");
             }
         });
 
         if (!valid) {
-            showToast("Vui lòng điền đầy đủ các thông tin bắt buộc (*) trước khi tiếp tục.", "warning");
+            if (firstInvalid) {
+                firstInvalid.focus();
+                firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+                const parentCol = firstInvalid.closest(".col-md-6, .col-md-4, .col-md-3, .col-12, .mb-3");
+                const labelElem = parentCol ? parentCol.querySelector(".form-label-custom, label") : null;
+                let labelText = labelElem ? labelElem.innerText.replace("*", "").trim() : "thông tin bắt buộc";
+                if (labelText.length > 40) labelText = labelText.substring(0, 40) + "...";
+                showToast("Vui lòng điền trường bắt buộc: " + labelText, "warning");
+            } else {
+                showToast("Vui lòng điền đầy đủ các thông tin bắt buộc (*) trước khi tiếp tục.", "warning");
+            }
         }
         return valid;
     }
@@ -625,12 +693,26 @@
         if (input.files && input.files[0]) {
             const file = input.files[0];
             document.getElementById(nameId).innerText = file.name;
+            const img = document.getElementById(imgId);
+            // Derive icon ID from img ID (e.g. cccdFrontPreview -> cccdFrontIcon)
+            const iconId = imgId.replace('Preview', 'Icon');
+            const icon = document.getElementById(iconId);
             if (file.type.startsWith("image/")) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    document.getElementById(imgId).src = e.target.result;
+                    img.src = e.target.result;
+                    img.classList.remove('d-none');
+                    if (icon) icon.classList.add('d-none');
                 };
                 reader.readAsDataURL(file);
+            } else {
+                // Non-image: just show a check icon, hide preview
+                img.classList.add('d-none');
+                if (icon) {
+                    icon.className = 'bi bi-file-check-fill text-success';
+                    icon.style.fontSize = '1.8rem';
+                    icon.classList.remove('d-none');
+                }
             }
             showToast(`Đã đính kèm tệp: ${file.name}`, "success");
             updateUploadedCount();
@@ -638,8 +720,22 @@
     }
 
     function clearDocUpload(imgId, nameId) {
-        document.getElementById(nameId).innerText = "Chưa có tệp";
-        document.getElementById(imgId).src = "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=300&auto=format&fit=crop&q=80";
+        const img = document.getElementById(imgId);
+        const nameEl = document.getElementById(nameId);
+        const iconId = imgId.replace('Preview', 'Icon');
+        const icon = document.getElementById(iconId);
+        if (nameEl) nameEl.innerText = "Bấm để tải tệp";
+        if (img) {
+            img.src = '';
+            img.classList.add('d-none');
+        }
+        if (icon) {
+            icon.classList.remove('d-none');
+        }
+        // Try to reset the associated file input
+        const inputId = imgId.replace('Preview', 'Input');
+        const fileInput = document.getElementById(inputId);
+        if (fileInput) fileInput.value = '';
         showToast("Đã xóa tệp đính kèm.", "warning");
         updateUploadedCount();
     }
@@ -921,4 +1017,185 @@
         updateStep2Summary();
     }
     window.updateDeptQuotaBannerOnly = updateDeptQuotaBannerOnly;
+
+    // Export all wizard interactive functions to window
+    window.jumpToStep = jumpToStep;
+    window.nextStep = nextStep;
+    window.prevStep = prevStep;
+    window.toggleEditEmployeeCode = toggleEditEmpCode;
+    window.toggleEditEmpCode = toggleEditEmpCode;
+    window.regenerateEmployeeCode = regenerateEmployeeCode;
+    window.regenerateContractCode = regenerateContractCode;
+    window.toggleEditContractCode = toggleEditContractCode;
+    window.handleStatusChange = handleStatusChange;
+    window.autoGenBhxh = autoGenBhxh;
+    window.autoGenTaxCode = autoGenTaxCode;
+    window.validateCccd = validateCccd;
+    window.triggerAvatarUpload = triggerAvatarUpload;
+    window.previewAvatar = previewAvatar;
+    window.toggleSameAddress = toggleSameAddress;
+    window.calculateAge = calculateAge;
+    window.updateGenderDisplay = updateGenderDisplay;
+    window.saveDraft = saveDraft;
+    window.restoreDraftData = restoreDraftData;
+    window.clearDraft = clearDraft;
+    window.dismissDraft = dismissDraft;
+    window.confirmDiscard = confirmDiscard;
+    window.formatSalaryInput = formatSalaryInput;
+    window.recalcCompensation = recalcCompensation;
+    window.addCustomAllowance = addCustomAllowance;
+    window.toggleAllowanceRow = toggleAllowanceRow;
+    window.handleDepartmentChange = handleDepartmentChange;
+    window.handlePositionChange = handlePositionChange;
+    window.handleFullNameChange = handleFullNameChange;
+    window.showToast = showToast;
+    window.triggerDocUpload = triggerDocUpload;
+    window.handleDocFile = handleDocFile;
+    window.clearDocUpload = clearDocUpload;
+    window.handleResumeFile = handleResumeFile;
+    window.updateUploadedCount = updateUploadedCount;
+
+    function updateStep1Progress() {
+        const panel1 = document.getElementById("panelStep1");
+        if (!panel1) return;
+        const requiredInputs = panel1.querySelectorAll("input[required], select[required]");
+        if (requiredInputs.length === 0) return;
+        let filled = 0;
+        requiredInputs.forEach(inp => {
+            if (inp.value && inp.value.trim()) filled++;
+        });
+        const pct = Math.round((filled / requiredInputs.length) * 100);
+        const pctEl = document.getElementById("step1Pct");
+        const barEl = document.getElementById("step1ProgressBar");
+        if (pctEl) pctEl.innerText = pct + "%";
+        if (barEl) barEl.style.width = pct + "%";
+    }
+    window.updateStep1Progress = updateStep1Progress;
+
+    /**
+     * updateDeptQuotaBannerOnly — chỉ cập nhật Quota Banner theo phòng ban
+     * KHÔNG thay thế position dropdown (dùng trong edit mode init).
+     */
+    function updateDeptQuotaBannerOnly(deptId) {
+        const data = DEPARTMENT_DATA[deptId];
+        const banner = document.getElementById("deptQuotaBanner");
+        if (!banner) return;
+
+        if (!data) {
+            banner.classList.remove("has-dept");
+            banner.innerHTML = `<div class="text-muted" style="font-size:0.8rem;">Chọn phòng ban để xem định biên nhân sự.</div>`;
+            return;
+        }
+
+        banner.classList.add("has-dept");
+        const vacantCount = Math.max(0, data.targetCount - data.currentCount);
+        const pct = Math.min(100, Math.round((data.currentCount / data.targetCount) * 100));
+
+        let badgeHtml = "";
+        let barColor = "linear-gradient(90deg, #2563eb, #38bdf8)";
+        if (vacantCount > 0) {
+            badgeHtml = `<span class="quota-badge-vacant"><i class="bi bi-person-plus-fill"></i> Còn thiếu ${vacantCount} chỉ tiêu</span>`;
+            barColor = "linear-gradient(90deg, #059669, #34d399)";
+        } else {
+            badgeHtml = `<span class="quota-badge-full"><i class="bi bi-exclamation-circle-fill"></i> Đã đủ định biên (${data.currentCount}/${data.targetCount})</span>`;
+            barColor = "linear-gradient(90deg, #dc2626, #f87171)";
+        }
+
+        banner.innerHTML = `
+            <div class="quota-header">
+                <div>
+                    <div style="font-weight:800; font-size:0.9rem; color:#0f172a;">🏢 ${data.name}</div>
+                    <div style="font-size:0.75rem; color:#64748b;">Nghiệp vụ: ${data.desc}</div>
+                </div>
+                ${badgeHtml}
+            </div>
+            <div class="d-flex justify-content-between align-items-center" style="font-size:0.75rem;">
+                <span style="font-weight:700; color:#1e293b;">Hiện có ${data.currentCount} / ${data.targetCount} nhân sự</span>
+                <span style="font-weight:800; color:#2563eb;">${pct}% định biên</span>
+            </div>
+            <div class="quota-progress">
+                <div class="quota-progress-bar" style="width:${pct}%; background:${barColor};"></div>
+            </div>
+            <div style="font-size:0.72rem; color:#64748b; margin-top:4px;">
+                <i class="bi bi-shield-check me-1 text-primary"></i> Quản lý trực tiếp phụ trách: <strong>${data.manager}</strong>
+            </div>
+        `;
+    }
+    window.updateDeptQuotaBannerOnly = updateDeptQuotaBannerOnly;
+
+    // Handle Form Submit Event & Step 1 Live Progress
+    document.addEventListener("DOMContentLoaded", function() {
+        const panel1 = document.getElementById("panelStep1");
+        if (panel1) {
+            panel1.querySelectorAll("input, select").forEach(inp => {
+                inp.addEventListener("input", function() {
+                    this.classList.remove("is-invalid");
+                    updateStep1Progress();
+                });
+                inp.addEventListener("change", function() {
+                    this.classList.remove("is-invalid");
+                    updateStep1Progress();
+                });
+            });
+            updateStep1Progress();
+        }
+
+        const form = document.getElementById("employeeForm");
+        if (!form) return;
+
+        form.addEventListener("submit", function(e) {
+            // Validate required fields in Step 1
+            const fullName = document.getElementById("fullName");
+            if (fullName && !fullName.value.trim()) {
+                e.preventDefault();
+                jumpToStep(1);
+                fullName.focus();
+                fullName.classList.add("is-invalid");
+                showToast("Vui lòng nhập Họ và tên nhân viên.", "warning");
+                return false;
+            }
+
+            const phone = document.getElementById("phone");
+            if (phone && !phone.value.trim()) {
+                e.preventDefault();
+                jumpToStep(1);
+                phone.focus();
+                phone.classList.add("is-invalid");
+                showToast("Vui lòng nhập Số điện thoại nhân viên.", "warning");
+                return false;
+            }
+
+            // In new mode, validate Department and Position in Step 2
+            if (!window.IS_EDIT_MODE) {
+                const dept = document.getElementById("departmentId");
+                if (dept && !dept.value) {
+                    e.preventDefault();
+                    jumpToStep(2);
+                    dept.focus();
+                    showToast("Vui lòng chọn Phòng ban tiếp nhận.", "warning");
+                    return false;
+                }
+            }
+
+            // Check final accuracy confirmation — only required in new employee mode
+            // In edit mode, user submits from sticky bar at any step (no need to force step 4)
+            if (!window.IS_EDIT_MODE) {
+                const confirmBox = document.getElementById("confirmAccuracy");
+                if (confirmBox && !confirmBox.checked) {
+                    e.preventDefault();
+                    jumpToStep(4);
+                    confirmBox.focus();
+                    showToast("Vui lòng đánh dấu xác nhận thông tin hồ sơ trước khi hoàn tất.", "warning");
+                    return false;
+                }
+            }
+
+            // Clear draft upon successful submission
+            if (!window.IS_EDIT_MODE) {
+                localStorage.removeItem("miximoi_employee_draft");
+            }
+            return true;
+        });
+    });
+
 
