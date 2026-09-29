@@ -54,7 +54,7 @@ public class PayslipServlet extends HttpServlet {
         int year  = (yStr != null && !yStr.isEmpty()) ? Integer.parseInt(yStr) : now.getYear();
 
         List<Payroll> payrollList;
-        if ("EMPLOYEE".equals(user.getRole())) {
+        if ("EMPLOYEE".equalsIgnoreCase(user.getRole())) {
             Payroll pr = payrollDAO.findByEmployeeAndPeriod(user.getEmployeeId(), month, year);
             payrollList = pr != null ? List.of(pr) : List.of();
         } else {
@@ -94,17 +94,11 @@ public class PayslipServlet extends HttpServlet {
                     now.getMonthValue(), now.getYear());
         }
 
-        // BẢO MẬT: Chặn nhân viên xem trộm phiếu lương của người khác qua ID
-        if (payroll != null && "EMPLOYEE".equalsIgnoreCase(user.getRole())) {
-            if (payroll.getEmployeeId() != user.getEmployeeId()) {
-                Payroll ownPayroll = payrollDAO.findByEmployeeAndPeriod(user.getEmployeeId(),
-                        payroll.getPayMonth(), payroll.getPayYear());
-                if (ownPayroll != null) {
-                    payroll = ownPayroll;
-                } else {
-                    response.sendRedirect(request.getContextPath() + "/payslip?error=access_denied");
-                    return;
-                }
+        // BẢO MẬT (IDOR Protection): Chặn nhân viên xem phiếu lương của người khác
+        if ("EMPLOYEE".equalsIgnoreCase(user.getRole())) {
+            if (payroll == null || payroll.getEmployeeId() != user.getEmployeeId()) {
+                response.sendRedirect(request.getContextPath() + "/payslip?error=access_denied");
+                return;
             }
         }
 

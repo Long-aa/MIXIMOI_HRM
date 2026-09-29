@@ -9,6 +9,34 @@
         (${not empty payroll ? payroll.employeeCode : ''}) — MIXIMOI HRM
     </title>
     <%@ include file="/WEB-INF/views/common/head.jsp" %>
+    <style>
+        @media print {
+            .app-sidebar, .app-topbar, .payslip-action-topbar, .app-footer, .sidebar-backdrop, .alert, .btn {
+                display: none !important;
+            }
+            body, .app-container, .app-main, .app-content {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+            }
+            .payslip-a4-wrapper {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .payslip-a4-sheet {
+                box-shadow: none !important;
+                border: none !important;
+                margin: 0 auto !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 10mm 15mm !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 10mm;
+            }
+        }
+    </style>
 </head>
 <body>
 <div class="app-container">
@@ -83,10 +111,10 @@
                                 <i class="bi bi-printer"></i>
                                 <span>In phiếu lương</span>
                             </button>
-                            <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
-                                    onclick="alert('Đang tạo và tải xuống file PDF khổ A4 có nhúng chứng thư số HSM...');">
+                            <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm"
+                                    onclick="window.print()" title="In hoặc lưu file dưới dạng PDF (Ctrl+P)">
                                 <i class="bi bi-file-earmark-pdf"></i>
-                                <span>Tải PDF ký số</span>
+                                <span>Xuất PDF / In A4</span>
                             </button>
                             <c:if test="${sessionScope.currentUser.role eq 'ADMIN' or sessionScope.currentUser.role eq 'ACCOUNTANT'}">
                                 <form method="post" action="${pageContext.request.contextPath}/payslip" class="m-0">

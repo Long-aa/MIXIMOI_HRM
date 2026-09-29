@@ -390,8 +390,20 @@
                             </div>
 
                             <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <!-- Metric Switcher Pills -->
+                                <div class="card-filter-pills" id="trendMetricPills">
+                                    <button type="button" class="filter-pill active" id="btnTrendHeadcount" onclick="switchTrendMetric('headcount')">
+                                        <i class="bi bi-people-fill me-1"></i>Quy mô nhân sự
+                                    </button>
+                                    <button type="button" class="filter-pill" id="btnTrendSalary" onclick="switchTrendMetric('salary')">
+                                        <i class="bi bi-cash-stack me-1"></i>Biến động lương
+                                    </button>
+                                    <button type="button" class="filter-pill" id="btnTrendAttendance" onclick="switchTrendMetric('attendance')">
+                                        <i class="bi bi-clock-history me-1"></i>Tỷ lệ đúng giờ
+                                    </button>
+                                </div>
                                 <!-- Legend Indicators -->
-                                <div class="chart-header-badges">
+                                <div class="chart-header-badges d-none d-md-flex" id="trendBadgesContainer">
                                     <span><span class="badge-dot-indicator" style="background-color: #2563eb;"></span>Tổng NS (${kpiStats.totalEmployees})</span>
                                     <span><span class="badge-dot-indicator" style="background-color: #10b981;"></span>Mới (+${kpiStats.newHires})</span>
                                     <span><span class="badge-dot-indicator" style="background-color: #ef4444;"></span>Nghỉ (-${kpiStats.inactiveEmployees})</span>
@@ -1189,6 +1201,30 @@ window.dashboardChartData = {
         ],
         data: [
             <c:forEach items="${monthlyGrowthTrend.data}" var="d" varStatus="loop">
+                ${d}${!loop.last ? ',' : ''}
+            </c:forEach>
+        ]
+    },
+    payrollTrend: {
+        labels: [
+            <c:forEach items="${monthlyPayrollTrend.labels}" var="l" varStatus="loop">
+                "${l}"${!loop.last ? ',' : ''}
+            </c:forEach>
+        ],
+        data: [
+            <c:forEach items="${monthlyPayrollTrend.data}" var="d" varStatus="loop">
+                ${d}${!loop.last ? ',' : ''}
+            </c:forEach>
+        ]
+    },
+    attendanceRateTrend: {
+        labels: [
+            <c:forEach items="${attendanceRateTrend.labels}" var="l" varStatus="loop">
+                "${l}"${!loop.last ? ',' : ''}
+            </c:forEach>
+        ],
+        data: [
+            <c:forEach items="${attendanceRateTrend.data}" var="d" varStatus="loop">
                 ${d}${!loop.last ? ',' : ''}
             </c:forEach>
         ]

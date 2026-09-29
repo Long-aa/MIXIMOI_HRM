@@ -21,6 +21,7 @@ public class Position {
     private long maxSalary;
     private boolean hasKpi;
     private int employeeCount;
+    private int departmentId;
     private String status = "ACTIVE"; // ACTIVE: Đang áp dụng, INACTIVE: Tạm ngưng
 
     public Position() {}
@@ -221,6 +222,19 @@ public class Position {
         return (status != null && !status.trim().isEmpty()) ? status : "ACTIVE";
     }
     public void setStatus(String status) { this.status = status; }
+
+    public int getDepartmentId() {
+        if (departmentId > 0) return departmentId;
+        String n = name != null ? name.toLowerCase() : "";
+        if (n.contains("software") || n.contains("kỹ sư") || n.contains("developer") || n.contains("tech") || n.contains("qa") || n.contains("qc")) return 6;
+        if (n.contains("nhân sự") || n.contains("hr") || n.contains("tuyển dụng") || n.contains("c&b")) return 2;
+        if (n.contains("kế toán") || n.contains("tài chính") || n.contains("thuế")) return 3;
+        if (n.contains("kinh doanh") || n.contains("sales") || n.contains("telesales")) return 4;
+        if (n.contains("marketing") || n.contains("truyền thông") || n.contains("media")) return 5;
+        if (n.contains("giám đốc") || n.contains("hđqt")) return 1;
+        return 0; // Áp dụng chung mọi phòng ban (Trưởng phòng, Phó phòng, Nhân viên, Thực tập sinh)
+    }
+    public void setDepartmentId(int departmentId) { this.departmentId = departmentId; }
 
     @Override
     public String toString() {

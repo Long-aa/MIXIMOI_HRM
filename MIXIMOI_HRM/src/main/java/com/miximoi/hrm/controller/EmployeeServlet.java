@@ -16,13 +16,19 @@ import com.miximoi.hrm.dao.DepartmentDAO;
 import com.miximoi.hrm.dao.EmployeeDAO;
 import com.miximoi.hrm.dao.LeaveDAO;
 import com.miximoi.hrm.dao.PositionDAO;
+import com.miximoi.hrm.dao.RecruitmentDAO;
+import com.miximoi.hrm.dao.UserDAO;
+import com.miximoi.hrm.model.Candidate;
 import com.miximoi.hrm.model.Contract;
 import com.miximoi.hrm.model.Department;
 import com.miximoi.hrm.model.Employee;
 import com.miximoi.hrm.model.LeaveRequest;
 import com.miximoi.hrm.model.Position;
+import com.miximoi.hrm.model.RecruitmentRequest;
+import com.miximoi.hrm.model.User;
 import com.miximoi.hrm.service.EmployeeService;
 import com.miximoi.hrm.util.FileUploadUtil;
+import com.miximoi.hrm.util.PasswordUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -35,20 +41,12 @@ import jakarta.servlet.http.Part;
 
 /**
  * Servlet quản lý nhân viên. URL: /employees
- *
- * GET /employees → danh sách nhân viên GET /employees?action=new → form thêm
- * mới GET /employees?action=edit&id=X → form sửa GET
- * /employees?action=detail&id=X → chi tiết GET /employees?action=export → xuất
- * Excel/CSV GET /employees?action=template → tải file mẫu CSV POST
- * /employees?action=add → thêm nhân viên POST /employees?action=update → cập
- * nhật nhân viên POST /employees?action=delete → vô hiệu hóa nhân viên POST
- * /employees?action=import → nhập nhân viên từ file CSV
  */
 @WebServlet("/employees")
 @MultipartConfig(
         fileSizeThreshold = 1024 * 1024 * 2, // 2MB
         maxFileSize = 1024 * 1024 * 10, // 10MB
-        maxRequestSize = 1024 * 1024 * 20 // 20MB
+        maxRequestSize = 1024 * 1024 * 50 // 50MB
 )
 public class EmployeeServlet extends HttpServlet {
 
@@ -58,6 +56,8 @@ public class EmployeeServlet extends HttpServlet {
     private final PositionDAO positionDAO = new PositionDAO();
     private final ContractDAO contractDAO = new ContractDAO();
     private final LeaveDAO leaveDAO = new LeaveDAO();
+    private final UserDAO userDAO = new UserDAO();
+    private final RecruitmentDAO recruitmentDAO = new RecruitmentDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -80,24 +80,67 @@ public class EmployeeServlet extends HttpServlet {
                 downloadCsvTemplate(response);
                 break;
             case "new":
+            case "create":
+            case "add": {
+                // Tự động điền dữ liệu nếu chuyển từ ứng viên trúng tuyển (1-Click Hire Onboarding)
+                String candIdStr = request.getParameter("candidateId");
+                if (candIdStr != null && !candIdStr.trim().isEmpty()) {
+                    int candId = parseSafeInt(candIdStr, 0);
+                    if (candId > 0) {
+                        Candidate cand = recruitmentDAO.findCandidateById(candId);
+                        if (cand != null) {
+                            Employee prefill = new Employee();
+                            prefill.setFullName(cand.getFullName());
+                            prefill.setEmail(cand.getEmail());
+                            prefill.setPhone(cand.getPhone());
+                            prefill.setResumeUrl(cand.getCvUrl());
+                            if (cand.getRecruitmentRequestId() > 0) {
+                                RecruitmentRequest req = recruitmentDAO.findRequestById(cand.getRecruitmentRequestId());
+                                if (req != null) {
+                                    if (req.getDepartmentId() != null) prefill.setDepartmentId(req.getDepartmentId());
+                                    if (req.getPositionId() != null) prefill.setPositionId(req.getPositionId());
+                                    if (req.getSalaryMin() != null && req.getSalaryMin().compareTo(BigDecimal.ZERO) > 0) {
+                                        prefill.setBaseSalary(req.getSalaryMin());
+                                    }
+                                }
+                            }
+                            if (cand.getExpectedSalary() != null && cand.getExpectedSalary().compareTo(BigDecimal.ZERO) > 0) {
+                                prefill.setBaseSalary(cand.getExpectedSalary());
+                            }
+                            request.setAttribute("employee", prefill);
+                            request.setAttribute("candidateSource", cand);
+                        }
+                    }
+                }
                 prepareFormData(request);
                 request.getRequestDispatcher("/WEB-INF/views/employee/employee-form.jsp")
                         .forward(request, response);
                 break;
+            }
             case "edit": {
-                int id = Integer.parseInt(request.getParameter("id"));
+                int id = parseSafeInt(request.getParameter("id"), 0);
                 Employee emp = employeeService.getById(id);
+                if (emp == null) {
+                    response.sendRedirect(request.getContextPath() + "/employees?error=notfound");
+                    return;
+                }
                 request.setAttribute("employee", emp);
                 Contract latestContract = contractDAO.findLatestByEmployee(id);
                 request.setAttribute("contract", latestContract);
+                User userAccount = userDAO.findByEmployeeId(id);
+                request.setAttribute("userAccount", userAccount);
                 prepareFormData(request);
                 request.getRequestDispatcher("/WEB-INF/views/employee/employee-form.jsp")
                         .forward(request, response);
                 break;
             }
             case "detail": {
-                int id = Integer.parseInt(request.getParameter("id"));
+                int id = parseSafeInt(request.getParameter("id"), 0);
                 Employee emp = employeeService.getById(id);
+                if (emp == null) {
+                    response.sendRedirect(request.getContextPath() + "/employees?error=notfound");
+                    return;
+                }
                 request.setAttribute("employee", emp);
 
                 // Load contracts of this employee
@@ -120,7 +163,7 @@ public class EmployeeServlet extends HttpServlet {
                 }
                 int standardLeaveDays = 12;
                 int seniorityDays = 0;
-                if (emp != null && emp.getStartDate() != null) {
+                if (emp.getStartDate() != null) {
                     long yearsOfService = ChronoUnit.YEARS.between(emp.getStartDate(), LocalDate.now());
                     seniorityDays = (int) (yearsOfService / 5);
                 }
@@ -133,7 +176,7 @@ public class EmployeeServlet extends HttpServlet {
                 request.setAttribute("remainingLeaveDays", remainingLeaveDays);
 
                 long monthsOfService = 0;
-                if (emp != null && emp.getStartDate() != null) {
+                if (emp.getStartDate() != null) {
                     monthsOfService = ChronoUnit.MONTHS.between(emp.getStartDate(), LocalDate.now());
                 }
                 request.setAttribute("monthsOfService", monthsOfService);
@@ -147,8 +190,14 @@ public class EmployeeServlet extends HttpServlet {
                 String deptStr = request.getParameter("departmentId");
                 String posStr = request.getParameter("positionId");
                 String status = request.getParameter("status");
-                Integer deptId = (deptStr != null && !deptStr.isEmpty()) ? Integer.parseInt(deptStr) : null;
-                Integer posId = (posStr != null && !posStr.isEmpty()) ? Integer.parseInt(posStr) : null;
+                Integer deptId = (deptStr != null && !deptStr.isEmpty()) ? parseSafeInt(deptStr, 0) : null;
+                Integer posId = (posStr != null && !posStr.isEmpty()) ? parseSafeInt(posStr, 0) : null;
+                if (deptId != null && deptId == 0) {
+                    deptId = null;
+                }
+                if (posId != null && posId == 0) {
+                    posId = null;
+                }
 
                 List<Employee> allEmployees = employeeService.search(keyword, deptId, posId, status);
                 int totalEmployees = allEmployees != null ? allEmployees.size() : 0;
@@ -157,10 +206,7 @@ public class EmployeeServlet extends HttpServlet {
                 int page = 1;
                 String pageStr = request.getParameter("page");
                 if (pageStr != null && !pageStr.trim().isEmpty()) {
-                    try {
-                        page = Math.max(1, Math.min(Integer.parseInt(pageStr.trim()), totalPages));
-                    } catch (NumberFormatException ignored) {
-                    }
+                    page = Math.max(1, Math.min(parseSafeInt(pageStr.trim(), 1), totalPages));
                 }
                 int fromIndex = (page - 1) * pageSize;
                 int toIndex = Math.min(fromIndex + pageSize, totalEmployees);
@@ -210,22 +256,31 @@ public class EmployeeServlet extends HttpServlet {
             }
             case "add": {
                 Employee emp = bindEmployee(request, new Employee());
-                // Handle file uploads
-                String avatarUrl = saveUpload(request, "avatarFile", "avatars");
-                if (avatarUrl != null) {
-                    emp.setAvatarUrl(avatarUrl);
-                }
-                String cccdFrontUrl = saveUpload(request, "cccdFrontFile", "cccd");
-                if (cccdFrontUrl != null) {
-                    emp.setIdCardFrontUrl(cccdFrontUrl);
-                }
-                String cccdBackUrl = saveUpload(request, "cccdBackFile", "cccd");
-                if (cccdBackUrl != null) {
-                    emp.setIdCardBackUrl(cccdBackUrl);
-                }
-                String resumeUrl = saveUpload(request, "resumeFile", "resumes");
-                if (resumeUrl != null) {
-                    emp.setResumeUrl(resumeUrl);
+                // Handle file uploads (Avatar, CCCD mặt trước/sau, Hồ sơ đính kèm)
+                try {
+                    String avatarUrl = saveUpload(request, "avatarFile", "avatars");
+                    if (avatarUrl != null) {
+                        emp.setAvatarUrl(avatarUrl);
+                    }
+                    String cccdFrontUrl = saveUpload(request, "cccdFrontFile", "cccd");
+                    if (cccdFrontUrl != null) {
+                        emp.setIdCardFrontUrl(cccdFrontUrl);
+                    }
+                    String cccdBackUrl = saveUpload(request, "cccdBackFile", "cccd");
+                    if (cccdBackUrl != null) {
+                        emp.setIdCardBackUrl(cccdBackUrl);
+                    }
+                    String resumeUrl = saveUpload(request, "resumeFile", "resumes");
+                    if (resumeUrl != null) {
+                        emp.setResumeUrl(resumeUrl);
+                    }
+                } catch (IllegalArgumentException ex) {
+                    request.setAttribute("error", ex.getMessage());
+                    request.setAttribute("employee", emp);
+                    prepareFormData(request);
+                    request.getRequestDispatcher("/WEB-INF/views/employee/employee-form.jsp")
+                            .forward(request, response);
+                    return;
                 }
 
                 String error = employeeService.addEmployee(emp);
@@ -251,19 +306,16 @@ public class EmployeeServlet extends HttpServlet {
                             String cType = request.getParameter("contractType");
                             c.setContractType(cType != null && !cType.isEmpty() ? cType : "INDEFINITE");
                             String signDateStr = request.getParameter("contractSignDate");
-                            if (signDateStr != null && !signDateStr.isEmpty()) {
-                                LocalDate sd = LocalDate.parse(signDateStr);
-                                c.setStartDate(sd);
-                                c.setSignedDate(sd);
-                            } else {
-                                LocalDate sd = emp.getStartDate() != null ? emp.getStartDate() : LocalDate.now();
-                                c.setStartDate(sd);
-                                c.setSignedDate(sd);
+                            LocalDate sd = parseFlexibleDate(signDateStr);
+                            if (sd == null) {
+                                sd = emp.getStartDate() != null ? emp.getStartDate() : LocalDate.now();
                             }
+                            c.setStartDate(sd);
+                            c.setSignedDate(sd);
+
                             String endDateStr = request.getParameter("contractEndDate");
-                            if (endDateStr != null && !endDateStr.isEmpty()) {
-                                c.setEndDate(LocalDate.parse(endDateStr));
-                            }
+                            c.setEndDate(parseFlexibleDate(endDateStr));
+
                             if (baseSalaryStr != null && !baseSalaryStr.trim().isEmpty()) {
                                 String cleanSalary = baseSalaryStr.replace(".", "").replace(",", "").trim();
                                 c.setBaseSalary(new BigDecimal(cleanSalary));
@@ -274,15 +326,13 @@ public class EmployeeServlet extends HttpServlet {
                             // Pháp lý Bộ luật Lao động 2019
                             c.setSignerName("Nguyễn Văn An");
                             c.setSignerTitle("Tổng Giám Đốc");
-                            c.setWorkLocation("Trụ sở Công ty Cổ phần Tập đoàn MIXIMOI (Landmark 81, TP.HCM / MIXIMOI Tower Hà Nội)");
+                            String workLoc = request.getParameter("workLocation");
+                            c.setWorkLocation(workLoc != null && !workLoc.trim().isEmpty() ? workLoc.trim() : "Trụ sở Công ty Cổ phần Tập đoàn MIXIMOI (Landmark 81, TP.HCM / MIXIMOI Tower Hà Nội)");
                             c.setJobDescription("Thực hiện các nhiệm vụ chuyên môn theo sự phân công của Ban Lãnh đạo và Trưởng bộ phận.");
 
                             String probationStr = request.getParameter("probationDuration");
                             if (probationStr != null && !probationStr.isEmpty()) {
-                                try {
-                                    c.setProbationMonths(Integer.parseInt(probationStr));
-                                } catch (NumberFormatException ignored) {
-                                }
+                                c.setProbationMonths(parseSafeInt(probationStr, 0));
                             }
                             String rateStr = request.getParameter("probationSalaryRate");
                             if (rateStr != null && !rateStr.isEmpty()) {
@@ -307,11 +357,9 @@ public class EmployeeServlet extends HttpServlet {
                             if (idDateStr == null || idDateStr.isEmpty()) {
                                 idDateStr = request.getParameter("idIssueDate");
                             }
-                            if (idDateStr != null && !idDateStr.isEmpty()) {
-                                try {
-                                    idDate = LocalDate.parse(idDateStr);
-                                } catch (Exception ignored) {
-                                }
+                            LocalDate parsedIdDate = parseFlexibleDate(idDateStr);
+                            if (parsedIdDate != null) {
+                                idDate = parsedIdDate;
                             }
                             c.setIdentityDate(idDate);
 
@@ -325,13 +373,9 @@ public class EmployeeServlet extends HttpServlet {
                             c.setIdentityPlace(idPlace);
 
                             // Lưu file đính kèm hợp đồng nếu có upload
-                            try {
-                                Part filePart = request.getPart("contractFile");
-                                String savedFileUrl = FileUploadUtil.saveFile(filePart, "contracts", request);
-                                if (savedFileUrl != null) {
-                                    c.setContractFileUrl(savedFileUrl);
-                                }
-                            } catch (Exception ignored) {
+                            String contractFileUrl = saveUpload(request, "contractFile", "contracts");
+                            if (contractFileUrl != null) {
+                                c.setContractFileUrl(contractFileUrl);
                             }
 
                             c.setStatus("ACTIVE");
@@ -346,6 +390,41 @@ public class EmployeeServlet extends HttpServlet {
                             System.err.println("EmployeeServlet: Không thể lưu Hợp đồng tự động: " + ex.getMessage());
                         }
                     }
+
+                    // Tự động kích hoạt tài khoản SSO người dùng
+                    String ssoUser = request.getParameter("ssoUsername");
+                    if (ssoUser == null || ssoUser.trim().isEmpty()) {
+                        String compEmail = request.getParameter("companyEmail");
+                        if (compEmail != null && compEmail.contains("@")) {
+                            ssoUser = compEmail.substring(0, compEmail.indexOf('@')).trim();
+                        } else if (request.getParameter("companyEmailPrefix") != null && !request.getParameter("companyEmailPrefix").trim().isEmpty()) {
+                            ssoUser = request.getParameter("companyEmailPrefix").trim();
+                        } else {
+                            ssoUser = emp.getEmployeeCode().toLowerCase();
+                        }
+                    }
+                    if (ssoUser != null && !ssoUser.trim().isEmpty() && emp.getId() > 0) {
+                        try {
+                            User existing = userDAO.findByUsername(ssoUser.trim());
+                            if (existing == null) {
+                                User u = new User();
+                                u.setUsername(ssoUser.trim());
+                                u.setPassword(PasswordUtil.hash("123456"));
+                                String role = "EMPLOYEE";
+                                if (emp.getPositionId() == 1 || emp.getPositionId() == 2) role = "ADMIN";
+                                else if (emp.getPositionId() == 3) role = "MANAGER";
+                                else if (emp.getDepartmentId() == 2) role = "HR";
+                                else if (emp.getDepartmentId() == 3) role = "ACCOUNTANT";
+                                u.setRole(role);
+                                u.setEmployeeId(emp.getId());
+                                u.setActive(true);
+                                userDAO.insert(u);
+                            }
+                        } catch (Exception ex) {
+                            System.err.println("EmployeeServlet: Không thể tạo tài khoản người dùng: " + ex.getMessage());
+                        }
+                    }
+
                     String redirectUrl = request.getContextPath() + "/employees?success=added"
                             + (createdContractId > 0 ? ("&contractId=" + createdContractId) : "");
                     response.sendRedirect(redirectUrl);
@@ -353,31 +432,48 @@ public class EmployeeServlet extends HttpServlet {
                 break;
             }
             case "update": {
-                int id = Integer.parseInt(request.getParameter("id"));
+                int id = parseSafeInt(request.getParameter("id"), 0);
                 Employee emp = employeeService.getById(id);
+                if (emp == null) {
+                    response.sendRedirect(request.getContextPath() + "/employees?error=notfound");
+                    return;
+                }
                 bindEmployee(request, emp);
                 // Handle file uploads (only update if new file provided)
-                String avatarUrl = saveUpload(request, "avatarFile", "avatars");
-                if (avatarUrl != null) {
-                    emp.setAvatarUrl(avatarUrl);
-                }
-                String cccdFrontUrl = saveUpload(request, "cccdFrontFile", "cccd");
-                if (cccdFrontUrl != null) {
-                    emp.setIdCardFrontUrl(cccdFrontUrl);
-                }
-                String cccdBackUrl = saveUpload(request, "cccdBackFile", "cccd");
-                if (cccdBackUrl != null) {
-                    emp.setIdCardBackUrl(cccdBackUrl);
-                }
-                String resumeUrl = saveUpload(request, "resumeFile", "resumes");
-                if (resumeUrl != null) {
-                    emp.setResumeUrl(resumeUrl);
+                try {
+                    String avatarUrl = saveUpload(request, "avatarFile", "avatars");
+                    if (avatarUrl != null) {
+                        emp.setAvatarUrl(avatarUrl);
+                    }
+                    String cccdFrontUrl = saveUpload(request, "cccdFrontFile", "cccd");
+                    if (cccdFrontUrl != null) {
+                        emp.setIdCardFrontUrl(cccdFrontUrl);
+                    }
+                    String cccdBackUrl = saveUpload(request, "cccdBackFile", "cccd");
+                    if (cccdBackUrl != null) {
+                        emp.setIdCardBackUrl(cccdBackUrl);
+                    }
+                    String resumeUrl = saveUpload(request, "resumeFile", "resumes");
+                    if (resumeUrl != null) {
+                        emp.setResumeUrl(resumeUrl);
+                    }
+                } catch (IllegalArgumentException ex) {
+                    request.setAttribute("error", ex.getMessage());
+                    request.setAttribute("employee", emp);
+                    Contract latestContract = contractDAO.findLatestByEmployee(emp.getId());
+                    request.setAttribute("contract", latestContract);
+                    prepareFormData(request);
+                    request.getRequestDispatcher("/WEB-INF/views/employee/employee-form.jsp")
+                            .forward(request, response);
+                    return;
                 }
 
                 String error = employeeService.updateEmployee(emp);
                 if (error != null) {
                     request.setAttribute("error", error);
                     request.setAttribute("employee", emp);
+                    Contract latestContract = contractDAO.findLatestByEmployee(emp.getId());
+                    request.setAttribute("contract", latestContract);
                     prepareFormData(request);
                     request.getRequestDispatcher("/WEB-INF/views/employee/employee-form.jsp")
                             .forward(request, response);
@@ -399,23 +495,22 @@ public class EmployeeServlet extends HttpServlet {
                                 c.setJobDescription("Thực hiện nhiệm vụ chuyên môn được phân công");
                                 c.setAllowanceAmount(new BigDecimal("2500000"));
                                 isNew = true;
+                            } else {
+                                c.setContractCode(contractCode.trim());
                             }
                             String cType = request.getParameter("contractType");
                             if (cType != null && !cType.isEmpty()) {
                                 c.setContractType(cType);
                             }
                             String signDateStr = request.getParameter("contractSignDate");
-                            if (signDateStr != null && !signDateStr.isEmpty()) {
-                                LocalDate sd = LocalDate.parse(signDateStr);
+                            LocalDate sd = parseFlexibleDate(signDateStr);
+                            if (sd != null) {
                                 c.setStartDate(sd);
                                 c.setSignedDate(sd);
                             }
                             String endDateStr = request.getParameter("contractEndDate");
-                            if (endDateStr != null && !endDateStr.isEmpty()) {
-                                c.setEndDate(LocalDate.parse(endDateStr));
-                            } else {
-                                c.setEndDate(null);
-                            }
+                            c.setEndDate(parseFlexibleDate(endDateStr));
+
                             if (emp.getBaseSalary() != null) {
                                 c.setBaseSalary(emp.getBaseSalary());
                             }
@@ -425,6 +520,14 @@ public class EmployeeServlet extends HttpServlet {
                                     c.setProbationSalaryPct(new BigDecimal(probRateStr));
                                 } catch (Exception ignored) {
                                 }
+                            }
+                            String probationDurationStr = request.getParameter("probationDuration");
+                            if (probationDurationStr != null && !probationDurationStr.isEmpty()) {
+                                c.setProbationMonths(parseSafeInt(probationDurationStr, 0));
+                            }
+                            String workLoc = request.getParameter("workLocation");
+                            if (workLoc != null && !workLoc.trim().isEmpty()) {
+                                c.setWorkLocation(workLoc);
                             }
                             if (c.getSignerName() == null || c.getSignerName().isEmpty()) {
                                 c.setSignerName("Nguyễn Văn An");
@@ -441,13 +544,10 @@ public class EmployeeServlet extends HttpServlet {
                             c.setIdentityNumber(emp.getIdentityNumber());
                             c.setIdentityDate(emp.getIdentityDate());
                             c.setIdentityPlace(emp.getIdentityPlace());
-                            try {
-                                Part filePart = request.getPart("contractFile");
-                                String savedFileUrl = FileUploadUtil.saveFile(filePart, "contracts", request);
-                                if (savedFileUrl != null) {
-                                    c.setContractFileUrl(savedFileUrl);
-                                }
-                            } catch (Exception ignored) {
+                            
+                            String contractFileUrl = saveUpload(request, "contractFile", "contracts");
+                            if (contractFileUrl != null) {
+                                c.setContractFileUrl(contractFileUrl);
                             }
 
                             if (isNew) {
@@ -459,13 +559,26 @@ public class EmployeeServlet extends HttpServlet {
                             System.err.println("EmployeeServlet: Lỗi đồng bộ HĐ khi update: " + ex.getMessage());
                         }
                     }
+
+                    // Cập nhật tài khoản người dùng liên kết nếu có
+                    try {
+                        User existingUser = userDAO.findByEmployeeId(emp.getId());
+                        if (existingUser != null) {
+                            userDAO.updateUserProfile(existingUser.getId(), emp.getId(), emp.getFullName(), emp.getEmail(), emp.getPhone());
+                        }
+                    } catch (Exception ex) {
+                        System.err.println("EmployeeServlet: Không thể đồng bộ tài khoản người dùng: " + ex.getMessage());
+                    }
+
                     response.sendRedirect(request.getContextPath() + "/employees?success=updated");
                 }
                 break;
             }
             case "delete": {
-                int id = Integer.parseInt(request.getParameter("id"));
-                employeeService.deactivate(id);
+                int id = parseSafeInt(request.getParameter("id"), 0);
+                if (id > 0) {
+                    employeeService.deactivate(id);
+                }
                 response.sendRedirect(request.getContextPath() + "/employees?success=deleted");
                 break;
             }
@@ -475,12 +588,14 @@ public class EmployeeServlet extends HttpServlet {
                 if (idsArr != null && idsArr.length > 0) {
                     java.util.List<Integer> ids = new java.util.ArrayList<>();
                     for (String sid : idsArr) {
-                        try {
-                            ids.add(Integer.parseInt(sid.trim()));
-                        } catch (NumberFormatException ignored) {
+                        int parsedId = parseSafeInt(sid, 0);
+                        if (parsedId > 0) {
+                            ids.add(parsedId);
                         }
                     }
-                    count = employeeDAO.deactivateBulk(ids);
+                    if (!ids.isEmpty()) {
+                        count = employeeDAO.deactivateBulk(ids);
+                    }
                 }
                 response.sendRedirect(request.getContextPath() + "/employees?success=deleted&count=" + count);
                 break;
@@ -491,9 +606,9 @@ public class EmployeeServlet extends HttpServlet {
                 if (idsArr != null && idsArr.length > 0) {
                     java.util.List<Integer> ids = new java.util.ArrayList<>();
                     for (String sid : idsArr) {
-                        try {
-                            ids.add(Integer.parseInt(sid.trim()));
-                        } catch (NumberFormatException ignored) {
+                        int parsedId = parseSafeInt(sid, 0);
+                        if (parsedId > 0) {
+                            ids.add(parsedId);
                         }
                     }
                     list = employeeDAO.findByIds(ids);
@@ -502,8 +617,14 @@ public class EmployeeServlet extends HttpServlet {
                     String deptStr = request.getParameter("departmentId");
                     String posStr = request.getParameter("positionId");
                     String status = request.getParameter("status");
-                    Integer deptId = (deptStr != null && !deptStr.isEmpty()) ? Integer.parseInt(deptStr) : null;
-                    Integer posId = (posStr != null && !posStr.isEmpty()) ? Integer.parseInt(posStr) : null;
+                    Integer deptId = (deptStr != null && !deptStr.isEmpty()) ? parseSafeInt(deptStr, 0) : null;
+                    Integer posId = (posStr != null && !posStr.isEmpty()) ? parseSafeInt(posStr, 0) : null;
+                    if (deptId != null && deptId == 0) {
+                        deptId = null;
+                    }
+                    if (posId != null && posId == 0) {
+                        posId = null;
+                    }
                     list = employeeService.search(keyword, deptId, posId, status);
                 }
                 exportListToCsv(response, list);
@@ -520,8 +641,14 @@ public class EmployeeServlet extends HttpServlet {
         String deptStr = request.getParameter("departmentId");
         String posStr = request.getParameter("positionId");
         String status = request.getParameter("status");
-        Integer deptId = (deptStr != null && !deptStr.isEmpty()) ? Integer.parseInt(deptStr) : null;
-        Integer posId = (posStr != null && !posStr.isEmpty()) ? Integer.parseInt(posStr) : null;
+        Integer deptId = (deptStr != null && !deptStr.isEmpty()) ? parseSafeInt(deptStr, 0) : null;
+        Integer posId = (posStr != null && !posStr.isEmpty()) ? parseSafeInt(posStr, 0) : null;
+        if (deptId != null && deptId == 0) {
+            deptId = null;
+        }
+        if (posId != null && posId == 0) {
+            posId = null;
+        }
         exportListToCsv(response, employeeService.search(keyword, deptId, posId, status));
     }
 
@@ -537,43 +664,45 @@ public class EmployeeServlet extends HttpServlet {
         PrintWriter writer = new PrintWriter(response.getOutputStream(), false, StandardCharsets.UTF_8);
         writer.println("Mã nhân viên,Họ và tên,Email,Số điện thoại,Giới tính,Ngày sinh,Phòng ban,Chức vụ,Loại hình nhân sự,Ngày vào làm,Trạng thái");
 
-        for (Employee emp : list) {
-            String gender = "Khác";
-            if ("MALE".equalsIgnoreCase(emp.getGender())) {
-                gender = "Nam"; 
-            }else if ("FEMALE".equalsIgnoreCase(emp.getGender())) {
-                gender = "Nữ";
-            }
+        if (list != null) {
+            for (Employee emp : list) {
+                String gender = "Khác";
+                if ("MALE".equalsIgnoreCase(emp.getGender())) {
+                    gender = "Nam";
+                } else if ("FEMALE".equalsIgnoreCase(emp.getGender())) {
+                    gender = "Nữ";
+                }
 
-            String empType = "Chính thức";
-            if (emp.getEmployeeTypeId() == 2) {
-                empType = "Thử việc"; 
-            }else if (emp.getEmployeeTypeId() == 3) {
-                empType = "Thời vụ"; 
-            }else if (emp.getEmployeeTypeId() == 4) {
-                empType = "Cộng tác viên";
-            }
+                String empType = "Chính thức";
+                if (emp.getEmployeeTypeId() == 2) {
+                    empType = "Thử việc";
+                } else if (emp.getEmployeeTypeId() == 3) {
+                    empType = "Thời vụ";
+                } else if (emp.getEmployeeTypeId() == 4) {
+                    empType = "Cộng tác viên";
+                }
 
-            String st = "Đang làm việc";
-            if ("ON_LEAVE".equalsIgnoreCase(emp.getStatus())) {
-                st = "Nghỉ tạm thời"; 
-            }else if ("INACTIVE".equalsIgnoreCase(emp.getStatus())) {
-                st = "Đã nghỉ việc";
-            }
+                String st = "Đang làm việc";
+                if ("ON_LEAVE".equalsIgnoreCase(emp.getStatus())) {
+                    st = "Nghỉ tạm thời";
+                } else if ("INACTIVE".equalsIgnoreCase(emp.getStatus())) {
+                    st = "Đã nghỉ việc";
+                }
 
-            writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
-                    escapeCsv(emp.getEmployeeCode()),
-                    escapeCsv(emp.getFullName()),
-                    escapeCsv(emp.getEmail()),
-                    escapeCsv(emp.getPhone()),
-                    escapeCsv(gender),
-                    emp.getDateOfBirth() != null ? emp.getDateOfBirth().toString() : "",
-                    escapeCsv(emp.getDepartmentName()),
-                    escapeCsv(emp.getPositionName()),
-                    escapeCsv(empType),
-                    emp.getStartDate() != null ? emp.getStartDate().toString() : "",
-                    escapeCsv(st)
-            );
+                writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                        escapeCsv(emp.getEmployeeCode()),
+                        escapeCsv(emp.getFullName()),
+                        escapeCsv(emp.getEmail()),
+                        escapeCsv(emp.getPhone()),
+                        escapeCsv(gender),
+                        emp.getDateOfBirth() != null ? emp.getDateOfBirth().toString() : "",
+                        escapeCsv(emp.getDepartmentName()),
+                        escapeCsv(emp.getPositionName()),
+                        escapeCsv(empType),
+                        emp.getStartDate() != null ? emp.getStartDate().toString() : "",
+                        escapeCsv(st)
+                );
+            }
         }
         writer.flush();
     }
@@ -583,7 +712,6 @@ public class EmployeeServlet extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
         response.setHeader("Content-Disposition", "attachment; filename=\"mau_nhap_nhan_vien.csv\"");
 
-        // Write UTF-8 BOM
         response.getOutputStream().write(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
 
         PrintWriter writer = new PrintWriter(response.getOutputStream(), false, StandardCharsets.UTF_8);
@@ -675,10 +803,10 @@ public class EmployeeServlet extends HttpServlet {
 
                 String gLower = genderStr.toLowerCase();
                 if (gLower.contains("nữ") || gLower.contains("female")) {
-                    emp.setGender("FEMALE"); 
-                }else if (gLower.contains("khác") || gLower.contains("other")) {
-                    emp.setGender("OTHER"); 
-                }else {
+                    emp.setGender("FEMALE");
+                } else if (gLower.contains("khác") || gLower.contains("other")) {
+                    emp.setGender("OTHER");
+                } else {
                     emp.setGender("MALE");
                 }
 
@@ -780,6 +908,17 @@ public class EmployeeServlet extends HttpServlet {
         return null;
     }
 
+    private int parseSafeInt(String str, int defaultValue) {
+        if (str == null || str.trim().isEmpty()) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(str.trim());
+        } catch (NumberFormatException ex) {
+            return defaultValue;
+        }
+    }
+
     private int matchDepartment(String nameOrId, List<Department> departments) {
         try {
             int id = Integer.parseInt(nameOrId);
@@ -828,10 +967,6 @@ public class EmployeeServlet extends HttpServlet {
     }
 
     // ===== Helpers =====
-    /**
-     * Lưu file upload một cách tập trung. File rỗng/không được chọn sẽ được bỏ
-     * qua; lỗi thật được ghi log thay vì bị nuốt im lặng như phiên bản cũ.
-     */
     private String saveUpload(HttpServletRequest request, String fieldName, String folder) {
         try {
             Part part = request.getPart(fieldName);
@@ -848,9 +983,10 @@ public class EmployeeServlet extends HttpServlet {
 
             System.out.println("EmployeeServlet: uploaded " + fieldName + " -> " + url);
             return url;
+        } catch (IllegalArgumentException ex) {
+            throw ex;
         } catch (Exception ex) {
             System.err.println("EmployeeServlet: upload lỗi [" + fieldName + "]: " + ex.getMessage());
-            ex.printStackTrace();
             return null;
         }
     }
@@ -881,9 +1017,8 @@ public class EmployeeServlet extends HttpServlet {
         emp.setEmployeeCode(empCode.trim());
 
         String dob = req.getParameter("dateOfBirth");
-        if (dob != null && !dob.isEmpty()) {
-            emp.setDateOfBirth(LocalDate.parse(dob));
-        }
+        emp.setDateOfBirth(parseFlexibleDate(dob));
+
         emp.setGender(req.getParameter("gender") != null ? req.getParameter("gender") : "MALE");
         String rawPhone = req.getParameter("phone");
         if (rawPhone != null) {
@@ -904,53 +1039,56 @@ public class EmployeeServlet extends HttpServlet {
         emp.setEthnicity(req.getParameter("ethnicity"));
         emp.setReligion(req.getParameter("religion"));
         emp.setMaritalStatus(req.getParameter("maritalStatus"));
-        // Preserve existing avatarUrl if no new file and no explicit URL provided
+
         String avatarUrlParam = req.getParameter("avatarUrl");
-        if (avatarUrlParam != null && !avatarUrlParam.trim().isEmpty()) {
-            emp.setAvatarUrl(avatarUrlParam.trim());
+        if (avatarUrlParam != null) {
+            emp.setAvatarUrl(avatarUrlParam.trim().isEmpty() ? null : avatarUrlParam.trim());
         }
-        // (If empty, the file upload handler below will overwrite if a new file was uploaded)
+        String idFrontParam = req.getParameter("idCardFrontUrl");
+        if (idFrontParam != null) {
+            emp.setIdCardFrontUrl(idFrontParam.trim().isEmpty() ? null : idFrontParam.trim());
+        }
+        String idBackParam = req.getParameter("idCardBackUrl");
+        if (idBackParam != null) {
+            emp.setIdCardBackUrl(idBackParam.trim().isEmpty() ? null : idBackParam.trim());
+        }
+        String resumeUrlParam = req.getParameter("resumeUrl");
+        if (resumeUrlParam != null) {
+            emp.setResumeUrl(resumeUrlParam.trim().isEmpty() ? null : resumeUrlParam.trim());
+        }
 
         // CCCD / Giấy tờ tùy thân
         emp.setIdentityNumber(req.getParameter("identityNumber"));
         String idDate = req.getParameter("identityDate");
-        if (idDate != null && !idDate.isEmpty()) {
-            try {
-                emp.setIdentityDate(LocalDate.parse(idDate));
-            } catch (Exception ignored) {
-            }
-        }
+        emp.setIdentityDate(parseFlexibleDate(idDate));
         emp.setIdentityPlace(req.getParameter("identityPlace"));
 
         String deptId = req.getParameter("departmentId");
         if (deptId != null && !deptId.isEmpty()) {
-            emp.setDepartmentId(Integer.parseInt(deptId));
+            emp.setDepartmentId(parseSafeInt(deptId, 0));
         }
         String posId = req.getParameter("positionId");
         if (posId != null && !posId.isEmpty()) {
-            emp.setPositionId(Integer.parseInt(posId));
+            emp.setPositionId(parseSafeInt(posId, 0));
         }
         String typeId = req.getParameter("employeeTypeId");
         if (typeId != null && !typeId.isEmpty()) {
-            emp.setEmployeeTypeId(Integer.parseInt(typeId)); 
-        }else if (emp.getEmployeeTypeId() <= 0) {
+            emp.setEmployeeTypeId(parseSafeInt(typeId, 1));
+        } else if (emp.getEmployeeTypeId() <= 0) {
             emp.setEmployeeTypeId(1);
         }
 
         String sd = req.getParameter("startDate");
-        if (sd != null && !sd.isEmpty()) {
-            emp.setStartDate(LocalDate.parse(sd)); 
-        }else if (emp.getStartDate() == null) {
+        LocalDate parsedSd = parseFlexibleDate(sd);
+        if (parsedSd != null) {
+            emp.setStartDate(parsedSd);
+        } else if (emp.getStartDate() == null) {
             emp.setStartDate(LocalDate.now());
         }
 
         String endDate = req.getParameter("endDate");
-        if (endDate != null && !endDate.isEmpty()) {
-            try {
-                emp.setEndDate(LocalDate.parse(endDate));
-            } catch (Exception ignored) {
-            }
-        }
+        emp.setEndDate(parseFlexibleDate(endDate));
+
         emp.setTerminationReason(req.getParameter("terminationReason"));
 
         String st = req.getParameter("status");
@@ -975,6 +1113,13 @@ public class EmployeeServlet extends HttpServlet {
         emp.setEmergencyContactName(req.getParameter("emergencyContactName"));
         emp.setEmergencyContactPhone(req.getParameter("emergencyContactPhone"));
         emp.setEmergencyContactRelation(req.getParameter("emergencyContactRelation"));
+
+        // Công việc & Định biên
+        emp.setWorkLocation(req.getParameter("workLocation"));
+        emp.setEmployeeLevel(req.getParameter("employeeLevel"));
+        emp.setSecondaryPhone(req.getParameter("secondaryPhone"));
+        emp.setLineManager(req.getParameter("lineManager"));
+        emp.setMentorName(req.getParameter("mentorName"));
 
         return emp;
     }

@@ -1,1201 +1,1148 @@
 /**
- * MIXIMOI HRM — EMPLOYEE ONBOARDING WIZARD SCRIPTS (employee-form.js)
+ * MIXIMOI HRM — EMPLOYEE ONBOARDING & EDIT WIZARD (employee-form.js)
+ * Gộp toàn bộ tính năng hoàn chỉnh: Điều hướng 4 bước, kiểm tra hợp lệ,
+ * tự động sinh mã/BHXH/MST, quản trị định biên phòng ban & chức vụ,
+ * tính toán lương & phúc lợi Net/Gross, upload & kéo thả tệp, lưu nháp tự động.
  */
-// =========================================================================
+(function () {
+    'use strict';
+
+    // =========================================================================
     // 1. DATA DICTIONARY: DEPARTMENT QUOTAS & SUITABLE POSITIONS
     // =========================================================================
-    // Quota definition for each department and its matching professional positions
     const DEPARTMENT_DATA = {
-        "1": { // Ban Giám đốc
+        "1": {
             name: "Ban Giám đốc",
             desc: "Lãnh đạo và điều hành toàn diện chiến lược tập đoàn",
             targetCount: 4,
             currentCount: 3,
             manager: "Nguyễn Văn An (NV001) - Tổng Giám đốc",
             positions: [
-                { id: 1, name: "Giám đốc", quota: 2, current: 1, vacant: 1, level: "L5", defaultSalary: "50.000.000", salaryRange: "45.000.000 – 70.000.000 VNĐ" },
-                { id: 2, name: "Phó Giám đốc", quota: 2, current: 1, vacant: 1, level: "L5", defaultSalary: "40.000.000", salaryRange: "35.000.000 – 50.000.000 VNĐ" },
-                { id: 3, name: "Trưởng phòng (Văn phòng HĐQT)", quota: 1, current: 0, vacant: 1, level: "L4", defaultSalary: "30.000.000", salaryRange: "25.000.000 – 35.000.000 VNĐ" }
+                { id: 1, name: "Giám đốc", level: "L5", defaultSalary: "50.000.000" },
+                { id: 2, name: "Phó Giám đốc", level: "L5", defaultSalary: "40.000.000" },
+                { id: 3, name: "Trưởng phòng (Văn phòng HĐQT)", level: "L4", defaultSalary: "30.000.000" }
             ]
         },
-        "2": { // Phòng Nhân sự
+        "2": {
             name: "Phòng Nhân sự (HR & Tuyển dụng)",
             desc: "Quản trị nguồn nhân lực, tuyển dụng, đào tạo & C&B",
             targetCount: 5,
             currentCount: 2,
             manager: "Trần Thị Bình (NV002) - Trưởng phòng Nhân sự",
             positions: [
-                { id: 3, name: "Trưởng phòng Nhân sự", quota: 1, current: 1, vacant: 0, level: "L4", defaultSalary: "35.000.000", salaryRange: "30.000.000 – 40.000.000 VNĐ" },
-                { id: 4, name: "Phó phòng Nhân sự", quota: 1, current: 0, vacant: 1, level: "L3", defaultSalary: "26.000.000", salaryRange: "22.000.000 – 30.000.000 VNĐ" },
-                { id: 8, name: "Chuyên viên HR (C&B / Tuyển dụng)", quota: 3, current: 1, vacant: 2, level: "L2", defaultSalary: "18.000.000", salaryRange: "15.000.000 – 22.000.000 VNĐ" },
-                { id: 5, name: "Nhân viên Nhân sự", quota: 2, current: 0, vacant: 2, level: "L1", defaultSalary: "12.000.000", salaryRange: "10.000.000 – 14.000.000 VNĐ" },
-                { id: 6, name: "Thực tập sinh HR", quota: 2, current: 0, vacant: 2, level: "L1", defaultSalary: "6.000.000", salaryRange: "5.000.000 – 7.000.000 VNĐ" }
+                { id: 3, name: "Trưởng phòng Nhân sự", level: "L4", defaultSalary: "35.000.000" },
+                { id: 4, name: "Phó phòng Nhân sự", level: "L3", defaultSalary: "26.000.000" },
+                { id: 8, name: "Chuyên viên HR (C&B / Tuyển dụng)", level: "L2", defaultSalary: "18.000.000" },
+                { id: 5, name: "Nhân viên Nhân sự", level: "L1", defaultSalary: "12.000.000" },
+                { id: 6, name: "Thực tập sinh HR", level: "L1", defaultSalary: "6.000.000" }
             ]
         },
-        "3": { // Phòng Kế toán
+        "3": {
             name: "Phòng Kế toán (Tài chính & Kế toán)",
             desc: "Quản trị dòng tiền, thuế, kế toán doanh nghiệp & báo cáo tài chính",
             targetCount: 6,
             currentCount: 3,
             manager: "Lê Văn Cường (NV003) - Kế toán trưởng",
             positions: [
-                { id: 3, name: "Trưởng phòng Kế toán (Kế toán trưởng)", quota: 1, current: 1, vacant: 0, level: "L4", defaultSalary: "35.000.000", salaryRange: "30.000.000 – 45.000.000 VNĐ" },
-                { id: 4, name: "Phó phòng Kế toán", quota: 1, current: 1, vacant: 0, level: "L3", defaultSalary: "25.000.000", salaryRange: "20.000.000 – 28.000.000 VNĐ" },
-                { id: 9, name: "Kế toán viên (Tổng hợp / Thuế / Công nợ)", quota: 4, current: 1, vacant: 3, level: "L2", defaultSalary: "18.000.000", salaryRange: "14.000.000 – 22.000.000 VNĐ" },
-                { id: 5, name: "Nhân viên Kế toán kho", quota: 2, current: 0, vacant: 2, level: "L1", defaultSalary: "12.000.000", salaryRange: "10.000.000 – 14.000.000 VNĐ" },
-                { id: 6, name: "Thực tập sinh Kế toán", quota: 2, current: 0, vacant: 2, level: "L1", defaultSalary: "6.000.000", salaryRange: "5.000.000 – 7.000.000 VNĐ" }
+                { id: 3, name: "Trưởng phòng Kế toán (Kế toán trưởng)", level: "L4", defaultSalary: "35.000.000" },
+                { id: 4, name: "Phó phòng Kế toán", level: "L3", defaultSalary: "25.000.000" },
+                { id: 9, name: "Kế toán viên (Tổng hợp / Thuế / Công nợ)", level: "L2", defaultSalary: "18.000.000" },
+                { id: 5, name: "Nhân viên Kế toán kho", level: "L1", defaultSalary: "12.000.000" },
+                { id: 6, name: "Thực tập sinh Kế toán", level: "L1", defaultSalary: "6.000.000" }
             ]
         },
-        "4": { // Phòng Kinh doanh
+        "4": {
             name: "Phòng Kinh doanh (Sales & Khách hàng)",
             desc: "Phát triển thị trường, bán hàng B2B/B2C và chăm sóc khách hàng",
             targetCount: 10,
             currentCount: 2,
             manager: "Phạm Thị Dung (NV004) - Giám đốc Kinh doanh",
             positions: [
-                { id: 3, name: "Trưởng phòng Kinh doanh", quota: 1, current: 0, vacant: 1, level: "L4", defaultSalary: "32.000.000", salaryRange: "28.000.000 – 40.000.000 VNĐ" },
-                { id: 4, name: "Phó phòng Kinh doanh", quota: 1, current: 0, vacant: 1, level: "L3", defaultSalary: "24.000.000", salaryRange: "20.000.000 – 28.000.000 VNĐ" },
-                { id: 10, name: "Chuyên viên kinh doanh (Senior Sales)", quota: 8, current: 1, vacant: 7, level: "L2", defaultSalary: "18.000.000", salaryRange: "15.000.000 – 25.000.000 VNĐ" },
-                { id: 5, name: "Nhân viên Telesales / CSKH", quota: 4, current: 0, vacant: 4, level: "L1", defaultSalary: "12.000.000", salaryRange: "10.000.000 – 15.000.000 VNĐ" },
-                { id: 6, name: "Thực tập sinh Kinh doanh", quota: 3, current: 0, vacant: 3, level: "L1", defaultSalary: "6.000.000", salaryRange: "5.000.000 – 8.000.000 VNĐ" }
+                { id: 3, name: "Trưởng phòng Kinh doanh", level: "L4", defaultSalary: "32.000.000" },
+                { id: 4, name: "Phó phòng Kinh doanh", level: "L3", defaultSalary: "24.000.000" },
+                { id: 10, name: "Chuyên viên kinh doanh (Senior Sales)", level: "L2", defaultSalary: "18.000.000" },
+                { id: 5, name: "Nhân viên Telesales / CSKH", level: "L1", defaultSalary: "12.000.000" },
+                { id: 6, name: "Thực tập sinh Kinh doanh", level: "L1", defaultSalary: "6.000.000" }
             ]
         },
-        "5": { // Phòng Marketing
+        "5": {
             name: "Phòng Marketing (Truyền thông & Thương hiệu)",
             desc: "Quảng bá thương hiệu, tiếp thị số, tổ chức sự kiện & Media",
             targetCount: 6,
             currentCount: 1,
             manager: "Hoàng Văn Em (NV005) - Trưởng phòng Marketing",
             positions: [
-                { id: 3, name: "Trưởng phòng Marketing (CMO)", quota: 1, current: 0, vacant: 1, level: "L4", defaultSalary: "35.000.000", salaryRange: "30.000.000 – 45.000.000 VNĐ" },
-                { id: 4, name: "Phó phòng Marketing", quota: 1, current: 0, vacant: 1, level: "L3", defaultSalary: "25.000.000", salaryRange: "20.000.000 – 30.000.000 VNĐ" },
-                { id: 5, name: "Chuyên viên Digital Marketing / Content", quota: 4, current: 1, vacant: 3, level: "L2", defaultSalary: "18.000.000", salaryRange: "15.000.000 – 22.000.000 VNĐ" },
-                { id: 6, name: "Thực tập sinh Marketing / Design", quota: 2, current: 0, vacant: 2, level: "L1", defaultSalary: "6.000.000", salaryRange: "5.000.000 – 8.000.000 VNĐ" }
+                { id: 3, name: "Trưởng phòng Marketing (CMO)", level: "L4", defaultSalary: "35.000.000" },
+                { id: 4, name: "Phó phòng Marketing", level: "L3", defaultSalary: "25.000.000" },
+                { id: 5, name: "Chuyên viên Digital Marketing / Content", level: "L2", defaultSalary: "18.000.000" },
+                { id: 6, name: "Thực tập sinh Marketing / Design", level: "L1", defaultSalary: "6.000.000" }
             ]
         },
-        "6": { // Phòng Kỹ thuật
+        "6": {
             name: "Phòng Kỹ thuật (Công nghệ thông tin & R&D)",
             desc: "Phát triển và duy trì hệ sinh thái sản phẩm công nghệ MIXIMOI",
             targetCount: 15,
             currentCount: 4,
             manager: "Lê Hoàng Nam (NV002) - Giám đốc Công nghệ (CTO)",
             positions: [
-                { id: 3, name: "Trưởng phòng Kỹ thuật (Technical Lead)", quota: 1, current: 0, vacant: 1, level: "L4", defaultSalary: "40.000.000", salaryRange: "35.000.000 – 50.000.000 VNĐ" },
-                { id: 4, name: "Phó phòng Kỹ thuật", quota: 1, current: 0, vacant: 1, level: "L3", defaultSalary: "32.000.000", salaryRange: "28.000.000 – 38.000.000 VNĐ" },
-                { id: 7, name: "Kỹ sư phần mềm (Backend/Frontend/Fullstack)", quota: 10, current: 3, vacant: 7, level: "L3", defaultSalary: "28.500.000", salaryRange: "22.000.000 – 35.000.000 VNĐ" },
-                { id: 5, name: "Kỹ sư QA / QC Tester", quota: 3, current: 0, vacant: 3, level: "L2", defaultSalary: "18.000.000", salaryRange: "15.000.000 – 22.000.000 VNĐ" },
-                { id: 6, name: "Thực tập sinh Lập trình viên (Fresher/Intern)", quota: 3, current: 1, vacant: 2, level: "L1", defaultSalary: "8.000.000", salaryRange: "6.000.000 – 10.000.000 VNĐ" }
+                { id: 3, name: "Trưởng phòng Kỹ thuật (Technical Lead)", level: "L4", defaultSalary: "40.000.000" },
+                { id: 4, name: "Phó phòng Kỹ thuật", level: "L3", defaultSalary: "32.000.000" },
+                { id: 7, name: "Kỹ sư phần mềm (Backend/Frontend/Fullstack)", level: "L3", defaultSalary: "28.500.000" },
+                { id: 5, name: "Kỹ sư QA / QC Tester", level: "L2", defaultSalary: "18.000.000" },
+                { id: 6, name: "Thực tập sinh Lập trình viên (Fresher/Intern)", level: "L1", defaultSalary: "8.000.000" }
             ]
         }
     };
 
     // =========================================================================
-    // 2. WIZARD ENGINE & STATE
+    // 2. CONSTANTS & SYSTEM STATE
     // =========================================================================
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;      // 10MB
+    const AVATAR_MAX_SIZE = 5 * 1024 * 1024;    // 5MB
+    const DRAFT_PREFIX = 'miximoi.employee-form.v6.';
     let currentStep = 1;
-    const TOTAL_STEPS = 4;
+    let maxReachedStep = 1;
+    let isSubmitting = false;
+    let saveTimeout = null;
 
-    const stepHeaders = [
-        "",
-        "Thêm nhân viên mới",
-        "Thêm nhân viên - Bước 2: Công việc & Định biên",
-        "Thêm nhân viên - Bước 3: Thiết lập Lương & Phúc lợi",
-        "Thêm nhân viên - Bước 4: Hợp đồng & Bảo hiểm"
-    ];
+    const $ = (id) => document.getElementById(id);
+    const qs = (selector, root = document) => root.querySelector(selector);
+    const qsa = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
-    const stepButtons = [
-        "",
-        "Tiếp tục: Bước 2 (Công việc & Vị trí)",
-        "Tiếp tục: Bước 3 (Lương & Phúc lợi)",
-        "Tiếp tục: Bước 4 (Hợp đồng & Bảo hiểm)",
-        "Hoàn tất & Lưu hồ sơ"
-    ];
+    function form() { return $('employeeForm'); }
+    function panel(step) { return $('panelStep' + step); }
+    function alertBox() { return $('clientValidationAlert'); }
 
-    // Initialize on Load
-    document.addEventListener("DOMContentLoaded", function() {
-        const today = new Date();
-        const formattedDate = String(today.getDate()).padStart(2, '0') + '/' +
-                              String(today.getMonth() + 1).padStart(2, '0') + '/' +
-                              today.getFullYear();
-        const dateEl = document.getElementById("sideCreatedDate");
-        if (dateEl) dateEl.innerText = formattedDate;
-
-        // Check for saved local draft (only for new employee onboarding)
-        if (!window.IS_EDIT_MODE) {
-            checkSavedDraft();
-        }
-
-        // Department initialization
-        const deptSelect = document.getElementById("departmentId");
-        if (deptSelect && !deptSelect.value && !window.IS_EDIT_MODE) {
-            deptSelect.value = "6";
-        }
-        if (!window.IS_EDIT_MODE) {
-            handleDepartmentChange(deptSelect ? deptSelect.value : "6");
-        } else {
-            if (deptSelect && deptSelect.value) {
-                updateDeptQuotaBannerOnly(deptSelect.value);
-            }
-            // In edit mode: init position alert/salary hint without replacing dropdown
-            const posSelect = document.getElementById("positionId");
-            if (posSelect && posSelect.value) {
-                handlePositionChange(posSelect.value);
-            }
-        }
-
-        // Calculations
-        recalcCompensation();
-        calculateAge();
-
-        // Status field initialization
-        const statusSelect = document.getElementById("empStatus");
-        if (statusSelect) {
-            handleStatusChange(statusSelect.value);
-        }
-
-        // Start auto-save timer
-        startAutoSaveInterval();
-    });
-
-    // Toast Notification helper
-    function showToast(message, type = "success") {
-        const container = document.getElementById("toastContainer");
-        const toast = document.createElement("div");
+    // =========================================================================
+    // 3. TOAST & NOTIFICATION HELPERS
+    // =========================================================================
+    function showToast(message, type = 'success') {
+        const container = $('toastContainer');
+        if (!container) return;
+        const toast = document.createElement('div');
         toast.className = `toast-custom ${type}`;
-        let icon = "bi-check-circle-fill text-success";
-        if (type === "warning") icon = "bi-exclamation-triangle-fill text-warning";
-        if (type === "danger") icon = "bi-x-circle-fill text-danger";
+        let icon = 'bi-check-circle-fill text-success';
+        if (type === 'warning') icon = 'bi-exclamation-triangle-fill text-warning';
+        if (type === 'danger') icon = 'bi-x-circle-fill text-danger';
 
         toast.innerHTML = `<i class="bi ${icon} fs-5"></i><div>${message}</div>`;
         container.appendChild(toast);
 
         setTimeout(() => {
-            toast.style.opacity = "0";
-            toast.style.transform = "translateX(50px)";
-            toast.style.transition = "all 0.3s ease";
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(50px)';
+            toast.style.transition = 'all 0.3s ease';
             setTimeout(() => toast.remove(), 300);
         }, 3500);
     }
+    window.showToast = showToast;
 
-    // =========================================================================
-    // 3. DEPARTMENT & POSITION FILTERING WITH HEADCOUNT LIMITS
-    // =========================================================================
-    function handleDepartmentChange(deptId) {
-        const data = DEPARTMENT_DATA[deptId];
-        const banner = document.getElementById("deptQuotaBanner");
-        const posSelect = document.getElementById("positionId");
-
-        // In edit mode: capture the current selected position text BEFORE overwriting
-        let savedPosId = null;
-        let savedPosText = null;
-        if (window.IS_EDIT_MODE && posSelect.value) {
-            savedPosId = posSelect.value;
-            const selOpt = posSelect.options[posSelect.selectedIndex];
-            // Keep the original server-rendered text (not the JS-generated placeholder)
-            if (selOpt && selOpt.value) {
-                savedPosText = selOpt.innerText;
-            }
-        }
-
-        if (!data) {
-            banner.classList.remove("has-dept");
-            banner.innerHTML = `<div class="text-muted" style="font-size:0.8rem;">Vui lòng chọn một phòng ban để xem chỉ tiêu định biên và các vị trí phù hợp.</div>`;
-            posSelect.innerHTML = `<option value="">— Chọn chức vụ —</option>`;
-            // Re-add the saved position if in edit mode
-            if (window.IS_EDIT_MODE && savedPosId && savedPosText) {
-                const opt = document.createElement("option");
-                opt.value = savedPosId;
-                opt.innerText = savedPosText;
-                opt.selected = true;
-                posSelect.appendChild(opt);
-            }
+    function showMessage(message, type = 'danger') {
+        const box = alertBox();
+        if (!box) {
+            showToast(message, type);
             return;
         }
-
-        banner.classList.add("has-dept");
-        const vacantCount = Math.max(0, data.targetCount - data.currentCount);
-        const pct = Math.min(100, Math.round((data.currentCount / data.targetCount) * 100));
-
-        let badgeHtml = "";
-        let barColor = "linear-gradient(90deg, #2563eb, #38bdf8)";
-        if (vacantCount > 0) {
-            badgeHtml = `<span class="quota-badge-vacant"><i class="bi bi-person-plus-fill"></i> Còn thiếu ${vacantCount} chỉ tiêu</span>`;
-            barColor = "linear-gradient(90deg, #059669, #34d399)";
-        } else {
-            badgeHtml = `<span class="quota-badge-full"><i class="bi bi-exclamation-circle-fill"></i> Đã đủ định biên (${data.currentCount}/${data.targetCount})</span>`;
-            barColor = "linear-gradient(90deg, #dc2626, #f87171)";
-        }
-
-        banner.innerHTML = `
-            <div class="quota-header">
-                <div>
-                    <div style="font-weight:800; font-size:0.9rem; color:#0f172a;">
-                        🏢 ${data.name}
-                    </div>
-                    <div style="font-size:0.75rem; color:#64748b;">
-                        Nghiệp vụ: ${data.desc}
-                    </div>
-                </div>
-                ${badgeHtml}
-            </div>
-            <div class="d-flex justify-content-between align-items-center" style="font-size:0.75rem;">
-                <span style="font-weight:700; color:#1e293b;">Hiện có ${data.currentCount} / ${data.targetCount} nhân sự</span>
-                <span style="font-weight:800; color:#2563eb;">${pct}% định biên</span>
-            </div>
-            <div class="quota-progress">
-                <div class="quota-progress-bar" style="width:${pct}%; background:${barColor};"></div>
-            </div>
-            <div style="font-size:0.72rem; color:#64748b; margin-top:4px;">
-                <i class="bi bi-shield-check me-1 text-primary"></i> Quản lý trực tiếp phụ trách: <strong>${data.manager}</strong>
-            </div>
-        `;
-
-        // Update default line manager
-        const managerInput = document.getElementById("lineManager");
-        if (managerInput && data.manager && !window.IS_EDIT_MODE) {
-            managerInput.value = data.manager;
-        }
-
-        // Populate positions matching this department
-        posSelect.innerHTML = `<option value="">— Chọn chức vụ phù hợp (${data.positions.length} vị trí) —</option>`;
-        let hasCurrentPos = false;
-        const currentPosId = window.IS_EDIT_MODE ? (savedPosId || window.CURRENT_EMP_POS_ID) : null;
-
-        data.positions.forEach(p => {
-            if (currentPosId && String(p.id) === String(currentPosId)) {
-                hasCurrentPos = true;
-            }
-            const vacantNote = p.vacant > 0 ? `(Đang thiếu ${p.vacant} vị trí)` : `(Đã đủ định biên ${p.current}/${p.quota})`;
-            const opt = document.createElement("option");
-            opt.value = p.id;
-            opt.innerText = `${p.name} ${vacantNote}`;
-            opt.dataset.level = p.level;
-            opt.dataset.salary = p.defaultSalary;
-            opt.dataset.salaryRange = p.salaryRange;
-            opt.dataset.vacant = p.vacant;
-            posSelect.appendChild(opt);
-        });
-
-        // In edit mode, if employee's position is not in DEPARTMENT_DATA, append it with real name
-        if (window.IS_EDIT_MODE && currentPosId && !hasCurrentPos) {
-            const opt = document.createElement("option");
-            opt.value = currentPosId;
-            // Use the saved real name if available, else generic fallback
-            opt.innerText = savedPosText || ("Chức vụ hiện tại (ID: " + currentPosId + ")");
-            opt.dataset.level = "L3";
-            opt.dataset.salary = window.CURRENT_EMP_SALARY || "28.500.000";
-            posSelect.appendChild(opt);
-        }
-
-        // Select appropriate position
-        if (window.IS_EDIT_MODE && currentPosId) {
-            posSelect.value = currentPosId;
-            handlePositionChange(currentPosId);
-        } else if (!window.IS_EDIT_MODE && data.positions.length > 0) {
-            posSelect.selectedIndex = 1;
-            handlePositionChange(data.positions[0].id);
-        }
-
-        updateStep2Summary();
+        box.className = 'alert border-0 shadow-sm';
+        box.classList.add(type === 'success' ? 'alert-success' : 'alert-danger');
+        box.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i> ${message}`;
+        box.classList.remove('d-none');
     }
 
-    function handlePositionChange(posId) {
-        const posSelect = document.getElementById("positionId");
-        const selectedOpt = posSelect.options[posSelect.selectedIndex];
-        if (!selectedOpt || !selectedOpt.value) return;
-
-        const level = selectedOpt.dataset.level || "L3";
-        const defSalary = selectedOpt.dataset.salary || "28.500.000";
-        const salaryRange = selectedOpt.dataset.salaryRange || "25.000.000 – 35.000.000 VNĐ";
-        const vacant = parseInt(selectedOpt.dataset.vacant || "1");
-
-        // Update Level dropdown (always)
-        const levelSelect = document.getElementById("employeeLevel");
-        if (levelSelect && !window.IS_EDIT_MODE) levelSelect.value = level;
-
-        // Update Position vacant alert
-        const alertBox = document.getElementById("positionVacantAlert");
-        const msgSpan = document.getElementById("positionVacantMsg");
-        if (alertBox && msgSpan) {
-            alertBox.classList.remove("d-none");
-            if (vacant > 0) {
-                alertBox.className = "position-vacant-info";
-                msgSpan.innerHTML = `Vị trí <strong>${selectedOpt.text.split('(')[0].trim()}</strong> đang thiếu <strong>${vacant} nhân sự</strong> so với kế hoạch định biên.`;
-            } else {
-                alertBox.className = "position-vacant-info bg-warning-subtle text-warning border-warning";
-                msgSpan.innerHTML = `Vị trí <strong>${selectedOpt.text.split('(')[0].trim()}</strong> đã đạt đủ chỉ tiêu định biên. Vui lòng cân nhắc khi tuyển thêm.`;
-            }
-        }
-
-        // Suggest salary in Step 3 ONLY for new employee mode or when salary is not yet entered
-        const salaryInput = document.getElementById("baseSalary");
-        if (salaryInput && !window.IS_EDIT_MODE) {
-            // New mode: always suggest default salary from position
-            salaryInput.value = defSalary;
-            recalcCompensation();
-        } else if (salaryInput && window.IS_EDIT_MODE && !salaryInput.value.trim()) {
-            // Edit mode: only suggest if salary field is completely empty
-            salaryInput.value = defSalary;
-            recalcCompensation();
-        }
-        const salaryHint = document.getElementById("salaryRangeHint");
-        if (salaryHint) {
-            salaryHint.innerText = "Khung dải lương vị trí: " + salaryRange;
-        }
-
-        updateStep2Summary();
+    function clearMessage() {
+        const box = alertBox();
+        if (box) box.classList.add('d-none');
     }
 
-    // =========================================================================
-    // 4. STEPPER NAVIGATION & VALIDATION
-    // =========================================================================
-    function jumpToStep(target) {
-        if (target === currentStep) return;
-        // In edit mode, allow free navigation; in new mode, validate before going forward
-        if (!window.IS_EDIT_MODE && target > currentStep && !validateCurrentStep()) return;
-        goToStep(target);
+    function requiredControls(root) {
+        return qsa('[required]', root).filter(el => !el.disabled && el.type !== 'hidden');
     }
 
-    function nextStep() {
-        // In edit mode, skip step validation to allow free navigation
-        if (!window.IS_EDIT_MODE && !validateCurrentStep()) return;
-        if (currentStep < TOTAL_STEPS) {
-            goToStep(currentStep + 1);
-        }
+    function clearInvalid(root) {
+        qsa('.is-invalid', root).forEach(el => el.classList.remove('is-invalid'));
     }
 
-    function prevStep() {
-        if (currentStep > 1) {
-            goToStep(currentStep - 1);
+    function focusInvalid(el) {
+        if (!el) return;
+        el.classList.add('is-invalid');
+        const scrollTarget = (el.offsetParent === null)
+            ? (el.closest('.pill-radio-group, .auto-code-wrap, .position-relative, .input-group') || el.parentElement)
+            : el;
+        if (scrollTarget) {
+            scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+        try {
+            el.focus({ preventScroll: true });
+        } catch (_) {}
     }
 
-    window.jumpToStep = jumpToStep;
-    window.nextStep = nextStep;
-    window.prevStep = prevStep;
-
-    function goToStep(step) {
-        currentStep = step;
-
-        // Update header & title
-        if (window.IS_EDIT_MODE) {
-            const titleName = window.CURRENT_EMP_NAME || (document.getElementById("fullName") ? document.getElementById("fullName").value : "");
-            const titleCode = window.CURRENT_EMP_CODE || (document.getElementById("employeeCode") ? document.getElementById("employeeCode").value : "");
-            document.getElementById("pageHeaderTitle").innerText = "Chỉnh sửa: " + titleName + (titleCode ? " (" + titleCode + ")" : "") + " — Bước " + step + "/4";
-        } else {
-            document.getElementById("pageHeaderTitle").innerText = stepHeaders[step];
+    function validateControl(el) {
+        if (!el) return true;
+        if (el.type === 'radio') {
+            const group = qsa(`input[type="radio"][name="${CSS.escape(el.name)}"]`, form());
+            const valid = group.some(r => r.checked);
+            group.forEach(r => r.classList.toggle('is-invalid', !valid));
+            const groupWrap = el.closest('.pill-radio-group');
+            if (groupWrap) groupWrap.classList.toggle('is-invalid', !valid);
+            return valid;
         }
-        document.getElementById("badgeProgressText").innerText = "Tiến trình hồ sơ: " + (step * 25) + "% Hoàn thành";
-
-        // Show right panel
-        for (let i = 1; i <= TOTAL_STEPS; i++) {
-            const panel = document.getElementById("panelStep" + i);
-            if (panel) {
-                if (i === step) panel.classList.add("active");
-                else panel.classList.remove("active");
-            }
-        }
-
-        // Show left panel
-        for (let i = 1; i <= TOTAL_STEPS; i++) {
-            const sidePanel = document.getElementById("sidePanelStep" + i);
-            if (sidePanel) {
-                sidePanel.style.display = (i === step) ? "block" : "none";
-            }
-        }
-
-        // Update Steppers
-        for (let i = 1; i <= TOTAL_STEPS; i++) {
-            const tab = document.getElementById("stepperTab" + i);
-            const badge = document.getElementById("stepperBadge" + i);
-            const num = document.getElementById("stepperNum" + i);
-
-            tab.className = "stepper-tab";
-            if (i < step) {
-                tab.classList.add("done");
-                badge.innerText = "BƯỚC " + i + " • HOÀN TẤT";
-                num.innerHTML = '<i class="bi bi-check-lg"></i>';
-            } else if (i === step) {
-                tab.classList.add("active");
-                badge.innerText = "BƯỚC " + i + " • ĐANG THỰC HIỆN";
-                num.innerText = "0" + i;
-            } else {
-                tab.classList.add("pending");
-                badge.innerText = "BƯỚC " + i;
-                num.innerText = "0" + i;
-            }
-        }
-
-        // Update Buttons
-        const btnPrev = document.getElementById("btnPrev");
-        const btnNext = document.getElementById("btnNext");
-        const btnSubmit = document.getElementById("btnSubmit");
-        const btnNextText = document.getElementById("btnNextText");
-
-        btnPrev.disabled = (step === 1);
-
-        if (step === TOTAL_STEPS) {
-            btnNext.style.display = "none";
-            btnSubmit.style.display = "inline-flex";
-            updateFinalSummary();
-        } else {
-            btnNext.style.display = "inline-flex";
-            btnSubmit.style.display = "none";
-            btnNextText.innerText = stepButtons[step];
-        }
-
-        // Smooth scroll to top
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    // Step Validation
-    function validateCurrentStep() {
-        const currentPanel = document.getElementById("panelStep" + currentStep);
-        if (!currentPanel) return true;
-
-        const inputs = currentPanel.querySelectorAll("input[required], select[required]");
-        let valid = true;
-        let firstInvalid = null;
-
-        inputs.forEach(input => {
-            const val = input.value ? input.value.trim() : "";
-            if (!val) {
-                input.classList.add("is-invalid");
-                valid = false;
-                if (!firstInvalid) firstInvalid = input;
-            } else {
-                input.classList.remove("is-invalid");
-            }
-        });
-
-        if (!valid) {
-            if (firstInvalid) {
-                firstInvalid.focus();
-                firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
-                const parentCol = firstInvalid.closest(".col-md-6, .col-md-4, .col-md-3, .col-12, .mb-3");
-                const labelElem = parentCol ? parentCol.querySelector(".form-label-custom, label") : null;
-                let labelText = labelElem ? labelElem.innerText.replace("*", "").trim() : "thông tin bắt buộc";
-                if (labelText.length > 40) labelText = labelText.substring(0, 40) + "...";
-                showToast("Vui lòng điền trường bắt buộc: " + labelText, "warning");
-            } else {
-                showToast("Vui lòng điền đầy đủ các thông tin bắt buộc (*) trước khi tiếp tục.", "warning");
-            }
-        }
+        const valid = el.checkValidity();
+        el.classList.toggle('is-invalid', !valid);
         return valid;
     }
 
     // =========================================================================
-    // 5. AUTO GENERATION LOGIC (MÃ NV, MÃ HĐ, EMAIL, MST, BHXH)
+    // 4. STEP VALIDATION
     // =========================================================================
-    function removeVietnameseTones(str) {
-        str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
-        str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
-        str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
-        str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
-        str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
-        str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
-        str = str.replace(/đ/g, "d");
-        str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
-        str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
-        str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
-        str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
-        str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
-        str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
-        str = str.replace(/Đ/g, "D");
-        return str;
-    }
+    function validateStep(step, quiet = false) {
+        const root = panel(step);
+        if (!root) return true;
 
-    function handleFullNameChange(name) {
-        if (!name) return;
+        clearInvalid(root);
 
-        // Update profile summaries
-        const pName = document.getElementById("sideProfileName");
-        const s3Name = document.getElementById("sideStep3Name");
-        if (pName) pName.innerText = name;
-        if (s3Name) s3Name.innerText = name;
+        let firstInvalid = null;
+        let firstLabelName = '';
 
-        // Auto-generate company email prefix: "Nguyễn Văn An" -> "an.nv"
-        const clean = removeVietnameseTones(name.trim().toLowerCase());
-        const parts = clean.split(/\s+/).filter(Boolean);
-        if (parts.length > 0) {
-            let prefix = "";
-            if (parts.length === 1) {
-                prefix = parts[0];
-            } else {
-                const firstName = parts[parts.length - 1];
-                let initials = "";
-                for (let i = 0; i < parts.length - 1; i++) {
-                    initials += parts[i][0];
-                }
-                prefix = firstName + "." + initials;
-            }
-
-            const prefixInput = document.getElementById("companyEmailPrefix");
-            if (prefixInput) prefixInput.value = prefix;
-
-            const step2Email = document.getElementById("step2CompanyEmail");
-            if (step2Email) step2Email.value = prefix + "@miximoi.vn";
-        }
-    }
-
-    function regenerateEmployeeCode() {
-        const input = document.getElementById("employeeCode");
-        const current = input.value.trim();
-        let nextNum = 15;
-        if (current.startsWith("NV")) {
-            const n = parseInt(current.substring(2));
-            if (!isNaN(n)) nextNum = n + 1;
-        }
-        const newCode = "NV" + String(nextNum).padStart(3, '0');
-        input.value = newCode;
-
-        // Update badges
-        const sideCode = document.getElementById("sideEmpCodeDisplay");
-        if (sideCode) sideCode.innerText = newCode;
-        const profileCode = document.getElementById("sideProfileCode");
-        if (profileCode) profileCode.innerText = "MÃ NV: " + newCode;
-
-        showToast(`Đã tự động sinh mã nhân viên mới: ${newCode}`, "success");
-    }
-
-    function toggleEditEmpCode() {
-        const input = document.getElementById("employeeCode");
-        if (input.hasAttribute("readonly")) {
-            input.removeAttribute("readonly");
-            input.focus();
-            input.select();
-            showToast("Đã mở khóa để nhập mã nhân viên tùy chỉnh.", "warning");
-        } else {
-            input.setAttribute("readonly", "true");
-        }
-    }
-
-    function regenerateContractCode() {
-        const input = document.getElementById("contractCode");
-        const current = input.value.trim();
-        let nextNum = 13;
-        if (current.startsWith("HD")) {
-            const n = parseInt(current.substring(2));
-            if (!isNaN(n)) nextNum = n + 1;
-        }
-        const newCode = "HD" + String(nextNum).padStart(3, '0');
-        input.value = newCode;
-        showToast(`Đã sinh mã hợp đồng mới: ${newCode}`, "success");
-    }
-
-    function toggleEditContractCode() {
-        const input = document.getElementById("contractCode");
-        if (input.hasAttribute("readonly")) {
-            input.removeAttribute("readonly");
-            input.focus();
-            input.select();
-        } else {
-            input.setAttribute("readonly", "true");
-        }
-    }
-
-    function autoGenBhxh() {
-        const randomDigits = Math.floor(1000000000 + Math.random() * 9000000000);
-        const code = "0" + String(randomDigits).substring(1);
-        document.getElementById("bhxhCode").value = code;
-        showToast(`Đã gợi ý mã số BHXH: ${code}`, "success");
-    }
-
-    function autoGenTaxCode() {
-        const randomDigits = Math.floor(1000000000 + Math.random() * 9000000000);
-        const code = "8" + String(randomDigits).substring(1);
-        document.getElementById("taxCode").value = code;
-        showToast(`Đã gợi ý mã số thuế cá nhân: ${code}`, "success");
-    }
-
-    function validateCccd(input) {
-        const icon = document.getElementById("cccdValidIcon");
-        if (input.value.length >= 9 && input.value.length <= 12) {
-            icon.style.display = "block";
-        } else {
-            icon.style.display = "none";
-        }
-    }
-
-    function toggleSameAddress(checkbox) {
-        const addr = document.getElementById("address").value;
-        const tempInput = document.getElementById("tempAddress");
-        if (checkbox.checked) {
-            tempInput.value = addr;
-            tempInput.setAttribute("readonly", "true");
-            showToast("Đã đồng bộ địa chỉ thường trú sang tạm trú.", "success");
-        } else {
-            tempInput.removeAttribute("readonly");
-        }
-    }
-
-    function calculateAge() {
-        const dobVal = document.getElementById("dateOfBirth").value;
-        if (!dobVal) return;
-        const dob = new Date(dobVal);
-        const diff = Date.now() - dob.getTime();
-        const age = Math.abs(new Date(diff).getUTCFullYear() - 1970);
-        const gender = document.querySelector('input[name="gender"]:checked')?.value === 'FEMALE' ? 'Nữ' : 'Nam';
-        const display = document.getElementById("sideProfileAgeGender");
-        if (display) display.innerText = gender + ", " + age + " tuổi";
-    }
-
-    function updateGenderDisplay() {
-        calculateAge();
-    }
-
-    function updateStep2Summary() {
-        const deptSelect = document.getElementById("departmentId");
-        const posSelect = document.getElementById("positionId");
-        const posName = posSelect.options[posSelect.selectedIndex]?.text.split('(')[0].trim() || "Kỹ sư phần mềm";
-        const deptName = deptSelect.options[deptSelect.selectedIndex]?.text.trim() || "Phòng Kỹ thuật";
-
-        const s3Pos = document.getElementById("sideStep3Pos");
-        if (s3Pos) s3Pos.innerText = posName + " • " + deptName;
-
-        const finalPos = document.getElementById("finalPosition");
-        if (finalPos) finalPos.innerText = posName;
-    }
-
-    function updateFinalSummary() {
-        document.getElementById("finalEmpCode").innerText = document.getElementById("employeeCode").value;
-        document.getElementById("finalContractCode").innerText = document.getElementById("contractCode").value;
-        const posSelect = document.getElementById("positionId");
-        document.getElementById("finalPosition").innerText = posSelect.options[posSelect.selectedIndex]?.text.split('(')[0].trim() || "Kỹ sư phần mềm";
-        document.getElementById("finalSalary").innerText = document.getElementById("baseSalary").value + " đ";
-    }
-
-    // =========================================================================
-    // 6. PHOTO & DOCUMENT ATTACHMENTS
-    // =========================================================================
-    function triggerAvatarUpload() {
-        document.getElementById("avatarFileInput").click();
-    }
-
-    function previewAvatar(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById("avatarPreviewImg").src = e.target.result;
-                const summaries = document.querySelectorAll(".profile-summary-avatar");
-                summaries.forEach(img => img.src = e.target.result);
-                showToast("Đã tải ảnh chân dung xem trước thành công.", "success");
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    function triggerDocUpload(inputId) {
-        document.getElementById(inputId).click();
-    }
-
-    function handleDocFile(input, imgId, nameId) {
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-            document.getElementById(nameId).innerText = file.name;
-            const img = document.getElementById(imgId);
-            // Derive icon ID from img ID (e.g. cccdFrontPreview -> cccdFrontIcon)
-            const iconId = imgId.replace('Preview', 'Icon');
-            const icon = document.getElementById(iconId);
-            if (file.type.startsWith("image/")) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    img.src = e.target.result;
-                    img.classList.remove('d-none');
-                    if (icon) icon.classList.add('d-none');
-                };
-                reader.readAsDataURL(file);
-            } else {
-                // Non-image: just show a check icon, hide preview
-                img.classList.add('d-none');
-                if (icon) {
-                    icon.className = 'bi bi-file-check-fill text-success';
-                    icon.style.fontSize = '1.8rem';
-                    icon.classList.remove('d-none');
+        for (const el of requiredControls(root)) {
+            if (!validateControl(el)) {
+                if (!firstInvalid) {
+                    firstInvalid = el;
+                    const label = el.closest('.col-md-6, .col-md-12, .col-md-4, .col-md-3, .col-12')?.querySelector('.form-label-custom');
+                    if (label) {
+                        const clone = label.cloneNode(true);
+                        clone.querySelectorAll('.req, small, span.text-primary, span.text-muted, i').forEach(x => x.remove());
+                        firstLabelName = clone.textContent.trim();
+                    }
+                    if (!firstLabelName) firstLabelName = 'trường bắt buộc';
                 }
             }
-            showToast(`Đã đính kèm tệp: ${file.name}`, "success");
-            updateUploadedCount();
         }
-    }
 
-    function clearDocUpload(imgId, nameId) {
-        const img = document.getElementById(imgId);
-        const nameEl = document.getElementById(nameId);
-        const iconId = imgId.replace('Preview', 'Icon');
-        const icon = document.getElementById(iconId);
-        if (nameEl) nameEl.innerText = "Bấm để tải tệp";
-        if (img) {
-            img.src = '';
-            img.classList.add('d-none');
+        if (firstInvalid) {
+            if (!quiet) {
+                const msg = `Bước ${step}: Vui lòng điền "${firstLabelName}" trước khi tiếp tục.`;
+                showMessage(msg);
+                showToast(msg, 'danger');
+                focusInvalid(firstInvalid);
+            }
+            return false;
         }
-        if (icon) {
-            icon.classList.remove('d-none');
-        }
-        // Try to reset the associated file input
-        const inputId = imgId.replace('Preview', 'Input');
-        const fileInput = document.getElementById(inputId);
-        if (fileInput) fileInput.value = '';
-        showToast("Đã xóa tệp đính kèm.", "warning");
-        updateUploadedCount();
-    }
 
-    function handleResumeFile(input) {
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-            document.getElementById("resumeTitle").innerText = file.name;
-            document.getElementById("resumeSub").innerText = (file.size / 1024 / 1024).toFixed(2) + " MB • Đã sẵn sàng";
-            document.getElementById("resumeBadge").className = "badge bg-success-subtle text-success mt-2";
-            document.getElementById("resumeBadge").innerText = "Tệp hợp lệ";
-            showToast(`Đã tải lên hồ sơ: ${file.name}`, "success");
-            updateUploadedCount();
-        }
-    }
-
-    function updateUploadedCount() {
-        let count = 0;
-        if (document.getElementById("cccdFrontInput").files.length > 0) count++;
-        if (document.getElementById("cccdBackInput").files.length > 0) count++;
-        if (document.getElementById("resumeInput").files.length > 0) count++;
-        document.getElementById("uploadedDocCountBadge").innerText = `Đã tải lên ${count}/3 tệp`;
-    }
-
-    // =========================================================================
-    // 7. REAL-TIME SALARY & COMPENSATION CALCULATOR
-    // =========================================================================
-    function formatSalaryInput(input) {
-        let val = input.value.replace(/\D/g, "");
-        if (val) {
-            input.value = Number(val).toLocaleString("vi-VN").replace(/,/g, ".");
-        } else {
-            input.value = "";
-        }
-        recalcCompensation();
-    }
-
-    function getNumericSalary() {
-        const raw = document.getElementById("baseSalary").value.replace(/\./g, "").replace(/,/g, "").trim();
-        return Number(raw) || 0;
-    }
-
-    let allowancesTotal = 2500000;
-
-    function toggleAllowanceRow(checkbox, amount) {
-        const parent = checkbox.closest(".allowance-box-item");
-        if (checkbox.checked) {
-            parent.classList.add("active");
-            allowancesTotal += amount;
-        } else {
-            parent.classList.remove("active");
-            allowancesTotal -= amount;
-        }
-        recalcCompensation();
-    }
-
-    function recalcCompensation() {
-        const base = getNumericSalary();
-        const gross = base + allowancesTotal;
-
-        // BHXH 10.5% (NLĐ: 8% BHXH, 1.5% BHYT, 1% BHTN)
-        const bhxh = Math.round(base * 0.105);
-
-        // Thuế TNCN (tạm tính đơn giản giảm trừ 11tr)
-        const taxable = Math.max(0, gross - bhxh - 11000000);
-        let tax = 0;
-        if (taxable > 0 && taxable <= 5000000) tax = taxable * 0.05;
-        else if (taxable > 5000000 && taxable <= 10000000) tax = 250000 + (taxable - 5000000) * 0.10;
-        else if (taxable > 10000000) tax = 750000 + (taxable - 10000000) * 0.15;
-
-        const net = Math.max(0, gross - bhxh - tax);
-        const netPct = gross > 0 ? Math.round((net / gross) * 100) : 88;
-
-        // Update displays
-        document.getElementById("calcBaseDisplay").innerText = base.toLocaleString("vi-VN") + " đ";
-        document.getElementById("calcAllowanceDisplay").innerText = "+ " + allowancesTotal.toLocaleString("vi-VN") + " đ";
-        document.getElementById("calcGrossDisplay").innerText = gross.toLocaleString("vi-VN") + " đ";
-        document.getElementById("calcBhxhDisplay").innerText = "- " + bhxh.toLocaleString("vi-VN") + " đ";
-        document.getElementById("calcTaxDisplay").innerText = "- " + tax.toLocaleString("vi-VN") + " đ";
-        document.getElementById("calcNetDisplay").innerText = "~ " + net.toLocaleString("vi-VN") + " đ";
-        document.getElementById("calcNetPct").innerText = netPct + "% Gross";
-        document.getElementById("calcDonutPct").innerText = netPct + "%";
-
-        // Update probation note
-        const rate = document.getElementById("rate85").checked ? 0.85 : 1.0;
-        const probSalary = Math.round(base * rate);
-        document.getElementById("probationSubText").innerText =
-            "Thử việc 2 tháng: " + probSalary.toLocaleString("vi-VN") + " VNĐ/tháng";
-    }
-
-    function addCustomAllowance() {
-        const name = prompt("Nhập tên khoản phụ cấp mới (VD: Phụ cấp trách nhiệm dự án):");
-        if (!name) return;
-        const amountStr = prompt("Nhập số tiền phụ cấp (VNĐ/tháng, VD: 1500000):", "1000000");
-        const amount = parseInt(amountStr) || 0;
-        if (amount <= 0) return;
-
-        const container = document.getElementById("allowanceListContainer");
-        const newDiv = document.createElement("div");
-        newDiv.className = "allowance-box-item active";
-        newDiv.innerHTML = `
-            <div class="allowance-left">
-                <input type="checkbox" class="form-check-input mt-0" checked onchange="toggleAllowanceRow(this, ${amount})">
-                <div>
-                    <div class="allowance-name">${name} <span class="badge bg-primary-subtle text-primary ms-1" style="font-size:0.65rem;">Tùy chỉnh</span></div>
-                    <div class="allowance-sub">Hỗ trợ theo quyết định phân công nhiệm vụ</div>
-                </div>
-            </div>
-            <div class="allowance-amount">${amount.toLocaleString("vi-VN")} đ / tháng</div>
-        `;
-        container.appendChild(newDiv);
-        allowancesTotal += amount;
-        recalcCompensation();
-        showToast(`Đã thêm khoản phụ cấp "${name}": ${amount.toLocaleString("vi-VN")} đ`, "success");
-    }
-
-    // =========================================================================
-    // 8. DRAFT SAVING & RESTORING (LOCALSTORAGE)
-    // =========================================================================
-    function saveDraft() {
-        const data = {
-            fullName: document.getElementById("fullName").value,
-            employeeCode: document.getElementById("employeeCode").value,
-            dateOfBirth: document.getElementById("dateOfBirth").value,
-            gender: document.querySelector('input[name="gender"]:checked')?.value || 'MALE',
-            idNumber: document.getElementById("idNumber").value,
-            idIssueDate: document.getElementById("idIssueDate").value,
-            idIssuePlace: document.getElementById("idIssuePlace").value,
-            email: document.getElementById("email").value,
-            companyEmailPrefix: document.getElementById("companyEmailPrefix").value,
-            phone: document.getElementById("phone").value,
-            emergencyContactName: document.getElementById("emergencyContactName")?.value || '',
-            emergencyContactPhone: document.getElementById("emergencyContactPhone")?.value || '',
-            emergencyContactRelation: document.getElementById("emergencyContactRelation")?.value || '',
-            address: document.getElementById("address").value,
-            tempAddress: document.getElementById("tempAddress").value,
-            departmentId: document.getElementById("departmentId").value,
-            positionId: document.getElementById("positionId").value,
-            employeeLevel: document.getElementById("employeeLevel").value,
-            lineManager: document.getElementById("lineManager").value,
-            mentorName: document.getElementById("mentorName").value,
-            baseSalary: document.getElementById("baseSalary").value,
-            contractCode: document.getElementById("contractCode").value,
-            savedAt: new Date().toLocaleTimeString()
-        };
-
-        localStorage.setItem("miximoi_employee_draft", JSON.stringify(data));
-        showToast(`Đã lưu bản nháp hồ sơ thành công (${data.savedAt})`, "success");
-        document.getElementById("autoSaveTimer").innerText = "Vừa xong";
-    }
-
-    function checkSavedDraft() {
-        const draftStr = localStorage.getItem("miximoi_employee_draft");
-        if (draftStr) {
-            try {
-                const draft = JSON.parse(draftStr);
-                if (draft.fullName || draft.employeeCode) {
-                    const banner = document.getElementById("draftAlertBanner");
-                    const text = document.getElementById("draftAlertText");
-                    text.innerText = `Phát hiện bản nháp của "${draft.fullName || draft.employeeCode}" đã lưu lúc ${draft.savedAt}. Bạn có muốn khôi phục không?`;
-                    banner.classList.remove("d-none");
+        if (step === 1) {
+            const id = $('idNumber');
+            if (id && id.value.trim() && !/^\d{12}$/.test(id.value.trim())) {
+                if (!quiet) {
+                    showMessage('Số CCCD phải gồm đúng 12 chữ số.');
+                    focusInvalid(id);
                 }
-            } catch (e) {}
-        }
-    }
+                return false;
+            }
 
-    function restoreDraftData() {
-        const draftStr = localStorage.getItem("miximoi_employee_draft");
-        if (!draftStr) return;
-        const draft = JSON.parse(draftStr);
+            const dob = $('dateOfBirth');
+            if (dob?.value && new Date(dob.value + 'T00:00:00') > new Date()) {
+                if (!quiet) {
+                    showMessage('Ngày sinh không được lớn hơn ngày hiện tại.');
+                    focusInvalid(dob);
+                }
+                return false;
+            }
 
-        if (draft.fullName) document.getElementById("fullName").value = draft.fullName;
-        if (draft.employeeCode) document.getElementById("employeeCode").value = draft.employeeCode;
-        if (draft.dateOfBirth) document.getElementById("dateOfBirth").value = draft.dateOfBirth;
-        if (draft.idNumber) document.getElementById("idNumber").value = draft.idNumber;
-        if (draft.idIssueDate) document.getElementById("idIssueDate").value = draft.idIssueDate;
-        if (draft.idIssuePlace) document.getElementById("idIssuePlace").value = draft.idIssuePlace;
-        if (draft.email) document.getElementById("email").value = draft.email;
-        if (draft.companyEmailPrefix) document.getElementById("companyEmailPrefix").value = draft.companyEmailPrefix;
-        if (draft.phone) document.getElementById("phone").value = draft.phone;
-        if (draft.emergencyContactName) { const el = document.getElementById("emergencyContactName"); if (el) el.value = draft.emergencyContactName; }
-        if (draft.emergencyContactPhone) { const el = document.getElementById("emergencyContactPhone"); if (el) el.value = draft.emergencyContactPhone; }
-        if (draft.emergencyContactRelation) { const el = document.getElementById("emergencyContactRelation"); if (el) el.value = draft.emergencyContactRelation; }
-        if (draft.address) document.getElementById("address").value = draft.address;
-        if (draft.tempAddress) document.getElementById("tempAddress").value = draft.tempAddress;
-        if (draft.departmentId) {
-            document.getElementById("departmentId").value = draft.departmentId;
-            handleDepartmentChange(draft.departmentId);
-        }
-        if (draft.positionId) {
-            document.getElementById("positionId").value = draft.positionId;
-        }
-        if (draft.baseSalary) document.getElementById("baseSalary").value = draft.baseSalary;
-        if (draft.contractCode) document.getElementById("contractCode").value = draft.contractCode;
-
-        handleFullNameChange(draft.fullName);
-        calculateAge();
-        recalcCompensation();
-
-        dismissDraft();
-        showToast("Đã khôi phục toàn bộ dữ liệu từ bản nháp!", "success");
-    }
-
-    function dismissDraft() {
-        document.getElementById("draftAlertBanner").classList.add("d-none");
-    }
-
-    function clearDraft() {
-        localStorage.removeItem("miximoi_employee_draft");
-        dismissDraft();
-        showToast("Đã xóa bản nháp thành công.", "warning");
-    }
-
-    function startAutoSaveInterval() {
-        if (window.IS_EDIT_MODE) return;
-        let count = 0;
-        setInterval(() => {
-            count++;
-            if (count % 60 === 0) {
-                saveDraft();
-            } else {
-                const mins = Math.floor(count / 60);
-                if (mins > 0) {
-                    document.getElementById("autoSaveTimer").innerText = `${mins} phút trước`;
-                } else {
-                    document.getElementById("autoSaveTimer").innerText = `${count} giây trước`;
+            const phone = $('phone');
+            if (phone && phone.value.trim()) {
+                const cleanPhone = phone.value.replace(/\D/g, '');
+                if (!/^(0\d{9,10})$/.test(cleanPhone)) {
+                    if (!quiet) {
+                        showMessage('Số điện thoại phải có 10–11 chữ số và bắt đầu bằng 0.');
+                        focusInvalid(phone);
+                    }
+                    return false;
                 }
             }
-        }, 1000);
-    }
+        }
 
-    function confirmDiscard() {
-        return confirm("Bạn có chắc chắn muốn hủy bỏ? Mọi thông tin chưa lưu sẽ bị hủy.");
-    }
-
-    function handleStatusChange(status) {
-        const termFields = document.getElementById("terminationFields");
-        if (termFields) {
-            if (status === "INACTIVE") {
-                termFields.classList.remove("d-none");
-            } else {
-                termFields.classList.add("d-none");
+        if (step === 2) {
+            const dept = $('departmentId');
+            if (dept && (!dept.value || dept.value === '0')) {
+                if (!quiet) {
+                    showMessage('Vui lòng chọn phòng ban.');
+                    focusInvalid(dept);
+                }
+                return false;
+            }
+            const pos = $('positionId');
+            if (pos && (!pos.value || pos.value === '0')) {
+                if (!quiet) {
+                    showMessage('Vui lòng chọn chức vụ chuyên môn.');
+                    focusInvalid(pos);
+                }
+                return false;
             }
         }
-    }
-    window.handleStatusChange = handleStatusChange;
 
-    function updateDeptQuotaBannerOnly(deptId) {
-        const banner = document.getElementById("deptQuotaBanner");
-        const data = DEPARTMENT_DATA[deptId];
-        if (!banner || !data) return;
-        const pct = Math.round((data.currentCount / data.targetCount) * 100);
-        const vacantCount = data.targetCount - data.currentCount;
-        let badgeHtml = "";
-        let barColor = "linear-gradient(90deg, #2563eb, #38bdf8)";
-        if (vacantCount > 0) {
-            badgeHtml = `<span class="quota-badge-vacant"><i class="bi bi-person-plus-fill"></i> Còn thiếu ${vacantCount} chỉ tiêu</span>`;
-            barColor = "linear-gradient(90deg, #059669, #34d399)";
-        } else {
-            badgeHtml = `<span class="quota-badge-full"><i class="bi bi-exclamation-circle-fill"></i> Đã đủ định biên (${data.currentCount}/${data.targetCount})</span>`;
-            barColor = "linear-gradient(90deg, #dc2626, #f87171)";
+        if (step === 3) {
+            const salary = parseMoney($('baseSalary')?.value);
+            if (!salary || salary <= 0) {
+                if (!quiet) {
+                    showMessage('Mức lương cơ bản phải lớn hơn 0.');
+                    focusInvalid($('baseSalary'));
+                }
+                return false;
+            }
         }
-        banner.innerHTML = `
-            <div class="quota-header">
-                <div>
-                    <div style="font-weight:800; font-size:0.9rem; color:#0f172a;">🏢 ${data.name}</div>
-                    <div style="font-size:0.75rem; color:#64748b;">Nghiệp vụ: ${data.desc}</div>
-                </div>
-                ${badgeHtml}
-            </div>
-            <div class="d-flex justify-content-between align-items-center" style="font-size:0.75rem;">
-                <span style="font-weight:700; color:#1e293b;">Hiện có ${data.currentCount} / ${data.targetCount} nhân sự</span>
-                <span style="font-weight:800; color:#2563eb;">${pct}% định biên</span>
-            </div>
-            <div class="quota-progress">
-                <div class="quota-progress-bar" style="width:${pct}%; background:${barColor};"></div>
-            </div>
-        `;
-        updateStep2Summary();
+
+        if (step === 4) {
+            const sign = $('contractSignDate')?.value;
+            const end = $('contractEndDate')?.value;
+            if (sign && end && end < sign) {
+                if (!quiet) {
+                    showMessage('Ngày hết hạn hợp đồng phải sau hoặc bằng ngày ký.');
+                    focusInvalid($('contractEndDate'));
+                }
+                return false;
+            }
+            const confirm = $('confirmAccuracy');
+            if (confirm && !confirm.checked && currentStep === 4) {
+                if (!quiet) {
+                    const msg = 'Bạn cần tích xác nhận thông tin trước khi hoàn tất lưu hồ sơ.';
+                    showMessage(msg);
+                    showToast(msg, 'danger');
+                    focusInvalid(confirm);
+                }
+                return false;
+            }
+        }
+
+        return true;
     }
-    window.updateDeptQuotaBannerOnly = updateDeptQuotaBannerOnly;
+    window.validateStep = validateStep;
 
-    // Export all wizard interactive functions to window
-    window.jumpToStep = jumpToStep;
-    window.nextStep = nextStep;
-    window.prevStep = prevStep;
-    window.toggleEditEmployeeCode = toggleEditEmpCode;
-    window.toggleEditEmpCode = toggleEditEmpCode;
-    window.regenerateEmployeeCode = regenerateEmployeeCode;
-    window.regenerateContractCode = regenerateContractCode;
-    window.toggleEditContractCode = toggleEditContractCode;
-    window.handleStatusChange = handleStatusChange;
-    window.autoGenBhxh = autoGenBhxh;
-    window.autoGenTaxCode = autoGenTaxCode;
-    window.validateCccd = validateCccd;
-    window.triggerAvatarUpload = triggerAvatarUpload;
-    window.previewAvatar = previewAvatar;
-    window.toggleSameAddress = toggleSameAddress;
-    window.calculateAge = calculateAge;
-    window.updateGenderDisplay = updateGenderDisplay;
-    window.saveDraft = saveDraft;
-    window.restoreDraftData = restoreDraftData;
-    window.clearDraft = clearDraft;
-    window.dismissDraft = dismissDraft;
-    window.confirmDiscard = confirmDiscard;
-    window.formatSalaryInput = formatSalaryInput;
-    window.recalcCompensation = recalcCompensation;
-    window.addCustomAllowance = addCustomAllowance;
-    window.toggleAllowanceRow = toggleAllowanceRow;
-    window.handleDepartmentChange = handleDepartmentChange;
-    window.handlePositionChange = handlePositionChange;
-    window.handleFullNameChange = handleFullNameChange;
-    window.showToast = showToast;
-    window.triggerDocUpload = triggerDocUpload;
-    window.handleDocFile = handleDocFile;
-    window.clearDocUpload = clearDocUpload;
-    window.handleResumeFile = handleResumeFile;
-    window.updateUploadedCount = updateUploadedCount;
+    function validateAllSteps() {
+        for (let step = 1; step <= 4; step++) {
+            if (!validateStep(step, true)) {
+                currentStep = step;
+                renderStep();
+                validateStep(step, false);
+                return false;
+            }
+        }
+        return true;
+    }
+    window.validateAllSteps = validateAllSteps;
 
-    function updateStep1Progress() {
-        const panel1 = document.getElementById("panelStep1");
-        if (!panel1) return;
-        const requiredInputs = panel1.querySelectorAll("input[required], select[required]");
-        if (requiredInputs.length === 0) return;
-        let filled = 0;
-        requiredInputs.forEach(inp => {
-            if (inp.value && inp.value.trim()) filled++;
+    // =========================================================================
+    // 5. WIZARD STEP NAVIGATION
+    // =========================================================================
+    function renderStep() {
+        for (let step = 1; step <= 4; step++) {
+            const p = panel(step);
+            const side = $('sidePanelStep' + step);
+            const tab = $('stepperTab' + step);
+
+            if (p) p.classList.toggle('active', step === currentStep);
+            if (side) side.style.display = step === currentStep ? '' : 'none';
+
+            if (tab) {
+                tab.classList.toggle('active', step === currentStep);
+                tab.classList.toggle('done', step < currentStep);     // CSS uses .done
+                tab.classList.remove('completed');                     // remove legacy class
+                tab.classList.toggle('pending', step > currentStep);
+                tab.setAttribute('aria-current', step === currentStep ? 'step' : 'false');
+            }
+
+            const badge = $('stepperBadge' + step);
+            if (badge) {
+                if (step === currentStep) badge.textContent = `BƯỚC ${step} • ĐANG THỰC HIỆN`;
+                else if (step < currentStep) badge.textContent = `BƯỚC ${step} • ĐÃ HOÀN THÀNH`;
+                else badge.textContent = `BƯỚC ${step}`;
+            }
+        }
+
+        const title = $('badgeProgressText');
+        if (title) title.textContent = currentStep === 4 ? 'Sẵn sàng hoàn tất hồ sơ' : 'Đang soạn thảo hồ sơ';
+
+        // Sticky button visibility
+        const btnNext = $('btnNext');
+        const btnPrev = $('btnPrev');
+        const btnSubmit = $('btnSubmit');
+        const btnNextText = $('btnNextText');
+
+        if (btnPrev) {
+            btnPrev.disabled = (currentStep <= 1);
+        }
+
+        if (currentStep < 4) {
+            if (btnNext) btnNext.style.display = '';
+            if (btnSubmit) btnSubmit.style.display = 'none';
+            const nextLabels = [
+                "",
+                "Tiếp tục: Bước 2 (Công việc & Định biên)",
+                "Tiếp tục: Bước 3 (Lương & Phúc lợi)",
+                "Tiếp tục: Bước 4 (Hợp đồng & Bảo hiểm)"
+            ];
+            if (btnNextText) btnNextText.textContent = nextLabels[currentStep] || 'Tiếp tục';
+        } else {
+            if (btnNext) btnNext.style.display = 'none';
+            if (btnSubmit) btnSubmit.style.display = '';
+        }
+
+        updateStep1Progress();
+        updateSummary();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.jumpToStep = function (step) {
+        step = Number(step);
+        if (step < 1 || step > 4) return;
+        if (step > maxReachedStep) {
+            showMessage('Vui lòng hoàn thành bước hiện tại trước khi chuyển sang bước tiếp theo.');
+            return;
+        }
+        currentStep = step;
+        clearMessage();
+        renderStep();
+    };
+
+    window.nextStep = function () {
+        if (currentStep >= 4) return;
+        if (!form()) {
+            showMessage('Không tìm thấy biểu mẫu nhân viên (#employeeForm).');
+            return;
+        }
+        if (!panel(currentStep)) {
+            showMessage('Không tìm thấy nội dung Bước ' + currentStep + '.');
+            return;
+        }
+        if (!validateStep(currentStep)) return;
+
+        maxReachedStep = Math.max(maxReachedStep, currentStep + 1);
+        currentStep++;
+        clearMessage();
+        renderStep();
+        saveDraft();
+    };
+
+    window.prevStep = function () {
+        if (currentStep <= 1) return;
+        currentStep--;
+        clearMessage();
+        renderStep();
+    };
+
+    // =========================================================================
+    // 6. MONEY & SALARY CALCULATIONS
+    // =========================================================================
+    function parseMoney(value) {
+        if (value == null) return 0;
+        const digits = String(value).replace(/[^\d]/g, '');
+        return digits ? Number(digits) : 0;
+    }
+
+    function formatVnd(value) {
+        return new Intl.NumberFormat('vi-VN').format(Math.max(0, Math.round(value))) + ' đ';
+    }
+
+    window.formatSalaryInput = function (input) {
+        const amount = parseMoney(input.value);
+        input.value = amount ? new Intl.NumberFormat('vi-VN').format(amount) : '';
+        recalcCompensation();
+        saveDraftDebounced();
+    };
+
+    window.recalcCompensation = function () {
+        const base = parseMoney($('baseSalary')?.value);
+        let allowance = 0;
+        if ($('alLunch')?.checked) allowance += 1000000;
+        if ($('alGas')?.checked) allowance += 1000000;
+        if ($('alPhone')?.checked) allowance += 500000;
+
+        // Add custom allowance rows
+        qsa('.allowance-box-item', $('allowanceListContainer')).forEach(item => {
+            const chk = item.querySelector('input[type="checkbox"]');
+            const num = item.querySelector('input[type="number"]');
+            if (chk && chk.checked && num) {
+                allowance += parseMoney(num.value);
+            }
         });
-        const pct = Math.round((filled / requiredInputs.length) * 100);
-        const pctEl = document.getElementById("step1Pct");
-        const barEl = document.getElementById("step1ProgressBar");
-        if (pctEl) pctEl.innerText = pct + "%";
-        if (barEl) barEl.style.width = pct + "%";
+
+        const gross = base + allowance;
+        const insuranceCap = 36000000; // Mức trần đóng BHXH 2024
+        const insuranceBase = Math.min(base, insuranceCap);
+        const insurance = insuranceBase * 0.105; // 8% BHXH + 1.5% BHYT + 1% BHTN = 10.5%
+        const personalDeduction = 11000000;
+        const taxable = Math.max(0, gross - insurance - personalDeduction);
+
+        // Biểu thuế TNCN lũy tiến từng phần
+        let tax = 0;
+        if (taxable <= 5000000) {
+            tax = taxable * 0.05;
+        } else if (taxable <= 10000000) {
+            tax = 5000000 * 0.05 + (taxable - 5000000) * 0.10;
+        } else if (taxable <= 18000000) {
+            tax = 5000000 * 0.05 + 5000000 * 0.10 + (taxable - 10000000) * 0.15;
+        } else if (taxable <= 32000000) {
+            tax = 5000000 * 0.05 + 5000000 * 0.10 + 8000000 * 0.15 + (taxable - 18000000) * 0.20;
+        } else {
+            tax = 5000000 * 0.05 + 5000000 * 0.10 + 8000000 * 0.15 + 14000000 * 0.20 + (taxable - 32000000) * 0.25;
+        }
+
+        const net = Math.max(0, gross - insurance - tax);
+        const pct = gross ? Math.round((net / gross) * 1000) / 10 : 0;
+
+        if ($('calcBaseDisplay')) $('calcBaseDisplay').textContent = formatVnd(base);
+        if ($('calcAllowanceDisplay')) $('calcAllowanceDisplay').textContent = '+ ' + formatVnd(allowance);
+        if ($('calcGrossDisplay')) $('calcGrossDisplay').textContent = formatVnd(gross);
+        if ($('calcBhxhDisplay')) $('calcBhxhDisplay').textContent = '- ' + formatVnd(insurance);
+        if ($('calcTaxDisplay')) $('calcTaxDisplay').textContent = '- ' + formatVnd(tax);
+        if ($('calcNetDisplay')) $('calcNetDisplay').textContent = '~ ' + formatVnd(net);
+        if ($('calcNetPct')) $('calcNetPct').textContent = pct + '% Gross';
+        if ($('calcDonutPct')) $('calcDonutPct').textContent = Math.round(pct) + '%';
+
+        const probationRate = Number(qs('input[name="probationSalaryRate"]:checked')?.value || 85);
+        const probation = base * probationRate / 100;
+        if ($('probationSubText')) $('probationSubText').textContent = `Thử việc: ${formatVnd(probation)}/tháng`;
+
+        if ($('finalSalary')) $('finalSalary').textContent = formatVnd(base);
+        if ($('sideStep3Salary')) $('sideStep3Salary').textContent = formatVnd(base);
+    };
+
+    window.toggleAllowanceRow = function (checkbox, amount) {
+        const row = checkbox.closest('.allowance-box-item');
+        if (row) row.classList.toggle('active', checkbox.checked);
+        recalcCompensation();
+        saveDraftDebounced();
+    };
+
+    window.addCustomAllowance = function () {
+        const container = $('allowanceListContainer');
+        if (!container) return;
+        const id = 'customAllowance_' + Date.now();
+        const row = document.createElement('div');
+        row.className = 'allowance-box-item active';
+        row.innerHTML = `
+            <div class="allowance-left">
+                <input type="checkbox" class="form-check-input mt-0" id="${id}" checked>
+                <div>
+                    <div class="allowance-name">Phụ cấp bổ sung</div>
+                    <div class="allowance-sub">Khoản phụ cấp do HR/Quản lý phê duyệt</div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <input type="number" min="0" step="50000" class="form-control form-control-sm" style="width:140px" value="500000" aria-label="Số tiền phụ cấp">
+                <span class="text-muted small">đ/tháng</span>
+            </div>`;
+        container.appendChild(row);
+        row.querySelector('input[type="checkbox"]').addEventListener('change', recalcCompensation);
+        row.querySelector('input[type="number"]').addEventListener('input', recalcCompensation);
+        recalcCompensation();
+    };
+
+    // =========================================================================
+    // 7. PERSONAL DETAILS & VALIDATION
+    // =========================================================================
+    window.calculateAge = function () {
+        const dob = $('dateOfBirth')?.value;
+        if (!dob) return;
+        const birth = new Date(dob + 'T00:00:00');
+        const now = new Date();
+        let age = now.getFullYear() - birth.getFullYear();
+        const m = now.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+        const hint = $('ageHint');
+        if (hint) hint.textContent = age >= 0 ? `Tuổi: ${age}` : '';
+        updateGenderDisplay();
+    };
+
+    window.validateCccd = function (input) {
+        input.value = input.value.replace(/\D/g, '').slice(0, 12);
+        const valid = /^\d{12}$/.test(input.value);
+        const icon = $('cccdValidIcon');
+        if (icon) icon.style.display = valid ? 'block' : 'none';
+        input.classList.toggle('is-valid', valid);
+        input.classList.toggle('is-invalid', input.value.length > 0 && !valid);
+        saveDraftDebounced();
+    };
+
+    window.updateGenderDisplay = function () {
+        const checked = qs('input[name="gender"]:checked');
+        const text = $('sideProfileAgeGender');
+        const dob = $('dateOfBirth')?.value;
+        let ageText = '';
+        if (dob) {
+            const birth = new Date(dob + 'T00:00:00');
+            const now = new Date();
+            let age = now.getFullYear() - birth.getFullYear();
+            const m = now.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+            if (age >= 0) ageText = age + ' tuổi';
+        }
+        const gText = checked ? (checked.value === 'MALE' ? 'Nam' : checked.value === 'FEMALE' ? 'Nữ' : 'Khác') : 'Nam';
+        if (text) {
+            text.textContent = (ageText ? ageText + ' • ' : '') + gText;
+        }
+    };
+
+    window.handleFullNameChange = function (value) {
+        const name = value.trim() || 'Chưa nhập họ tên';
+        if ($('sideProfileName')) $('sideProfileName').textContent = name;
+        if ($('sideStep3Name')) $('sideStep3Name').textContent = name;
+        if ($('finalFullName')) $('finalFullName').textContent = name;
+        updateAvatarFallback();
+        saveDraftDebounced();
+    };
+
+    function updateAvatarFallback() {
+        const img = $('avatarPreviewImg');
+        if (!img || $('avatarFileInput')?.files?.length) return;
+        const initials = (($('fullName')?.value || 'NV').trim().split(/\s+/).slice(-2).map(x => x[0]).join('') || 'NV').toUpperCase();
+        img.alt = initials;
     }
-    window.updateStep1Progress = updateStep1Progress;
 
-    /**
-     * updateDeptQuotaBannerOnly — chỉ cập nhật Quota Banner theo phòng ban
-     * KHÔNG thay thế position dropdown (dùng trong edit mode init).
-     */
-    function updateDeptQuotaBannerOnly(deptId) {
-        const data = DEPARTMENT_DATA[deptId];
-        const banner = document.getElementById("deptQuotaBanner");
-        if (!banner) return;
+    window.toggleSameAddress = function (checkbox) {
+        const temp = $('tempAddress');
+        const perm = $('address');
+        if (checkbox && checkbox.checked && temp && perm) {
+            temp.value = perm.value;
+            temp.readOnly = true;
+        } else if (temp) {
+            temp.readOnly = false;
+        }
+        saveDraftDebounced();
+    };
 
-        if (!data) {
-            banner.classList.remove("has-dept");
-            banner.innerHTML = `<div class="text-muted" style="font-size:0.8rem;">Chọn phòng ban để xem định biên nhân sự.</div>`;
+    // =========================================================================
+    // 8. CODE GENERATORS (EMPLOYEE, CONTRACT, BHXH, TAX)
+    // =========================================================================
+    window.toggleEditEmpCode = function () {
+        const input = $('employeeCode');
+        if (!input) return;
+        input.readOnly = !input.readOnly;
+        if (!input.readOnly) input.focus();
+    };
+
+    window.regenerateEmployeeCode = function () {
+        const input = $('employeeCode');
+        if (!input) return;
+        const rand = Math.floor(100 + Math.random() * 900);
+        input.value = 'NV' + rand;
+        input.readOnly = true;
+        if ($('sideProfileCode')) $('sideProfileCode').textContent = input.value;
+        saveDraftDebounced();
+    };
+
+    window.toggleEditContractCode = function () {
+        const input = $('contractCode');
+        if (!input) return;
+        input.readOnly = !input.readOnly;
+        if (!input.readOnly) input.focus();
+    };
+
+    window.regenerateContractCode = function () {
+        const input = $('contractCode');
+        if (!input) return;
+        const rand = Math.floor(100 + Math.random() * 900);
+        input.value = 'HD' + rand;
+        input.readOnly = true;
+        saveDraftDebounced();
+    };
+
+    window.autoGenBhxh = function () {
+        const input = $('bhxhCode');
+        if (!input) return;
+        input.value = '01' + String(Math.floor(10000000 + Math.random() * 90000000));
+        saveDraftDebounced();
+    };
+
+    window.autoGenTaxCode = function () {
+        const input = $('taxCode');
+        if (!input) return;
+        input.value = '84' + String(Math.floor(10000000 + Math.random() * 90000000));
+        saveDraftDebounced();
+    };
+
+    // =========================================================================
+    // 9. DEPARTMENT & POSITION MANAGEMENT
+    // =========================================================================
+    window.handleDepartmentChange = function (departmentId) {
+        const select = $('positionId');
+        if (select) {
+            const options = Array.from(select.options);
+            options.forEach(option => {
+                if (!option.value) return;
+                const dept = option.dataset.departmentId;
+                const visible = !departmentId || !dept || dept === String(departmentId);
+                option.hidden = !visible;
+                if (!visible && option.selected) option.selected = false;
+            });
+            const selected = select.selectedOptions[0];
+            if (selected?.hidden) select.value = '';
+        }
+
+        updateDepartmentQuota(departmentId);
+        saveDraftDebounced();
+    };
+
+    window.handlePositionChange = function (positionId) {
+        const pos = $('positionId')?.selectedOptions[0];
+        const dept = $('departmentId')?.selectedOptions[0];
+        const posName = pos && pos.value ? pos.textContent.trim() : 'Chưa chọn';
+        const deptName = dept && dept.value ? dept.textContent.trim() : 'Phòng ban';
+
+        if ($('finalPosition')) $('finalPosition').textContent = posName;
+        if ($('sideStep3Pos')) $('sideStep3Pos').textContent = posName + ' • ' + deptName;
+
+        // Auto-fill salary if currently blank
+        const deptId = $('departmentId')?.value;
+        if (deptId && DEPARTMENT_DATA[deptId]) {
+            const posData = DEPARTMENT_DATA[deptId].positions.find(p => String(p.id) === String(positionId));
+            if (posData && (!($('baseSalary')?.value) || $('baseSalary')?.value === '0')) {
+                if ($('baseSalary')) $('baseSalary').value = posData.defaultSalary;
+                recalcCompensation();
+            }
+        }
+
+        saveDraftDebounced();
+    };
+
+    function updateDepartmentQuota(deptId) {
+        deptId = deptId || $('departmentId')?.value;
+        const banner = $('deptQuotaBanner');
+        const deptData = DEPARTMENT_DATA[deptId];
+        const deptOpt = $('departmentId')?.selectedOptions[0];
+
+        if (!deptId || !deptData) {
+            if ($('quotaDeptName')) $('quotaDeptName').textContent = deptOpt ? ('🏢 ' + deptOpt.textContent.trim()) : '🏢 Định biên phòng ban';
+            if ($('quotaDeptDesc')) $('quotaDeptDesc').textContent = 'Quy chuẩn định biên nhân sự tập đoàn MIXIMOI';
             return;
         }
 
-        banner.classList.add("has-dept");
-        const vacantCount = Math.max(0, data.targetCount - data.currentCount);
-        const pct = Math.min(100, Math.round((data.currentCount / data.targetCount) * 100));
+        const vacantCount = Math.max(0, deptData.targetCount - deptData.currentCount);
+        const pct = Math.min(100, Math.round((deptData.currentCount / deptData.targetCount) * 100));
 
-        let badgeHtml = "";
-        let barColor = "linear-gradient(90deg, #2563eb, #38bdf8)";
-        if (vacantCount > 0) {
-            badgeHtml = `<span class="quota-badge-vacant"><i class="bi bi-person-plus-fill"></i> Còn thiếu ${vacantCount} chỉ tiêu</span>`;
-            barColor = "linear-gradient(90deg, #059669, #34d399)";
-        } else {
-            badgeHtml = `<span class="quota-badge-full"><i class="bi bi-exclamation-circle-fill"></i> Đã đủ định biên (${data.currentCount}/${data.targetCount})</span>`;
-            barColor = "linear-gradient(90deg, #dc2626, #f87171)";
+        if ($('quotaDeptName')) $('quotaDeptName').textContent = '🏢 ' + deptData.name;
+        if ($('quotaDeptDesc')) $('quotaDeptDesc').textContent = 'Nghiệp vụ: ' + deptData.desc;
+        if ($('quotaVacantBadge')) {
+            $('quotaVacantBadge').innerHTML = vacantCount > 0
+                ? `<i class="bi bi-person-plus-fill"></i> Còn thiếu ${vacantCount} chỉ tiêu`
+                : `<i class="bi bi-check-circle-fill"></i> Đã đủ định biên (${deptData.currentCount}/${deptData.targetCount})`;
         }
-
-        banner.innerHTML = `
-            <div class="quota-header">
-                <div>
-                    <div style="font-weight:800; font-size:0.9rem; color:#0f172a;">🏢 ${data.name}</div>
-                    <div style="font-size:0.75rem; color:#64748b;">Nghiệp vụ: ${data.desc}</div>
-                </div>
-                ${badgeHtml}
-            </div>
-            <div class="d-flex justify-content-between align-items-center" style="font-size:0.75rem;">
-                <span style="font-weight:700; color:#1e293b;">Hiện có ${data.currentCount} / ${data.targetCount} nhân sự</span>
-                <span style="font-weight:800; color:#2563eb;">${pct}% định biên</span>
-            </div>
-            <div class="quota-progress">
-                <div class="quota-progress-bar" style="width:${pct}%; background:${barColor};"></div>
-            </div>
-            <div style="font-size:0.72rem; color:#64748b; margin-top:4px;">
-                <i class="bi bi-shield-check me-1 text-primary"></i> Quản lý trực tiếp phụ trách: <strong>${data.manager}</strong>
-            </div>
-        `;
+        if ($('quotaRatioText')) $('quotaRatioText').textContent = `Hiện có ${deptData.currentCount} / ${deptData.targetCount} nhân sự`;
+        if ($('quotaPctText')) $('quotaPctText').textContent = `${pct}% định biên`;
+        if ($('quotaProgressBar')) $('quotaProgressBar').style.width = pct + '%';
+        if ($('quotaRecruitHint')) {
+            $('quotaRecruitHint').innerHTML = `<i class="bi bi-shield-check me-1 text-primary"></i> Quản lý phụ trách: <strong>${deptData.manager}</strong>`;
+        }
     }
-    window.updateDeptQuotaBannerOnly = updateDeptQuotaBannerOnly;
 
-    // Handle Form Submit Event & Step 1 Live Progress
-    document.addEventListener("DOMContentLoaded", function() {
-        const panel1 = document.getElementById("panelStep1");
-        if (panel1) {
-            panel1.querySelectorAll("input, select").forEach(inp => {
-                inp.addEventListener("input", function() {
-                    this.classList.remove("is-invalid");
-                    updateStep1Progress();
-                });
-                inp.addEventListener("change", function() {
-                    this.classList.remove("is-invalid");
-                    updateStep1Progress();
+    window.handleStatusChange = function (status) {
+        const fields = $('terminationFields');
+        if (!fields) return;
+        fields.classList.toggle('d-none', status !== 'INACTIVE');
+    };
+
+    function updateStep1Progress() {
+        const root = panel(1);
+        if (!root) return;
+        const textControls = qsa('[required]:not([type="radio"])', root).filter(el => !el.disabled && el.type !== 'hidden');
+        const radioNames = Array.from(new Set(qsa('input[type="radio"][required]', root).map(r => r.name)));
+
+        let total = textControls.length + radioNames.length;
+        let filled = 0;
+
+        textControls.forEach(el => {
+            if (el.value && el.value.trim().length > 0) filled++;
+        });
+
+        radioNames.forEach(name => {
+            const group = qsa(`input[type="radio"][name="${CSS.escape(name)}"]`, root);
+            if (group.some(r => r.checked)) filled++;
+        });
+
+        const pct = total > 0 ? Math.round((filled / total) * 100) : 0;
+        const bar = $('step1ProgressBar');
+        if (bar) bar.style.width = pct + '%';
+        const label = $('step1Pct') || $('step1ProgressText');
+        if (label) label.textContent = `${pct}%`;
+    }
+
+    function updateSummary() {
+        const fullName = $('fullName')?.value || '—';
+        const code = $('employeeCode')?.value || '—';
+        const dept = $('departmentId')?.selectedOptions[0]?.textContent.trim() || '—';
+        const pos = $('positionId')?.selectedOptions[0]?.textContent.trim() || '—';
+
+        if ($('sideProfileName')) $('sideProfileName').textContent = fullName;
+        if ($('sideProfileCode')) $('sideProfileCode').textContent = code;
+        if ($('sideProfileDept')) $('sideProfileDept').textContent = dept;
+        if ($('sideProfilePos')) $('sideProfilePos').textContent = pos;
+    }
+
+    // =========================================================================
+    // 10. FILE UPLOADS, PREVIEW & DRAG-DROP
+    // =========================================================================
+    window.triggerAvatarUpload = function (event) {
+        if (event && event.target && event.target.tagName === 'INPUT') return;
+        const input = $('avatarFileInput');
+        if (!input) return showMessage('Không tìm thấy ô tải ảnh chân dung.');
+        input.click();
+    };
+
+    window.previewAvatar = function (input) {
+        const file = input?.files?.[0];
+        if (!file) return;
+        const result = validateFile(file, ['.jpg', '.jpeg', '.png', '.webp'], AVATAR_MAX_SIZE);
+        if (result !== true) {
+            showMessage(result);
+            input.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = e => {
+            const src = e.target.result;
+            if ($('avatarPreviewImg')) $('avatarPreviewImg').src = src;
+            if ($('sideProfileAvatar')) $('sideProfileAvatar').src = src;
+            if ($('sideStep3Avatar')) $('sideStep3Avatar').src = src;
+        };
+        reader.onerror = () => showMessage('Không thể đọc ảnh. Vui lòng chọn lại file.');
+        reader.readAsDataURL(file);
+        updateUploadedDocCount();
+        saveDraftDebounced();
+    };
+    window.handleAvatarSelected = function (e) {
+        window.previewAvatar(e?.target || e);
+    };
+
+    window.triggerDocUpload = function (id, event) {
+        if (event && event.target && event.target.tagName === 'INPUT') return;
+        const input = $(id);
+        if (!input) return showMessage('Không tìm thấy ô tải tệp: ' + id);
+        input.click();
+    };
+
+    function validateFile(file, allowed, maxSize) {
+        if (!file) return true;
+        if (file.size > maxSize) return `Tệp "${file.name}" vượt quá dung lượng tối đa ${Math.round(maxSize / 1024 / 1024)}MB.`;
+        const lower = file.name.toLowerCase();
+        const ok = allowed.some(ext => lower.endsWith(ext));
+        return ok ? true : `Định dạng tệp "${file.name}" không được hỗ trợ (${allowed.join(', ')}).`;
+    }
+
+    window.handleDocFile = function (input, previewId, nameId) {
+        const file = input?.files?.[0];
+        if (!file) return;
+        const result = validateFile(file, ['.jpg', '.jpeg', '.png', '.webp', '.pdf'], MAX_FILE_SIZE);
+        if (result !== true) {
+            showMessage(result);
+            input.value = '';
+            return;
+        }
+        const preview = $(previewId);
+        const icon = $(previewId.replace('Preview', 'Icon'));
+        const name = $(nameId);
+        if (name) name.textContent = file.name;
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                if (preview) {
+                    preview.src = e.target.result;
+                    preview.classList.remove('d-none');
+                }
+                if (icon) icon.classList.add('d-none');
+            };
+            reader.onerror = () => showMessage('Không thể đọc tệp. Vui lòng chọn lại.');
+            reader.readAsDataURL(file);
+        } else {
+            if (preview) preview.classList.add('d-none');
+            if (icon) icon.classList.remove('d-none');
+        }
+        const del = $(nameId.replace('Name', 'Del'));
+        if (del) del.classList.remove('d-none');
+        updateUploadedDocCount();
+        saveDraftDebounced();
+    };
+
+    window.handleResumeFile = function (input) {
+        const file = input?.files?.[0];
+        if (!file) return;
+        const result = validateFile(file, ['.pdf', '.doc', '.docx'], MAX_FILE_SIZE);
+        if (result !== true) {
+            showMessage(result);
+            input.value = '';
+            return;
+        }
+        if ($('resumeTitle')) $('resumeTitle').textContent = file.name;
+        if ($('resumeSub')) $('resumeSub').textContent = 'Tệp đã chọn • sẵn sàng tải lên hệ thống';
+        if ($('resumeBadge')) $('resumeBadge').textContent = 'Đã chọn • ' + Math.ceil(file.size / 1024) + ' KB';
+        const del = $('resumeFileDel');
+        if (del) del.classList.remove('d-none');
+        updateUploadedDocCount();
+        saveDraftDebounced();
+    };
+
+    window.clearDocUpload = function (previewId, nameId) {
+        const preview = $(previewId);
+        const icon = $(previewId.replace('Preview', 'Icon'));
+        const name = $(nameId);
+        const inputId = previewId.includes('Front') ? 'cccdFrontInput' : 'cccdBackInput';
+        const hiddenId = previewId.includes('Front') ? 'idCardFrontUrl' : 'idCardBackUrl';
+        const input = $(inputId);
+        const hidden = $(hiddenId) || $(hiddenId + 'Hidden');
+        if (input) input.value = '';
+        if (hidden) hidden.value = '';
+        if (preview) {
+            preview.src = '';
+            preview.classList.add('d-none');
+        }
+        if (icon) icon.classList.remove('d-none');
+        if (name) name.textContent = 'Bấm để tải tệp';
+        const del = $(nameId.replace('Name', 'Del'));
+        if (del) del.classList.add('d-none');
+        updateUploadedDocCount();
+        saveDraftDebounced();
+    };
+
+    window.clearResumeUpload = function () {
+        const input = $('resumeInput');
+        const hidden = $('resumeUrlHidden') || $('resumeUrl');
+        if (input) input.value = '';
+        if (hidden) hidden.value = '';
+        if ($('resumeTitle')) $('resumeTitle').textContent = 'Sơ yếu lí lịch / Khám SK';
+        if ($('resumeSub')) $('resumeSub').textContent = 'Kéo thả tệp hoặc bấm để chọn';
+        if ($('resumeBadge')) $('resumeBadge').textContent = 'PDF, DOCX <= 10MB';
+        const del = $('resumeFileDel');
+        if (del) del.classList.add('d-none');
+        updateUploadedDocCount();
+        saveDraftDebounced();
+    };
+
+    function updateUploadedDocCount() {
+        const ids = ['avatarFileInput', 'cccdFrontInput', 'cccdBackInput', 'resumeInput', 'contractFile'];
+        let count = 0;
+        ids.forEach(id => {
+            const input = $(id);
+            if (input?.files?.length) count++;
+        });
+        const badge = $('sideProfileDocCount');
+        if (badge) badge.textContent = `${count} tệp đính kèm`;
+    }
+
+    function bindFileInteractions() {
+        qsa('[data-upload-input]').forEach(zone => {
+            ['dragenter', 'dragover'].forEach(name => {
+                zone.addEventListener(name, e => {
+                    e.preventDefault();
+                    zone.classList.add('drag-active');
                 });
             });
-            updateStep1Progress();
+            ['dragleave', 'drop'].forEach(name => {
+                zone.addEventListener(name, e => {
+                    e.preventDefault();
+                    zone.classList.remove('drag-active');
+                });
+            });
+            zone.addEventListener('drop', e => {
+                const inputId = zone.getAttribute('data-upload-input');
+                const input = $(inputId);
+                if (!input || !e.dataTransfer?.files?.length) return;
+                input.files = e.dataTransfer.files;
+                if (inputId === 'avatarFileInput') window.previewAvatar(input);
+                else if (inputId === 'resumeInput') window.handleResumeFile(input);
+                else if (inputId === 'cccdFrontInput') window.handleDocFile(input, 'cccdFrontPreview', 'cccdFrontName');
+                else if (inputId === 'cccdBackInput') window.handleDocFile(input, 'cccdBackPreview', 'cccdBackName');
+            });
+        });
+    }
+
+    // =========================================================================
+    // 11. LOCAL DRAFT AUTOSAVE & RECOVERY
+    // =========================================================================
+    function draftKey() {
+        const id = qs('input[name="id"]')?.value || 'new';
+        return DRAFT_PREFIX + (window.IS_EDIT_MODE ? 'edit-' + id : 'new');
+    }
+
+    function saveDraft() {
+        const f = form();
+        if (!f || isSubmitting) return;
+        const data = {};
+        qsa('input:not([type="file"]):not([type="password"]), select, textarea', f).forEach(el => {
+            if (!el.name) return;
+            if (el.type === 'checkbox') data[el.name] = el.checked;
+            else if (el.type === 'radio') {
+                if (el.checked) data[el.name] = el.value;
+            } else {
+                data[el.name] = el.value;
+            }
+        });
+        data._savedAt = new Date().toISOString();
+        try {
+            localStorage.setItem(draftKey(), JSON.stringify(data));
+        } catch (_) {}
+    }
+    window.saveDraft = saveDraft;
+
+    function saveDraftDebounced() {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(saveDraft, 500);
+    }
+
+    window.restoreDraftData = function () {
+        try {
+            const raw = localStorage.getItem(draftKey());
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            const f = form();
+            if (!f) return;
+            Object.entries(data).forEach(([key, val]) => {
+                if (key.startsWith('_')) return;
+                const el = f.elements[key];
+                if (!el) return;
+                if (el.type === 'checkbox') el.checked = Boolean(val);
+                else if (el instanceof RadioNodeList) el.value = val;
+                else el.value = val;
+            });
+            updateAll();
+            showToast('Đã khôi phục dữ liệu bản nháp thành công.', 'success');
+            $('draftAlertBanner')?.classList.add('d-none');
+        } catch (_) {
+            showToast('Không thể khôi phục bản nháp.', 'danger');
+        }
+    };
+
+    window.clearDraft = function () {
+        try { localStorage.removeItem(draftKey()); } catch (_) {}
+        $('draftAlertBanner')?.classList.add('d-none');
+        showToast('Đã xóa bản nháp đã lưu.', 'warning');
+    };
+
+    window.dismissDraft = function () {
+        $('draftAlertBanner')?.classList.add('d-none');
+    };
+
+    window.confirmDiscard = function () {
+        return window.confirm('Bạn có chắc muốn rời khỏi trang? Mọi thay đổi chưa gửi sẽ được lưu tạm trong bản nháp.');
+    };
+
+    function maybeShowDraft() {
+        if (window.IS_EDIT_MODE) return;
+        try {
+            const raw = localStorage.getItem(draftKey());
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            const savedAt = data._savedAt ? new Date(data._savedAt) : null;
+            if (!savedAt || Date.now() - savedAt.getTime() > 24 * 60 * 60 * 1000) return;
+            const text = $('draftAlertText');
+            if (text) text.textContent = `Phát hiện bản nháp được lưu lúc ${savedAt.toLocaleTimeString('vi-VN')} ngày ${savedAt.toLocaleDateString('vi-VN')}.`;
+            $('draftAlertBanner')?.classList.remove('d-none');
+        } catch (_) {}
+    }
+
+    // =========================================================================
+    // 12. INITIALIZATION & LIFECYCLE
+    // =========================================================================
+    function updateAll() {
+        calculateAge();
+        updateGenderDisplay();
+        updateSummary();
+        updateDepartmentQuota();
+        recalcCompensation();
+        updateStep1Progress();
+        handleStatusChange($('empStatus')?.value || 'ACTIVE');
+    }
+
+    function submitGuard() {
+        const f = form();
+        if (!f) return;
+        f.addEventListener('submit', function (event) {
+            if (isSubmitting) {
+                event.preventDefault();
+                return;
+            }
+
+            clearMessage();
+            if (!validateAllSteps()) {
+                event.preventDefault();
+                return;
+            }
+
+            isSubmitting = true;
+            const submitButtons = qsa('button[type="submit"]', f);
+            submitButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="bi bi-arrow-repeat me-1 spinner-border spinner-border-sm" role="status"></i> Đang lưu...';
+            });
+
+            try { localStorage.removeItem(draftKey()); } catch (_) {}
+        });
+    }
+
+    function bindLiveEvents() {
+        const f = form();
+        if (!f) return;
+
+        qsa('input, select, textarea', f).forEach(el => {
+            ['input', 'change'].forEach(eventName => {
+                el.addEventListener(eventName, () => {
+                    el.classList.remove('is-invalid');
+                    updateStep1Progress();
+                    updateSummary();
+                    saveDraftDebounced();
+                });
+            });
+        });
+
+        $('email')?.addEventListener('input', () => {
+            if ($('step2CompanyEmail')) $('step2CompanyEmail').value = $('email').value;
+        });
+        $('address')?.addEventListener('input', () => {
+            if ($('sameAddressCheck')?.checked && $('tempAddress')) $('tempAddress').value = $('address').value;
+        });
+
+        ['cccdFrontInput', 'cccdBackInput', 'resumeInput', 'avatarFileInput', 'contractFile'].forEach(id => {
+            $(id)?.addEventListener('change', updateUploadedDocCount);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const f = form();
+        if (!f) return;
+
+        currentStep = 1;
+        const isEditMode = !!$('employeeForm')?.querySelector('input[name="id"]') || $('employeeForm')?.querySelector('input[name="action"]')?.value === 'update';
+        maxReachedStep = isEditMode ? 4 : 1;
+        renderStep();
+        updateStep1Progress();
+        bindLiveEvents();
+        bindFileInteractions();
+
+        // Note: wizard nav buttons already use inline onclick="nextStep()" / onclick="prevStep()".
+        // We bind via data-wizard-* only for buttons that do NOT have inline onclick.
+        qsa('[data-wizard-next]').forEach(btn => {
+            if (!btn.hasAttribute('onclick')) {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    window.nextStep();
+                });
+            }
+        });
+        qsa('[data-wizard-prev]').forEach(btn => {
+            if (!btn.hasAttribute('onclick')) {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    window.prevStep();
+                });
+            }
+        });
+
+        submitGuard();
+        updateAll();
+        maybeShowDraft();
+
+        if ($('departmentId')?.value) {
+            handleDepartmentChange($('departmentId').value);
         }
 
-        const form = document.getElementById("employeeForm");
-        if (!form) return;
-
-        form.addEventListener("submit", function(e) {
-            // Validate required fields in Step 1
-            const fullName = document.getElementById("fullName");
-            if (fullName && !fullName.value.trim()) {
-                e.preventDefault();
-                jumpToStep(1);
-                fullName.focus();
-                fullName.classList.add("is-invalid");
-                showToast("Vui lòng nhập Họ và tên nhân viên.", "warning");
-                return false;
-            }
-
-            const phone = document.getElementById("phone");
-            if (phone && !phone.value.trim()) {
-                e.preventDefault();
-                jumpToStep(1);
-                phone.focus();
-                phone.classList.add("is-invalid");
-                showToast("Vui lòng nhập Số điện thoại nhân viên.", "warning");
-                return false;
-            }
-
-            // In new mode, validate Department and Position in Step 2
-            if (!window.IS_EDIT_MODE) {
-                const dept = document.getElementById("departmentId");
-                if (dept && !dept.value) {
-                    e.preventDefault();
-                    jumpToStep(2);
-                    dept.focus();
-                    showToast("Vui lòng chọn Phòng ban tiếp nhận.", "warning");
-                    return false;
-                }
-            }
-
-            // Check final accuracy confirmation — only required in new employee mode
-            // In edit mode, user submits from sticky bar at any step (no need to force step 4)
-            if (!window.IS_EDIT_MODE) {
-                const confirmBox = document.getElementById("confirmAccuracy");
-                if (confirmBox && !confirmBox.checked) {
-                    e.preventDefault();
-                    jumpToStep(4);
-                    confirmBox.focus();
-                    showToast("Vui lòng đánh dấu xác nhận thông tin hồ sơ trước khi hoàn tất.", "warning");
-                    return false;
-                }
-            }
-
-            // Clear draft upon successful submission
-            if (!window.IS_EDIT_MODE) {
-                localStorage.removeItem("miximoi_employee_draft");
-            }
-            return true;
-        });
+        f.addEventListener('input', saveDraftDebounced);
+        f.addEventListener('change', saveDraftDebounced);
     });
 
-
+})();

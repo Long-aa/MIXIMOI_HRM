@@ -57,8 +57,12 @@
             <div class="profile-hero mb-3">
                 <div class="profile-hero-body">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="profile-avatar-xl">
+                        <div class="profile-avatar-xl" style="overflow:hidden; display:flex; align-items:center; justify-content:center;">
                             <c:choose>
+                                <c:when test="${not empty employee.avatarUrl}">
+                                    <img src="${employee.avatarUrl.startsWith('http') ? employee.avatarUrl : pageContext.request.contextPath.concat(employee.avatarUrl)}" 
+                                         alt="${employee.fullName}" style="width:100%; height:100%; object-fit:cover;">
+                                </c:when>
                                 <c:when test="${not empty employee.fullName}">${employee.fullName.substring(0,1).toUpperCase()}</c:when>
                                 <c:otherwise>NV</c:otherwise>
                             </c:choose>
@@ -208,6 +212,96 @@
                                                 <c:otherwise>Chưa có thay đổi</c:otherwise>
                                             </c:choose>
                                         </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Identity Documents & Attachments -->
+                    <div class="row g-3 mt-1">
+                        <div class="col-12">
+                            <div class="info-card">
+                                <div class="info-card-header">
+                                    <div class="info-card-header-title">
+                                        <i class="bi bi-folder-check"></i>
+                                        <span class="info-card-title">Giấy tờ tùy thân & Hồ sơ đính kèm</span>
+                                    </div>
+                                </div>
+                                <div class="info-card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <div class="info-row">
+                                                <span class="info-label">Số CCCD / Hộ chiếu</span>
+                                                <span class="info-value fw-bold text-dark">${not empty employee.identityNumber ? employee.identityNumber : 'Chưa cập nhật'}</span>
+                                            </div>
+                                            <div class="info-row">
+                                                <span class="info-label">Ngày cấp</span>
+                                                <span class="info-value">${not empty employee.identityDate ? employee.identityDate : '—'}</span>
+                                            </div>
+                                            <div class="info-row">
+                                                <span class="info-label">Nơi cấp</span>
+                                                <span class="info-value">${not empty employee.identityPlace ? employee.identityPlace : '—'}</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- CCCD Scans & Resume -->
+                                        <div class="col-md-8">
+                                            <div class="d-flex flex-wrap gap-3 align-items-center">
+                                                <!-- Mặt trước CCCD -->
+                                                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; text-align:center; min-width:140px;">
+                                                    <div style="font-size:0.75rem; font-weight:600; color:#475569; margin-bottom:6px;">Mặt trước CCCD</div>
+                                                    <c:choose>
+                                                        <c:when test="${not empty employee.idCardFrontUrl}">
+                                                            <a href="${employee.idCardFrontUrl.startsWith('http') ? employee.idCardFrontUrl : pageContext.request.contextPath.concat(employee.idCardFrontUrl)}" target="_blank" class="d-inline-block text-decoration-none">
+                                                                <img src="${employee.idCardFrontUrl.startsWith('http') ? employee.idCardFrontUrl : pageContext.request.contextPath.concat(employee.idCardFrontUrl)}" 
+                                                                     alt="Mặt trước CCCD" style="max-height:60px; max-width:120px; object-fit:contain; border-radius:6px; border:1px solid #cbd5e1;"
+                                                                     onerror="this.style.display='none'; this.nextElementSibling.classList.remove('d-none');">
+                                                                <div class="d-none"><i class="bi bi-file-earmark-image text-primary" style="font-size:1.8rem;"></i></div>
+                                                                <div class="mt-1 text-primary" style="font-size:0.72rem; font-weight:600;"><i class="bi bi-box-arrow-up-right me-1"></i>Xem tệp</div>
+                                                            </a>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <div class="text-muted fst-italic" style="font-size:0.75rem; padding:15px 0;">Chưa tải lên</div>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </div>
+
+                                                <!-- Mặt sau CCCD -->
+                                                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; text-align:center; min-width:140px;">
+                                                    <div style="font-size:0.75rem; font-weight:600; color:#475569; margin-bottom:6px;">Mặt sau CCCD</div>
+                                                    <c:choose>
+                                                        <c:when test="${not empty employee.idCardBackUrl}">
+                                                            <a href="${employee.idCardBackUrl.startsWith('http') ? employee.idCardBackUrl : pageContext.request.contextPath.concat(employee.idCardBackUrl)}" target="_blank" class="d-inline-block text-decoration-none">
+                                                                <img src="${employee.idCardBackUrl.startsWith('http') ? employee.idCardBackUrl : pageContext.request.contextPath.concat(employee.idCardBackUrl)}" 
+                                                                     alt="Mặt sau CCCD" style="max-height:60px; max-width:120px; object-fit:contain; border-radius:6px; border:1px solid #cbd5e1;"
+                                                                     onerror="this.style.display='none'; this.nextElementSibling.classList.remove('d-none');">
+                                                                <div class="d-none"><i class="bi bi-file-earmark-image text-primary" style="font-size:1.8rem;"></i></div>
+                                                                <div class="mt-1 text-primary" style="font-size:0.72rem; font-weight:600;"><i class="bi bi-box-arrow-up-right me-1"></i>Xem tệp</div>
+                                                            </a>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <div class="text-muted fst-italic" style="font-size:0.75rem; padding:15px 0;">Chưa tải lên</div>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </div>
+
+                                                <!-- Sơ yếu lý lịch / CV -->
+                                                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; text-align:center; min-width:150px;">
+                                                    <div style="font-size:0.75rem; font-weight:600; color:#475569; margin-bottom:6px;">Sơ yếu lý lịch / CV</div>
+                                                    <c:choose>
+                                                        <c:when test="${not empty employee.resumeUrl}">
+                                                            <a href="${employee.resumeUrl.startsWith('http') ? employee.resumeUrl : pageContext.request.contextPath.concat(employee.resumeUrl)}" target="_blank" class="btn btn-outline-primary btn-sm px-2 py-1" style="font-size:0.75rem; border-radius:8px;">
+                                                                <i class="bi bi-file-earmark-pdf-fill me-1 text-danger"></i> Tải / Mở tệp
+                                                            </a>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <div class="text-muted fst-italic" style="font-size:0.75rem; padding:15px 0;">Chưa đính kèm</div>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

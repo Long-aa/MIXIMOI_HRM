@@ -245,6 +245,30 @@ public class RecruitmentDAO {
     }
 
     /**
+     * Tìm chi tiết yêu cầu tuyển dụng theo ID
+     */
+    public RecruitmentRequest findRequestById(int id) {
+        String sql = "SELECT r.*, d.name AS dept_name, p.name AS pos_name, e.full_name AS assignee_name "
+                + "FROM recruitment_requests r "
+                + "LEFT JOIN departments d ON r.department_id = d.id "
+                + "LEFT JOIN positions p ON r.position_id = p.id "
+                + "LEFT JOIN employees e ON r.assignee_id = e.id "
+                + "WHERE r.id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRequestRow(rs);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("RecruitmentDAO.findRequestById error: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
      * Thêm mới yêu cầu tuyển dụng
      */
     public boolean insertRequest(RecruitmentRequest req) {

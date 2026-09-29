@@ -26,6 +26,7 @@ public class EmployeeDAO {
       + "e.base_salary, e.bank_account, e.bank_name, e.bank_branch, "
       + "e.tax_code, e.insurance_number, "
       + "e.emergency_contact_name, e.emergency_contact_phone, e.emergency_contact_relation, "
+      + "e.work_location, e.employee_level, e.secondary_phone, e.line_manager, e.mentor_name, "
       + "e.created_at, e.updated_at "
       + "FROM employees e "
       + "LEFT JOIN departments d ON e.department_id = d.id "
@@ -142,8 +143,9 @@ public class EmployeeDAO {
                    + "department_id, position_id, employee_type_id, "
                    + "start_date, status, base_salary, bank_account, bank_name, bank_branch, "
                    + "tax_code, insurance_number, "
-                   + "emergency_contact_name, emergency_contact_phone, emergency_contact_relation) "
-                   + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                   + "emergency_contact_name, emergency_contact_phone, emergency_contact_relation, "
+                   + "work_location, employee_level, secondary_phone, line_manager, mentor_name) "
+                   + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, emp.getEmployeeCode());
@@ -183,6 +185,11 @@ public class EmployeeDAO {
             ps.setString(31, emp.getEmergencyContactName());
             ps.setString(32, emp.getEmergencyContactPhone());
             ps.setString(33, emp.getEmergencyContactRelation());
+            ps.setString(34, emp.getWorkLocation());
+            ps.setString(35, emp.getEmployeeLevel());
+            ps.setString(36, emp.getSecondaryPhone());
+            ps.setString(37, emp.getLineManager());
+            ps.setString(38, emp.getMentorName());
 
             int affected = ps.executeUpdate();
             if (affected > 0) {
@@ -208,6 +215,7 @@ public class EmployeeDAO {
                    + "base_salary=?, bank_account=?, bank_name=?, bank_branch=?, "
                    + "tax_code=?, insurance_number=?, "
                    + "emergency_contact_name=?, emergency_contact_phone=?, emergency_contact_relation=?, "
+                   + "work_location=?, employee_level=?, secondary_phone=?, line_manager=?, mentor_name=?, "
                    + "updated_at=CURRENT_TIMESTAMP WHERE id=?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -247,7 +255,12 @@ public class EmployeeDAO {
             ps.setString(33, emp.getEmergencyContactName());
             ps.setString(34, emp.getEmergencyContactPhone());
             ps.setString(35, emp.getEmergencyContactRelation());
-            ps.setInt(36, emp.getId());
+            ps.setString(36, emp.getWorkLocation());
+            ps.setString(37, emp.getEmployeeLevel());
+            ps.setString(38, emp.getSecondaryPhone());
+            ps.setString(39, emp.getLineManager());
+            ps.setString(40, emp.getMentorName());
+            ps.setInt(41, emp.getId());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("EmployeeDAO.update lỗi: " + e.getMessage());
@@ -375,7 +388,160 @@ public class EmployeeDAO {
         return countByStatus("ACTIVE");
     }
 
-    // ===== Helper mapping =====
+    // =========================================================================
+    //  Phan trang (Pagination)
+    // =========================================================================
+
+    /**
+     * Lay danh sach nhan vien theo trang (Server-side Pagination).
+     *
+     * <p>Su dung LIMIT/OFFSET cua PostgreSQL - hieu qua voi bang lon.
+     * Chi truyen du lieu cua trang hien tai thay vi load toan bo.
+     *
+     * <p>Cong thuc OFFSET: {@code (page - 1) * pageSize}
+     *
+     * <pre>
+     *   Trang 1, pageSize=10: LIMIT 10 OFFSET 0   -> hang 1-10
+     *   Trang 2, pageSize=10: LIMIT 10 OFFSET 10  -> hang 11-20
+     *   Trang 3, pageSize=10: LIMIT 10 OFFSET 20  -> hang 21-30
+     * </pre>
+     *
+     * @param page     So trang hien tai (bat dau tu 1, khong phai 0)
+     * @param pageSize So ban ghi moi trang (e.g. 10, 20, 50)
+     * @return Danh sach nhan vien cua trang tuong ung (co the rong neu het du lieu)
+     * @throws IllegalArgumentException neu page < 1 hoac pageSize < 1
+     */
+    public List<Employee> getEmployeesWithPagination(int page, int pageSize) {
+        // --- Validate input de tranh OFFSET am hoac chia 0 ---
+        if (page < 1) {
+            throw new IllegalArgumentException("So trang phai >= 1, nhung nhan duoc: " + page);
+        }
+        if (pageSize < 1) {
+            throw new IllegalArgumentException("Page size phai >= 1, nhung nhan duoc: " + pageSize);
+        }
+
+        List<Employee> list = new ArrayList<>();
+
+        // LIMIT: bao nhieu ban ghi moi trang
+        // OFFSET: bo qua bao nhieu ban ghi o cac trang truoc
+        // Dung PreparedStatement de tranh SQL Injection va cache query plan tren PostgreSQL
+        String sql = BASE_SELECT
+                   + "WHERE e.status != 'INACTIVE' "
+                   + "ORDER BY e.employee_code "
+                   + "LIMIT ? OFFSET ?";
+
+        int offset = (page - 1) * pageSize;  // Tinh vi tri bat dau (0-indexed)
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, pageSize);  // Param 1: so ban ghi toi da lay ve
+            ps.setInt(2, offset);    // Param 2: bo qua bao nhieu ban ghi
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            System.err.println("EmployeeDAO.getEmployeesWithPagination loi (page="
+                               + page + ", size=" + pageSize + "): " + e.getMessage());
+        }
+
+        return list;
+    }
+
+    /**
+     * Dem tong so nhan vien dang ACTIVE – dung de tinh so trang toi da.
+     *
+     * <p>Ket hop voi {@link #getEmployeesWithPagination(int, int)} de hien thi phan trang:
+     * <pre>
+     *   int totalRecords = employeeDAO.countAllForPagination();
+     *   int totalPages   = (int) Math.ceil((double) totalRecords / pageSize);
+     * </pre>
+     *
+     * @return Tong so nhan vien dang hoat dong (status != INACTIVE)
+     */
+    public int countAllForPagination() {
+        String sql = "SELECT COUNT(*) FROM employees WHERE status != 'INACTIVE'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            System.err.println("EmployeeDAO.countAllForPagination loi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /**
+     * Phan trang ket hop tim kiem – lay du lieu loc theo keyword + department + status.
+     *
+     * @param keyword      Tu khoa tim kiem (ho ten, ma NV, email, SDT) – null thi bo qua
+     * @param departmentId ID phong ban – null hoac 0 thi bo qua filter nay
+     * @param status       Trang thai nhan vien – null thi bo qua filter nay
+     * @param page         So trang hien tai (bat dau tu 1)
+     * @param pageSize     So ban ghi moi trang
+     * @return Danh sach nhan vien khop dieu kien loc, gioi han theo trang
+     */
+    public List<Employee> searchWithPagination(String keyword, Integer departmentId,
+                                               String status, int page, int pageSize) {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+
+        List<Employee> list = new ArrayList<>();
+
+        // Xay dung SQL dong theo cac filter
+        StringBuilder sql = new StringBuilder(BASE_SELECT + "WHERE 1=1 ");
+
+        if (keyword != null && !keyword.isBlank()) {
+            sql.append("AND (LOWER(e.full_name) LIKE ? OR LOWER(e.employee_code) LIKE ? "
+                     + "  OR LOWER(e.email) LIKE ? OR e.phone LIKE ?) ");
+        }
+        if (departmentId != null && departmentId > 0) {
+            sql.append("AND e.department_id = ? ");
+        }
+        if (status != null && !status.isBlank()) {
+            sql.append("AND e.status = ? ");
+        }
+
+        sql.append("ORDER BY e.employee_code LIMIT ? OFFSET ?");
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+
+            int idx = 1;
+
+            if (keyword != null && !keyword.isBlank()) {
+                String like = "%" + keyword.strip().toLowerCase() + "%";
+                ps.setString(idx++, like);
+                ps.setString(idx++, like);
+                ps.setString(idx++, like);
+                ps.setString(idx++, "%" + keyword.strip() + "%");
+            }
+            if (departmentId != null && departmentId > 0) {
+                ps.setInt(idx++, departmentId);
+            }
+            if (status != null && !status.isBlank()) {
+                ps.setString(idx++, status.strip());
+            }
+
+            ps.setInt(idx++, pageSize);
+            ps.setInt(idx, (page - 1) * pageSize);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("EmployeeDAO.searchWithPagination loi: " + e.getMessage());
+        }
+
+        return list;
+    }
+
+
     private Employee mapRow(ResultSet rs) throws SQLException {
         Employee e = new Employee();
         e.setId(rs.getInt("id"));
@@ -422,6 +588,11 @@ public class EmployeeDAO {
         e.setEmergencyContactName(rs.getString("emergency_contact_name"));
         e.setEmergencyContactPhone(rs.getString("emergency_contact_phone"));
         e.setEmergencyContactRelation(rs.getString("emergency_contact_relation"));
+        try { e.setWorkLocation(rs.getString("work_location")); } catch (SQLException ignored) {}
+        try { e.setEmployeeLevel(rs.getString("employee_level")); } catch (SQLException ignored) {}
+        try { e.setSecondaryPhone(rs.getString("secondary_phone")); } catch (SQLException ignored) {}
+        try { e.setLineManager(rs.getString("line_manager")); } catch (SQLException ignored) {}
+        try { e.setMentorName(rs.getString("mentor_name")); } catch (SQLException ignored) {}
         Timestamp createdAt = rs.getTimestamp("created_at");
         if (createdAt != null) e.setCreatedAt(createdAt.toLocalDateTime());
         Timestamp updatedAt = rs.getTimestamp("updated_at");

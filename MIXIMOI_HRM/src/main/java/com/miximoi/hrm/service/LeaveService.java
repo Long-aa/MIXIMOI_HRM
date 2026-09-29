@@ -1,9 +1,11 @@
 package com.miximoi.hrm.service;
 
+import com.miximoi.hrm.dao.AttendanceDAO;
 import com.miximoi.hrm.dao.LeaveDAO;
 import com.miximoi.hrm.model.LeaveRequest;
 import com.miximoi.hrm.model.User;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -14,6 +16,7 @@ import java.util.List;
 public class LeaveService {
 
     private final LeaveDAO leaveDAO = new LeaveDAO();
+    private final AttendanceDAO attendanceDAO = new AttendanceDAO();
 
     public List<LeaveRequest> getAll() {
         return leaveDAO.findAll();
@@ -66,7 +69,11 @@ public class LeaveService {
     }
 
     public boolean approve(int id, int approvedById) {
-        return leaveDAO.approve(id, approvedById);
+        boolean ok = leaveDAO.approve(id, approvedById);
+        if (ok) {
+            syncLeaveToAttendance(id);
+        }
+        return ok;
     }
 
     public boolean reject(int id, int rejectedById, String reason) {
@@ -74,7 +81,13 @@ public class LeaveService {
     }
 
     public int bulkApprove(List<Integer> ids, int approvedById) {
-        return leaveDAO.bulkApprove(ids, approvedById);
+        int count = leaveDAO.bulkApprove(ids, approvedById);
+        if (ids != null) {
+            for (Integer id : ids) {
+                syncLeaveToAttendance(id);
+            }
+        }
+        return count;
     }
 
     public int bulkReject(List<Integer> ids, int rejectedById, String reason) {
@@ -87,5 +100,28 @@ public class LeaveService {
 
     public List<LeaveRequest> findByIds(List<Integer> ids) {
         return leaveDAO.findByIds(ids);
+    }
+
+    /**
+     * Tự động đồng bộ các ngày trong đơn nghỉ phép đã duyệt sang bảng chấm công (attendance)
+     * với trạng thái ON_LEAVE (trừ ngày Chủ nhật) để bảo đảm PayrollService tính đủ lương ngày phép có lương.
+     */
+    private void syncLeaveToAttendance(int leaveRequestId) {
+        try {
+            LeaveRequest lr = leaveDAO.findById(leaveRequestId);
+            if (lr != null && lr.getStartDate() != null && lr.getEndDate() != null) {
+                LocalDate curr = lr.getStartDate();
+                while (!curr.isAfter(lr.getEndDate())) {
+                    if (curr.getDayOfWeek() != DayOfWeek.SUNDAY) {
+                        attendanceDAO.recordLeaveAttendance(
+                                lr.getEmployeeId(), curr, lr.getLeaveType(), lr.getReason()
+                        );
+                    }
+                    curr = curr.plusDays(1);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("LeaveService.syncLeaveToAttendance lỗi: " + e.getMessage());
+        }
     }
 }

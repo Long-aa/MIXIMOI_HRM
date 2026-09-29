@@ -602,7 +602,7 @@ public class AttendanceDAO {
     public double countWorkingDays(int employeeId, int month, int year) {
         String sql = "SELECT COUNT(*) FROM attendance WHERE employee_id = ? " +
                      "AND EXTRACT(MONTH FROM work_date) = ? AND EXTRACT(YEAR FROM work_date) = ? " +
-                     "AND status IN ('ON_TIME', 'LATE', 'EARLY_LEAVE', 'WFH', 'COMPLETE')";
+                     "AND status IN ('ON_TIME', 'LATE', 'EARLY_LEAVE', 'WFH', 'COMPLETE', 'ON_LEAVE')";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
@@ -615,6 +615,29 @@ public class AttendanceDAO {
             System.err.println("AttendanceDAO.countWorkingDays lỗi: " + e.getMessage());
         }
         return 0.0;
+    }
+
+    /**
+     * Tự động ghi nhận/cập nhật ngày nghỉ phép có lương (ON_LEAVE) vào bảng attendance
+     * khi đơn nghỉ phép được phê duyệt thành công.
+     */
+    public boolean recordLeaveAttendance(int employeeId, LocalDate date, String leaveType, String reason) {
+        String note = "Nghỉ phép (" + (leaveType != null ? leaveType : "Đã duyệt") + ")"
+                    + (reason != null && !reason.trim().isEmpty() ? ": " + reason.trim() : "");
+        String sql = "INSERT INTO attendance (employee_id, work_date, check_in, check_out, total_hours, status, notes, method) "
+                   + "VALUES (?, ?, '08:00:00', '17:30:00', 8.0, 'ON_LEAVE', ?, 'SYSTEM_LEAVE') "
+                   + "ON CONFLICT (employee_id, work_date) "
+                   + "DO UPDATE SET status = 'ON_LEAVE', notes = EXCLUDED.notes, total_hours = 8.0, method = 'SYSTEM_LEAVE'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setDate(2, Date.valueOf(date));
+            ps.setString(3, note);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("AttendanceDAO.recordLeaveAttendance lỗi: " + e.getMessage());
+            return false;
+        }
     }
 
     private Attendance mapRow(ResultSet rs) throws SQLException {

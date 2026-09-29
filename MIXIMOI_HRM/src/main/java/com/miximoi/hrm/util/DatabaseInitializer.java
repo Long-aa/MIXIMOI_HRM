@@ -177,6 +177,12 @@ public class DatabaseInitializer {
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS id_card_front_url VARCHAR(500)",
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS id_card_back_url VARCHAR(500)",
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS resume_url VARCHAR(500)",
+            // Cấu trúc công việc, Level & Quản lý
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS work_location VARCHAR(100)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS employee_level VARCHAR(50)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS secondary_phone VARCHAR(20)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS line_manager VARCHAR(150)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS mentor_name VARCHAR(150)",
 
             // Bảng cấu hình lương & quy chế
             "CREATE TABLE IF NOT EXISTS salary_configs ("
@@ -205,6 +211,13 @@ public class DatabaseInitializer {
             + "employee_id INTEGER NOT NULL REFERENCES employees(id), amount NUMERIC(15,0) NOT NULL, "
             + "payment_date DATE NOT NULL, payment_method VARCHAR(50) NOT NULL DEFAULT 'BANK_TRANSFER', "
             + "status VARCHAR(30) NOT NULL DEFAULT 'COMPLETED', notes TEXT, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+
+            // Bảng payroll_details: Lưu snapshot chi tiết các thành phần lương
+            "CREATE TABLE IF NOT EXISTS payroll_details ("
+            + "id SERIAL PRIMARY KEY, payroll_id INTEGER NOT NULL REFERENCES payroll(id) ON DELETE CASCADE, "
+            + "component_name VARCHAR(150) NOT NULL, component_type VARCHAR(50) NOT NULL, "
+            + "amount NUMERIC(15,0) NOT NULL DEFAULT 0, note TEXT, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+            "CREATE INDEX IF NOT EXISTS idx_payroll_details_pid ON payroll_details(payroll_id)",
 
             // ===== Module Tuyển Dụng =====
             // Bảng recruitment_requests

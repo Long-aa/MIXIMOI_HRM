@@ -516,7 +516,20 @@
                                             </td>
                                             <td class="text-center fw-bold text-success">${c.aiMatchScore}%</td>
                                             <td><span class="badge bg-light text-muted border">${c.source}</span></td>
-                                            <td class="pe-3 text-end fw-bold text-dark">${c.formattedSalary}</td>
+                                            <td class="pe-3 text-end">
+                                                <div class="d-flex align-items-center justify-content-end gap-2">
+                                                    <span class="fw-bold text-dark">${c.formattedSalary}</span>
+                                                    <c:if test="${c.stage eq 'OFFER' or c.stage eq 'ONBOARDED' or c.stage eq 'OFFER_ACCEPTED' or c.stage eq 'HIRED'}">
+                                                        <a href="${pageContext.request.contextPath}/employees?action=new&candidateId=${c.id}"
+                                                           class="btn btn-sm btn-outline-success py-0 px-2 fw-bold d-inline-flex align-items-center gap-1 shadow-xs"
+                                                           style="font-size:0.75rem; border-radius:6px;"
+                                                           title="Tiếp nhận hồ sơ nhân sự chính thức"
+                                                           onclick="event.stopPropagation();">
+                                                            <i class="bi bi-person-check-fill"></i> Biên chế
+                                                        </a>
+                                                    </c:if>
+                                                </div>
+                                            </td>
                                         </tr>
                                     </c:forEach>
                                 </tbody>
@@ -578,6 +591,22 @@
                                     </button>
                                 </form>
                             </div>
+                        <!-- 1-Click Hire Onboarding Banner & Button -->
+                        <div class="mb-3" id="drawerHireContainer" style="${selectedCandidate.stage eq 'OFFER' or selectedCandidate.stage eq 'ONBOARDED' or selectedCandidate.stage eq 'OFFER_ACCEPTED' or selectedCandidate.stage eq 'HIRED' ? '' : 'display:none;'}">
+                            <div class="p-2 px-3 bg-success-subtle border border-success-subtle rounded-3 d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-patch-check-fill text-success fs-5"></i>
+                                    <div style="font-size:0.8rem;" class="text-success-emphasis fw-semibold">Ứng viên đã đạt vòng tuyển dụng</div>
+                                </div>
+                                <span class="badge bg-success text-white">Sẵn sàng nhận việc</span>
+                            </div>
+                            <a href="${pageContext.request.contextPath}/employees?action=new&candidateId=${selectedCandidate.id}"
+                               id="drawerHireBtn"
+                               class="btn btn-success btn-sm w-100 py-2 d-flex align-items-center justify-content-center gap-2 fw-bold shadow-sm"
+                               style="border-radius: 8px;">
+                                <i class="bi bi-person-check-fill fs-6"></i>
+                                <span>Tiếp nhận vào biên chế (1-Click Onboard)</span>
+                            </a>
                         </div>
 
                         <!-- Contact Grid -->
@@ -1097,6 +1126,19 @@
 
         const modalInterviewCandId = document.getElementById('modalInterviewCandId');
         if (modalInterviewCandId) modalInterviewCandId.value = id;
+
+        // Cập nhật nút 1-Click Tiếp nhận vào biên chế
+        const stage = cardElement.getAttribute('data-stage');
+        const drawerHireContainer = document.getElementById('drawerHireContainer');
+        const drawerHireBtn = document.getElementById('drawerHireBtn');
+        if (drawerHireContainer && drawerHireBtn) {
+            if (stage === 'OFFER' || stage === 'ONBOARDED' || stage === 'OFFER_ACCEPTED' || stage === 'HIRED') {
+                drawerHireContainer.style.display = '';
+                drawerHireBtn.href = '${pageContext.request.contextPath}/employees?action=new&candidateId=' + id;
+            } else {
+                drawerHireContainer.style.display = 'none';
+            }
+        }
 
         // Cập nhật Modal 4: Phân tích chuyên sâu AI (#aiCvAnalysisModal)
         const matched = cardElement.getAttribute('data-matched');

@@ -57,6 +57,13 @@ public class Employee {
     private String emergencyContactName;
     private String emergencyContactPhone;
     private String emergencyContactRelation;
+    private String secondaryPhone;
+
+    // ===== Bổ sung cấu trúc công việc & Level =====
+    private String workLocation;
+    private String employeeLevel;
+    private String lineManager;
+    private String mentorName;
 
     // ===== Hệ thống =====
     private LocalDateTime createdAt;
@@ -188,6 +195,21 @@ public class Employee {
 
     public String getResumeUrl() { return resumeUrl; }
     public void setResumeUrl(String resumeUrl) { this.resumeUrl = resumeUrl; }
+
+    public String getSecondaryPhone() { return secondaryPhone; }
+    public void setSecondaryPhone(String secondaryPhone) { this.secondaryPhone = secondaryPhone; }
+
+    public String getWorkLocation() { return workLocation; }
+    public void setWorkLocation(String workLocation) { this.workLocation = workLocation; }
+
+    public String getEmployeeLevel() { return employeeLevel; }
+    public void setEmployeeLevel(String employeeLevel) { this.employeeLevel = employeeLevel; }
+
+    public String getLineManager() { return lineManager; }
+    public void setLineManager(String lineManager) { this.lineManager = lineManager; }
+
+    public String getMentorName() { return mentorName; }
+    public void setMentorName(String mentorName) { this.mentorName = mentorName; }
 
     /**
      * Kiểm tra nhân viên mới gia nhập (trong vòng 30 ngày) để hiển thị tag NEW

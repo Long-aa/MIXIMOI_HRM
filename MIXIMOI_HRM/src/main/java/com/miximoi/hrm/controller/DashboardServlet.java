@@ -96,6 +96,8 @@ public class DashboardServlet extends HttpServlet {
         Map<String, Object> recruitmentStats = dashboardDAO.getRecruitmentStats(startDate, endDate, departmentId);
         Map<String, Object> personnelStructure = dashboardDAO.getPersonnelStructure(departmentId);
         Map<String, Object> monthlyGrowthTrend = dashboardDAO.getMonthlyGrowthTrend();
+        Map<String, Object> monthlyPayrollTrend = dashboardDAO.getMonthlyPayrollTrend();
+        Map<String, Object> attendanceRateTrend = dashboardDAO.getAttendanceRateTrend();
         List<Map<String, Object>> departmentKpis = dashboardDAO.getDepartmentKpis(departmentId);
         List<Map<String, Object>> recentActivities = dashboardDAO.getRecentActivities();
 
@@ -113,6 +115,8 @@ public class DashboardServlet extends HttpServlet {
         request.setAttribute("recruitmentStats", recruitmentStats);
         request.setAttribute("personnelStructure", personnelStructure);
         request.setAttribute("monthlyGrowthTrend", monthlyGrowthTrend);
+        request.setAttribute("monthlyPayrollTrend", monthlyPayrollTrend);
+        request.setAttribute("attendanceRateTrend", attendanceRateTrend);
         request.setAttribute("departmentKpis", departmentKpis);
         request.setAttribute("recentActivities", recentActivities);
 

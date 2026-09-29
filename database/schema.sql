@@ -75,11 +75,39 @@ CREATE TABLE IF NOT EXISTS employees (
     phone            VARCHAR(20),
     email            VARCHAR(150),
     address          TEXT,
+    temp_address     VARCHAR(500),
+    nationality      VARCHAR(100) DEFAULT 'Việt Nam',
+    ethnicity        VARCHAR(100),
+    religion         VARCHAR(50),
+    marital_status   VARCHAR(20),
+    avatar_url       VARCHAR(500),
+    identity_number  VARCHAR(20),
+    identity_date    DATE,
+    identity_place   VARCHAR(200),
+    id_card_front_url VARCHAR(500),
+    id_card_back_url VARCHAR(500),
+    resume_url       VARCHAR(500),
     department_id    INTEGER REFERENCES departments(id),
     position_id      INTEGER REFERENCES positions(id),
     employee_type_id INTEGER REFERENCES employee_types(id),
     start_date       DATE,
+    end_date         DATE,
+    termination_reason TEXT,
     status           VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',  -- ACTIVE | INACTIVE | ON_LEAVE
+    base_salary      NUMERIC(15,0) DEFAULT 0,
+    bank_account     VARCHAR(30),
+    bank_name        VARCHAR(150),
+    bank_branch      VARCHAR(200),
+    tax_code         VARCHAR(20),
+    insurance_number VARCHAR(20),
+    emergency_contact_name VARCHAR(150),
+    emergency_contact_phone VARCHAR(20),
+    emergency_contact_relation VARCHAR(50),
+    work_location    VARCHAR(100),
+    employee_level   VARCHAR(50),
+    secondary_phone  VARCHAR(20),
+    line_manager     VARCHAR(150),
+    mentor_name      VARCHAR(150),
     created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP
 );
@@ -267,6 +295,19 @@ CREATE TABLE IF NOT EXISTS payroll (
 CREATE INDEX IF NOT EXISTS idx_payroll_employee ON payroll(employee_id);
 CREATE INDEX IF NOT EXISTS idx_payroll_period   ON payroll(pay_month, pay_year);
 CREATE INDEX IF NOT EXISTS idx_payroll_status   ON payroll(status);
+
+-- Snapshot chi tiết lương
+CREATE TABLE IF NOT EXISTS payroll_details (
+    id              SERIAL PRIMARY KEY,
+    payroll_id      INTEGER       NOT NULL REFERENCES payroll(id) ON DELETE CASCADE,
+    component_name  VARCHAR(150)  NOT NULL,
+    component_type  VARCHAR(50)   NOT NULL, -- INCOME | DEDUCTION | SUMMARY | RESULT
+    amount          NUMERIC(15,0) NOT NULL DEFAULT 0,
+    note            TEXT,
+    created_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_payroll_details_pid ON payroll_details(payroll_id);
 
 -- =============================================================
 -- 15. THANH TOÁN

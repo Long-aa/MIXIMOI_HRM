@@ -26,6 +26,13 @@ public class Payroll {
     private BigDecimal bonus;         // Tổng thưởng
     private BigDecimal deduction;     // Tổng khấu trừ (BHXH, thuế,...)
     private BigDecimal netSalary;     // Lương thực nhận
+
+    // ===== Transient fields: snapshot chi tiết tính lương (không lưu vào payrolls) =====
+    private BigDecimal grossIncome;   // Thu nhập gộp (base + OT + allowance + bonus)
+    private BigDecimal bhxhAmount;    // BHXH người lao động (8%)
+    private BigDecimal bhytAmount;    // BHYT người lao động (1.5%)
+    private BigDecimal bhtnAmount;    // BHTN người lao động (1%)
+    private BigDecimal tncnTax;       // Thuế TNCN lũy tiến
     private String status;            // DRAFT | PENDING | APPROVED | PAYING | PAID
     private int createdById;
     private int approvedById;
@@ -112,6 +119,22 @@ public class Payroll {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    // ===== Transient getters/setters =====
+    public BigDecimal getGrossIncome() { return grossIncome; }
+    public void setGrossIncome(BigDecimal grossIncome) { this.grossIncome = grossIncome; }
+
+    public BigDecimal getBhxhAmount() { return bhxhAmount; }
+    public void setBhxhAmount(BigDecimal bhxhAmount) { this.bhxhAmount = bhxhAmount; }
+
+    public BigDecimal getBhytAmount() { return bhytAmount; }
+    public void setBhytAmount(BigDecimal bhytAmount) { this.bhytAmount = bhytAmount; }
+
+    public BigDecimal getBhtnAmount() { return bhtnAmount; }
+    public void setBhtnAmount(BigDecimal bhtnAmount) { this.bhtnAmount = bhtnAmount; }
+
+    public BigDecimal getTncnTax() { return tncnTax; }
+    public void setTncnTax(BigDecimal tncnTax) { this.tncnTax = tncnTax; }
 
     @Override
     public String toString() {

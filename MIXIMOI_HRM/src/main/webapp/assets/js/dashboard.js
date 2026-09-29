@@ -19,31 +19,107 @@ let departmentChartInstance = null;
  * Đọc dữ liệu thực tế từ window.dashboardChartData.growthTrend
  */
 function initPersonnelChart() {
+    renderTrendChart('headcount');
+}
+
+window.currentTrendMetric = 'headcount';
+
+window.switchTrendMetric = function(metric) {
+    window.currentTrendMetric = metric;
+
+    document.querySelectorAll('#trendMetricPills .filter-pill').forEach(btn => btn.classList.remove('active'));
+    if (metric === 'headcount') document.getElementById('btnTrendHeadcount')?.classList.add('active');
+    else if (metric === 'salary') document.getElementById('btnTrendSalary')?.classList.add('active');
+    else if (metric === 'attendance') document.getElementById('btnTrendAttendance')?.classList.add('active');
+
+    const badgesContainer = document.getElementById('trendBadgesContainer');
+    if (badgesContainer) {
+        badgesContainer.style.display = (metric === 'headcount') ? '' : 'none';
+    }
+
+    renderTrendChart(metric);
+};
+
+function renderTrendChart(metric) {
     const ctx = document.getElementById('personnelGrowthChart');
     if (!ctx) return;
 
+    if (personnelChartInstance) {
+        personnelChartInstance.destroy();
+        personnelChartInstance = null;
+    }
+
     const chartCtx = ctx.getContext('2d');
+    let chartLabels = [];
+    let chartData = [];
+    let primaryColor = '#2563eb';
+    let gradientStart = 'rgba(37, 99, 235, 0.28)';
+    let unitLabel = 'NS';
+    let datasetName = 'Quy mô nhân sự';
+    let tooltipPrefix = 'Quy mô: ';
+    let tooltipSuffix = ' nhân sự';
+
+    if (metric === 'salary') {
+        primaryColor = '#10b981';
+        gradientStart = 'rgba(16, 185, 129, 0.28)';
+        unitLabel = 'Tr.đ';
+        datasetName = 'Tổng chi trả lương (Triệu VNĐ)';
+        tooltipPrefix = 'Quỹ lương: ';
+        tooltipSuffix = ' Triệu VNĐ';
+
+        if (window.dashboardChartData && window.dashboardChartData.payrollTrend && window.dashboardChartData.payrollTrend.labels.length > 0) {
+            chartLabels = window.dashboardChartData.payrollTrend.labels;
+            chartData = window.dashboardChartData.payrollTrend.data;
+        } else {
+            chartLabels = ['T04', 'T05', 'T06', 'T07', 'T08', 'T09 (Kỳ này)'];
+            chartData = [142.5, 148.0, 155.2, 160.0, 168.5, 175.0];
+        }
+    } else if (metric === 'attendance') {
+        primaryColor = '#8b5cf6';
+        gradientStart = 'rgba(139, 92, 246, 0.28)';
+        unitLabel = '%';
+        datasetName = 'Tỷ lệ đi làm đúng giờ (%)';
+        tooltipPrefix = 'Đúng giờ: ';
+        tooltipSuffix = '%';
+
+        if (window.dashboardChartData && window.dashboardChartData.attendanceRateTrend && window.dashboardChartData.attendanceRateTrend.labels.length > 0) {
+            chartLabels = window.dashboardChartData.attendanceRateTrend.labels;
+            chartData = window.dashboardChartData.attendanceRateTrend.data;
+        } else {
+            chartLabels = ['23/09', '24/09', '25/09', '26/09', '27/09', '28/09', '29/09'];
+            chartData = [94.5, 96.0, 93.8, 98.2, 95.0, 97.5, 96.8];
+        }
+    } else {
+        // Headcount (Default)
+        primaryColor = '#2563eb';
+        gradientStart = 'rgba(37, 99, 235, 0.28)';
+        unitLabel = 'NS';
+        datasetName = 'Quy mô nhân sự';
+        tooltipPrefix = 'Quy mô: ';
+        tooltipSuffix = ' nhân sự';
+
+        if (window.dashboardChartData && window.dashboardChartData.growthTrend && window.dashboardChartData.growthTrend.labels.length > 0) {
+            chartLabels = window.dashboardChartData.growthTrend.labels;
+            chartData = window.dashboardChartData.growthTrend.data;
+        } else {
+            chartLabels = ['Tháng 04', 'Tháng 05', 'Tháng 06', 'Tháng 07', 'Tháng 08', 'Tháng 09 (Hiện tại)'];
+            chartData = [10, 11, 12, 13, 14, 15];
+        }
+    }
 
     // Smooth gradient under spline curve
     const gradient = chartCtx.createLinearGradient(0, 0, 0, 270);
-    gradient.addColorStop(0, 'rgba(37, 99, 235, 0.28)');
-    gradient.addColorStop(0.7, 'rgba(37, 99, 235, 0.08)');
-    gradient.addColorStop(1, 'rgba(37, 99, 235, 0.00)');
-
-    let chartLabels = ['Tháng 04', 'Tháng 05', 'Tháng 06', 'Tháng 07', 'Tháng 08', 'Tháng 09 (Hiện tại)'];
-    let chartData = [10, 11, 12, 13, 14, 15];
-
-    if (window.dashboardChartData && window.dashboardChartData.growthTrend && window.dashboardChartData.growthTrend.labels.length > 0) {
-        chartLabels = window.dashboardChartData.growthTrend.labels;
-        chartData = window.dashboardChartData.growthTrend.data;
-    }
+    gradient.addColorStop(0, gradientStart);
+    gradient.addColorStop(0.7, gradientStart.replace('0.28', '0.06'));
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0.00)');
 
     const minVal = chartData.length > 0 ? Math.min(...chartData) : 0;
     const maxVal = chartData.length > 0 ? Math.max(...chartData) : 10;
-    const yMin = Math.max(0, minVal - 3);
-    const yMax = maxVal + 4;
+    const paddingVal = (maxVal - minVal) > 0 ? (maxVal - minVal) * 0.25 : 2;
+    const yMin = Math.max(0, minVal - paddingVal);
+    const yMax = maxVal + paddingVal * 1.5;
 
-    // Custom Chart.js Plugin to draw numbers & the special badge above points
+    // Custom Chart.js Plugin to draw numbers & badge above points
     const pointAnnotationPlugin = {
         id: 'pointAnnotationPlugin',
         afterDatasetsDraw(chart) {
@@ -58,9 +134,8 @@ function initPersonnelChart() {
                 const y = element.y;
 
                 if (index === lastIndex) {
-                    // Draw highlighted badge pill: "X NS"
                     ctx.save();
-                    const badgeText = `${val} NS`;
+                    const badgeText = `${val} ${unitLabel}`;
                     ctx.font = 'bold 11px Plus Jakarta Sans, sans-serif';
                     const textWidth = ctx.measureText(badgeText).width;
                     const pillWidth = textWidth + 16;
@@ -69,34 +144,30 @@ function initPersonnelChart() {
                     const pillY = y - 32;
                     const radius = 6;
 
-                    // Draw pill background
-                    ctx.fillStyle = '#2563eb';
+                    ctx.fillStyle = primaryColor;
                     ctx.beginPath();
                     ctx.roundRect(pillX, pillY, pillWidth, pillHeight, radius);
                     ctx.fill();
 
-                    // Draw little bottom caret
                     ctx.beginPath();
                     ctx.moveTo(x - 4, pillY + pillHeight);
                     ctx.lineTo(x + 4, pillY + pillHeight);
                     ctx.lineTo(x, pillY + pillHeight + 4);
                     ctx.closePath();
-                    ctx.fillStyle = '#2563eb';
+                    ctx.fillStyle = primaryColor;
                     ctx.fill();
 
-                    // Draw text inside badge
                     ctx.fillStyle = '#ffffff';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(badgeText, x, pillY + pillHeight / 2);
                     ctx.restore();
                 } else {
-                    // Standard numerical labels above previous points
                     ctx.save();
-                    ctx.fillStyle = '#334155';
+                    ctx.fillStyle = '#475569';
                     ctx.font = '600 11px Plus Jakarta Sans, sans-serif';
                     ctx.textAlign = 'center';
-                    ctx.fillText(val, x, y - 10);
+                    ctx.fillText(`${val}`, x, y - 10);
                     ctx.restore();
                 }
             });
@@ -108,19 +179,19 @@ function initPersonnelChart() {
         data: {
             labels: chartLabels,
             datasets: [{
-                label: 'Quy mô nhân sự',
+                label: datasetName,
                 data: chartData,
-                borderColor: '#2563eb',
+                borderColor: primaryColor,
                 borderWidth: 2.8,
                 backgroundColor: gradient,
                 fill: true,
                 tension: 0.38,
                 pointBackgroundColor: '#ffffff',
-                pointBorderColor: '#2563eb',
+                pointBorderColor: primaryColor,
                 pointBorderWidth: 2.5,
                 pointRadius: 5.5,
                 pointHoverRadius: 7.5,
-                pointHoverBackgroundColor: '#2563eb',
+                pointHoverBackgroundColor: primaryColor,
                 pointHoverBorderColor: '#ffffff',
                 pointHoverBorderWidth: 2.5
             }]
@@ -141,7 +212,7 @@ function initPersonnelChart() {
                     cornerRadius: 8,
                     displayColors: false,
                     callbacks: {
-                        label: (context) => ` Quy mô: ${context.parsed.y} nhân sự`
+                        label: (context) => ` ${tooltipPrefix}${context.parsed.y}${tooltipSuffix}`
                     }
                 }
             },
@@ -150,7 +221,7 @@ function initPersonnelChart() {
                     grid: { display: false },
                     border: { display: false },
                     ticks: {
-                        color: (context) => context.index === chartLabels.length - 1 ? '#2563eb' : '#64748b',
+                        color: (context) => context.index === chartLabels.length - 1 ? primaryColor : '#64748b',
                         font: (context) => ({
                             family: 'Plus Jakarta Sans',
                             size: 11,

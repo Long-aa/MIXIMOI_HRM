@@ -17,7 +17,10 @@
     <a href="${pageContext.request.contextPath}/contracts" class="btn btn-sm btn-outline-secondary px-3" style="border-radius:20px;">
         <i class="bi bi-arrow-left me-1"></i> Quay lại
     </a>
-    <button type="button" class="btn btn-sm btn-primary px-4 fw-bold" style="border-radius:20px; background:#2563eb;" onclick="window.print()">
+    <button type="button" class="btn btn-sm btn-outline-primary px-3 fw-bold" style="border-radius:20px;" onclick="window.print()" title="Lưu hợp đồng dưới dạng PDF">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Xuất PDF
+    </button>
+    <button type="button" class="btn btn-sm btn-primary px-4 fw-bold" style="border-radius:20px; background:#2563eb;" onclick="window.print()" title="In hợp đồng lao động">
         <i class="bi bi-printer me-1"></i> In hợp đồng (Ctrl+P)
     </button>
 </div>
