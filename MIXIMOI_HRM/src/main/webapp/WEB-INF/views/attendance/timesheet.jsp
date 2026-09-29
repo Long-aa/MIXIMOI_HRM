@@ -183,7 +183,7 @@
             overflow-x: auto; -webkit-overflow-scrolling: touch;
         }
         .ts-table {
-            width: 100%; border-collapse: collapse; min-width: 1200px;
+            width: 100%; border-collapse: collapse; min-width: 1750px;
         }
         .ts-table thead {
             background: #f8fafc; border-bottom: 2px solid #e2e8f0;
@@ -200,6 +200,11 @@
         .day-header .day-txt { font-size: 0.66rem; font-weight: 600; color: #94a3b8; display: block; text-transform: uppercase; }
         .day-header.weekend { background: #f1f5f9; }
         .day-header.weekend .day-txt { color: #dc2626; }
+        .day-header.today-col { background: #eff6ff !important; border-bottom: 3px solid #2563eb !important; }
+        .day-header.today-col .day-num { color: #2563eb !important; font-weight: 900; }
+        .day-header.today-col .day-txt { color: #1d4ed8 !important; font-weight: 700; }
+        .ts-table td.today-cell { background: rgba(37, 99, 235, 0.04); border-left: 1px dashed #bfdbfe; border-right: 1px dashed #bfdbfe; }
+        .ts-table td.weekend-cell { background: #fafafa; }
 
         .ts-table tbody tr {
             border-bottom: 1px solid #f1f5f9; transition: background 0.12s;
@@ -622,7 +627,7 @@
                 <div class="ts-matrix-header">
                     <div class="matrix-title-group">
                         <h2 class="matrix-title">Ma trận chấm công chi tiết</h2>
-                        <span class="date-range-tag">Hiển thị ngày 01 đến 15/09/${selectedYear}</span>
+                        <span class="date-range-tag"><i class="bi bi-calendar-check me-1"></i>Hiển thị ngày 01 đến ${daysInMonth}/${selectedMonth < 10 ? '0' : ''}${selectedMonth}/${selectedYear}</span>
                     </div>
                     <div class="matrix-total-count">
                         Tổng số: <strong>${totalEmployees}</strong> nhân viên
@@ -638,22 +643,26 @@
                                 <th class="text-start" style="min-width:210px;">Họ tên &amp; Chức vụ</th>
                                 <th style="width:95px;">Phòng ban</th>
                                 
-                                <!-- 15 Ngày (Tháng 09/2026: 01 T2.. 06 T7, 07 CN..) -->
-                                <th class="day-header"><span class="day-num">01</span><span class="day-txt">T2</span></th>
-                                <th class="day-header"><span class="day-num">02</span><span class="day-txt">T3</span></th>
-                                <th class="day-header"><span class="day-num">03</span><span class="day-txt">T4</span></th>
-                                <th class="day-header"><span class="day-num">04</span><span class="day-txt">T5</span></th>
-                                <th class="day-header"><span class="day-num">05</span><span class="day-txt">T6</span></th>
-                                <th class="day-header weekend"><span class="day-num">06</span><span class="day-txt">T7</span></th>
-                                <th class="day-header weekend"><span class="day-num">07</span><span class="day-txt">CN</span></th>
-                                <th class="day-header"><span class="day-num">08</span><span class="day-txt">T2</span></th>
-                                <th class="day-header"><span class="day-num">09</span><span class="day-txt">T3</span></th>
-                                <th class="day-header"><span class="day-num">10</span><span class="day-txt">T4</span></th>
-                                <th class="day-header"><span class="day-num">11</span><span class="day-txt">T5</span></th>
-                                <th class="day-header"><span class="day-num">12</span><span class="day-txt">T6</span></th>
-                                <th class="day-header weekend"><span class="day-num">13</span><span class="day-txt">T7</span></th>
-                                <th class="day-header weekend"><span class="day-num">14</span><span class="day-txt">CN</span></th>
-                                <th class="day-header"><span class="day-num">15</span><span class="day-txt">T2</span></th>
+                                <!-- Toàn bộ các ngày trong tháng (1..${daysInMonth != null ? daysInMonth : 30}) -->
+                                <c:choose>
+                                    <c:when test="${not empty dayColumns}">
+                                        <c:forEach var="col" items="${dayColumns}">
+                                            <th class="day-header ${col.weekend ? 'weekend' : ''} ${col.today ? 'today-col' : ''}" title="${col.today ? 'Hôm nay' : ''}">
+                                                <span class="day-num">${col.dayDisplay}</span>
+                                                <span class="day-txt">${col.dayName}</span>
+                                            </th>
+                                        </c:forEach>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <c:forEach begin="1" end="${daysInMonth != null ? daysInMonth : 30}" var="d">
+                                            <c:set var="isWk" value="${d == 5 or d == 6 or d == 12 or d == 13 or d == 19 or d == 20 or d == 26 or d == 27}"/>
+                                            <th class="day-header ${isWk ? 'weekend' : ''} ${d == 29 ? 'today-col' : ''}">
+                                                <span class="day-num">${d < 10 ? '0' : ''}${d}</span>
+                                                <span class="day-txt">${isWk ? (d % 7 == 6 ? 'CN' : 'T7') : 'T'.concat(d % 7 == 0 ? '7' : (d % 7 + 1))}</span>
+                                            </th>
+                                        </c:forEach>
+                                    </c:otherwise>
+                                </c:choose>
 
                                 <th style="width:85px;">Công TT</th>
                                 <th style="width:80px;">Giờ OT</th>
@@ -667,7 +676,7 @@
                             <c:choose>
                                 <c:when test="${empty matrix}">
                                     <tr>
-                                        <td colspan="21" class="text-center py-5 text-muted">
+                                        <td colspan="${(daysInMonth != null ? daysInMonth : 30) + 10}" class="text-center py-5 text-muted">
                                             <i class="bi bi-calendar-x" style="font-size:2.5rem; display:block; margin-bottom:0.5rem; color:#cbd5e1;"></i>
                                             Không tìm thấy dữ liệu chấm công phù hợp với bộ lọc
                                         </td>
@@ -689,21 +698,42 @@
                                             </td>
                                             <td><span class="dept-tag">${item.departmentName}</span></td>
 
-                                            <!-- 15 Ngày Chấm Công -->
-                                            <c:forEach var="d" begin="1" end="15">
-                                                <c:set var="code" value="${item.getDayStatus(d)}"/>
-                                                <td>
-                                                    <c:choose>
-                                                        <c:when test="${code eq '1.0'}"><span class="cell-badge cell-code-full">1.0</span></c:when>
-                                                        <c:when test="${code eq '0.5'}"><span class="cell-badge cell-code-half">½</span></c:when>
-                                                        <c:when test="${code eq 'P'}"><span class="cell-badge cell-code-leave">P</span></c:when>
-                                                        <c:when test="${code eq 'M'}"><span class="cell-badge cell-code-late">M</span></c:when>
-                                                        <c:when test="${code eq 'V'}"><span class="cell-badge cell-code-absent">V</span></c:when>
-                                                        <c:when test="${code eq 'CT'}"><span class="cell-badge cell-code-mission">CT</span></c:when>
-                                                        <c:otherwise><span class="cell-badge cell-code-weekend">O</span></c:otherwise>
-                                                    </c:choose>
-                                                </td>
-                                            </c:forEach>
+                                            <!-- Toàn bộ các ngày chấm công trong tháng -->
+                                            <c:choose>
+                                                <c:when test="${not empty dayColumns}">
+                                                    <c:forEach var="col" items="${dayColumns}">
+                                                        <c:set var="code" value="${item.getDayStatus(col.dayNumber)}"/>
+                                                        <td class="${col.weekend ? 'weekend-cell' : ''} ${col.today ? 'today-cell' : ''}">
+                                                            <c:choose>
+                                                                <c:when test="${code eq '1.0'}"><span class="cell-badge cell-code-full">1.0</span></c:when>
+                                                                <c:when test="${code eq '0.5'}"><span class="cell-badge cell-code-half">½</span></c:when>
+                                                                <c:when test="${code eq 'P'}"><span class="cell-badge cell-code-leave">P</span></c:when>
+                                                                <c:when test="${code eq 'M'}"><span class="cell-badge cell-code-late">M</span></c:when>
+                                                                <c:when test="${code eq 'V'}"><span class="cell-badge cell-code-absent">V</span></c:when>
+                                                                <c:when test="${code eq 'CT'}"><span class="cell-badge cell-code-mission">CT</span></c:when>
+                                                                <c:otherwise><span class="cell-badge cell-code-weekend">O</span></c:otherwise>
+                                                            </c:choose>
+                                                        </td>
+                                                    </c:forEach>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <c:forEach begin="1" end="${daysInMonth != null ? daysInMonth : 30}" var="d">
+                                                        <c:set var="code" value="${item.getDayStatus(d)}"/>
+                                                        <c:set var="isWk" value="${d == 5 or d == 6 or d == 12 or d == 13 or d == 19 or d == 20 or d == 26 or d == 27}"/>
+                                                        <td class="${isWk ? 'weekend-cell' : ''} ${d == 29 ? 'today-cell' : ''}">
+                                                            <c:choose>
+                                                                <c:when test="${code eq '1.0'}"><span class="cell-badge cell-code-full">1.0</span></c:when>
+                                                                <c:when test="${code eq '0.5'}"><span class="cell-badge cell-code-half">½</span></c:when>
+                                                                <c:when test="${code eq 'P'}"><span class="cell-badge cell-code-leave">P</span></c:when>
+                                                                <c:when test="${code eq 'M'}"><span class="cell-badge cell-code-late">M</span></c:when>
+                                                                <c:when test="${code eq 'V'}"><span class="cell-badge cell-code-absent">V</span></c:when>
+                                                                <c:when test="${code eq 'CT'}"><span class="cell-badge cell-code-mission">CT</span></c:when>
+                                                                <c:otherwise><span class="cell-badge cell-code-weekend">O</span></c:otherwise>
+                                                            </c:choose>
+                                                        </td>
+                                                    </c:forEach>
+                                                </c:otherwise>
+                                            </c:choose>
 
                                             <!-- Tổng hợp -->
                                             <td><span class="metric-cong">${item.actualWorkDays}</span></td>

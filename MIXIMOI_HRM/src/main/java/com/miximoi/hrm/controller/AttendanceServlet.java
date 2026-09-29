@@ -61,6 +61,12 @@ public class AttendanceServlet extends HttpServlet {
 
         User user = (User) request.getSession().getAttribute("currentUser");
 
+        // Luôn đảm bảo nạp dữ liệu chấm công cho cả tháng nếu chưa có
+        attendanceDAO.autoSeedMonthAttendance(month, year);
+
+        String dateStr = request.getParameter("date");
+        LocalDate queryDate = (dateStr != null && !dateStr.trim().isEmpty()) ? LocalDate.parse(dateStr.trim()) : null;
+
         List<Attendance> attendances;
         if (user.isEmployee() && !user.isAdmin() && !user.isHr() && !user.isManager() && !user.isAccountant()) {
             // Employee role: show their personal monthly attendance
@@ -79,7 +85,7 @@ public class AttendanceServlet extends HttpServlet {
             // Accountant role: view monthly timesheet summary
             List<TimesheetSummary> summary = attendanceDAO.getTimesheetSummary(month, year);
             request.setAttribute("timesheetSummary", summary);
-            attendances = attendanceDAO.search(keyword, departmentId, status, null, month, year);
+            attendances = attendanceDAO.search(keyword, departmentId, status, queryDate, month, year);
 
         } else if (user.isManager() && !user.isAdmin() && !user.isHr()) {
             // Manager role: view department's attendance
@@ -91,18 +97,16 @@ public class AttendanceServlet extends HttpServlet {
             if (managerDeptId != null && managerDeptId > 0) {
                 departmentId = managerDeptId;
             }
-            attendances = attendanceDAO.search(keyword, departmentId, status, null, month, year);
+            attendances = attendanceDAO.search(keyword, departmentId, status, queryDate, month, year);
 
             Map<String, Integer> todayStats = attendanceDAO.getTodayStats(today);
             request.setAttribute("deptTotalToday", todayStats.get("totalEmployeesToday"));
             request.setAttribute("deptCheckedIn", todayStats.get("checkedInCount"));
             request.setAttribute("deptLateCount", todayStats.get("lateEarlyCount"));
-            request.setAttribute("pendingApprovals", 3);
+            request.setAttribute("pendingApprovals", attendanceDAO.countPendingExplains(departmentId));
 
         } else {
-            // Admin & HR: full management — Tự động seed nếu hôm nay chưa có dữ liệu
-            attendanceDAO.autoSeedTodayData(today);
-            LocalDate queryDate = "daily".equalsIgnoreCase(tab) ? today : null;
+            // Admin & HR: full management
             attendances = attendanceDAO.search(keyword, departmentId, status, queryDate, month, year);
 
             Map<String, Integer> todayStats = attendanceDAO.getTodayStats(today);
@@ -128,6 +132,13 @@ public class AttendanceServlet extends HttpServlet {
             request.setAttribute("timesheetSummary", summary);
         }
 
+        request.setAttribute("selectedMonth", month);
+        request.setAttribute("selectedYear", year);
+        request.setAttribute("selectedDate", dateStr);
+        request.setAttribute("keyword", keyword);
+        request.setAttribute("departmentId", departmentId);
+        request.setAttribute("status", status);
+
         int totalAttendances = attendances != null ? attendances.size() : 0;
         int pageSize = 10;
         int totalPages = Math.max(1, (int) Math.ceil((double) totalAttendances / pageSize));
@@ -145,6 +156,7 @@ public class AttendanceServlet extends HttpServlet {
                 : new java.util.ArrayList<>();
 
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        request.setAttribute("today", today);
         request.setAttribute("todayDisplay", today.format(dtf));
         request.setAttribute("attendances", pagedAttendances);
         request.setAttribute("totalAttendances", totalAttendances);

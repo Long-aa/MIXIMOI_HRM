@@ -425,6 +425,19 @@ public class EmployeeServlet extends HttpServlet {
                         }
                     }
 
+                    // Cập nhật trạng thái ứng viên sang ONBOARDED nếu được tạo từ Tuyển dụng (1-Click Hire)
+                    String candIdStr = request.getParameter("candidateId");
+                    if (candIdStr != null && !candIdStr.trim().isEmpty()) {
+                        int candId = parseSafeInt(candIdStr.trim(), 0);
+                        if (candId > 0) {
+                            try {
+                                recruitmentDAO.updateCandidateStage(candId, "ONBOARDED");
+                            } catch (Exception ex) {
+                                System.err.println("EmployeeServlet: Không thể cập nhật trạng thái ứng viên: " + ex.getMessage());
+                            }
+                        }
+                    }
+
                     String redirectUrl = request.getContextPath() + "/employees?success=added"
                             + (createdContractId > 0 ? ("&contractId=" + createdContractId) : "");
                     response.sendRedirect(redirectUrl);

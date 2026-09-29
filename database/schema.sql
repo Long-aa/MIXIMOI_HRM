@@ -190,6 +190,23 @@ CREATE INDEX IF NOT EXISTS idx_attendance_employee  ON attendance(employee_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_work_date ON attendance(work_date);
 
 -- =============================================================
+-- 9.1 KHÓA BẢNG CÔNG THÁNG (TIMESHEET LOCKS)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS timesheet_locks (
+    id SERIAL PRIMARY KEY,
+    pay_month INTEGER NOT NULL,
+    pay_year INTEGER NOT NULL,
+    is_locked BOOLEAN NOT NULL DEFAULT FALSE,
+    locked_by INTEGER REFERENCES employees(id),
+    locked_at TIMESTAMP,
+    unlocked_by INTEGER REFERENCES employees(id),
+    unlocked_at TIMESTAMP,
+    note TEXT,
+    CONSTRAINT uq_timesheet_month_year UNIQUE(pay_month, pay_year)
+);
+
+-- =============================================================
 -- 10. ĐƠN NGHỈ PHÉP
 -- =============================================================
 

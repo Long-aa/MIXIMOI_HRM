@@ -80,20 +80,40 @@
                         </form>
                     </c:if>
 
-                    <button type="button" class="btn-action-light" onclick="alert('Đang kết xuất bảng lương Tháng ${selectedMonth}/${selectedYear} ra định dạng Excel...');">
-                        <i class="bi bi-file-earmark-excel"></i>
+                    <a href="${pageContext.request.contextPath}/payroll?action=export&month=${selectedMonth}&year=${selectedYear}&deptId=${selectedDeptId}&status=${selectedStatus}&keyword=${keyword}" 
+                       class="btn-action-light text-decoration-none" title="Tải xuống bảng lương định dạng CSV/Excel">
+                        <i class="bi bi-file-earmark-excel text-success"></i>
                         <span>Xuất Excel</span>
-                    </button>
+                    </a>
 
                     <button type="button" class="btn-action-light" onclick="window.print();">
                         <i class="bi bi-printer"></i>
                         <span>In bảng lương</span>
                     </button>
 
-                    <button type="button" class="btn-action-dark" onclick="alert('Đã khóa dữ liệu bảng lương kỳ Tháng ${selectedMonth}/${selectedYear}. Không thể chỉnh sửa thêm!');">
-                        <i class="bi bi-lock-fill"></i>
-                        <span>Khóa bảng lương</span>
-                    </button>
+                    <c:choose>
+                        <c:when test="${isTimesheetLocked}">
+                            <c:set var="confirmLockMsg" value="Mở khóa bảng lương và kỳ quyết toán này?" />
+                        </c:when>
+                        <c:otherwise>
+                            <c:set var="confirmLockMsg" value="Xác nhận khóa chốt dữ liệu bảng lương Tháng ${selectedMonth}/${selectedYear}?" />
+                        </c:otherwise>
+                    </c:choose>
+                    <form method="post" action="${pageContext.request.contextPath}/payroll" class="d-inline"
+                          onsubmit="return confirm('${confirmLockMsg}');">
+                        <input type="hidden" name="action" value="toggle_lock">
+                        <input type="hidden" name="month" value="${selectedMonth}">
+                        <input type="hidden" name="year" value="${selectedYear}">
+                        <input type="hidden" name="page" value="${currentPage}">
+                        <input type="hidden" name="deptId" value="${selectedDeptId}">
+                        <input type="hidden" name="statusFilter" value="${selectedStatus}">
+                        <input type="hidden" name="keyword" value="${keyword}">
+                        <button type="submit" class="btn-action-dark ${isTimesheetLocked ? 'border-warning text-warning' : ''}" 
+                                title="${isTimesheetLocked ? 'Nhấn để mở khóa chỉnh sửa' : 'Khóa chốt kỳ lương'}">
+                            <i class="bi bi-${isTimesheetLocked ? 'unlock-fill text-warning' : 'lock-fill'}"></i>
+                            <span>${isTimesheetLocked ? 'Mở khóa kỳ này' : 'Khóa bảng lương'}</span>
+                        </button>
+                    </form>
                 </div>
             </div>
 
@@ -110,6 +130,32 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             </c:if>
+
+            <!-- Timesheet Lock Gatekeeper Banner -->
+            <c:choose>
+                <c:when test="${isTimesheetLocked}">
+                    <div class="alert alert-info border-0 shadow-sm mb-4 d-flex align-items-center justify-content-between py-2 px-3" style="border-radius:10px; background:#eff6ff; color:#1e40af; font-size:0.85rem;">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-check text-primary fs-5"></i>
+                            <span><strong>Bảng công Tháng ${selectedMonth}/${selectedYear} đã được Khóa chốt:</strong> Dữ liệu chấm công thực tế đã sẵn sàng và được đồng bộ chuẩn xác vào bảng lương.</span>
+                        </div>
+                        <a href="${pageContext.request.contextPath}/timesheet?month=${selectedMonth}&year=${selectedYear}" class="btn btn-sm btn-outline-primary px-3 py-1" style="font-size:0.78rem; font-weight:600; border-radius:8px;">
+                            <i class="bi bi-calendar3 me-1"></i>Xem bảng công
+                        </a>
+                    </div>
+                </c:when>
+                <c:otherwise>
+                    <div class="alert alert-warning border-0 shadow-sm mb-4 d-flex align-items-center justify-content-between py-2 px-3" style="border-radius:10px; background:#fffbeb; color:#92400e; font-size:0.85rem;">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                            <span><strong>Lưu ý đối soát công:</strong> Bảng công Tháng ${selectedMonth}/${selectedYear} <u>chưa được khóa</u>. Để đảm bảo công và lương chuẩn 100%, nên đối soát và chốt bảng công trước khi thanh toán.</span>
+                        </div>
+                        <a href="${pageContext.request.contextPath}/timesheet?month=${selectedMonth}&year=${selectedYear}" class="btn btn-sm btn-warning text-dark px-3 py-1 fw-bold" style="font-size:0.78rem; border-radius:8px;">
+                            <i class="bi bi-lock me-1"></i>Đối soát &amp; Chốt công
+                        </a>
+                    </div>
+                </c:otherwise>
+            </c:choose>
 
             <!-- 4 Stat KPI Cards -->
             <div class="row g-3 mb-4">
@@ -215,7 +261,8 @@
                         <div class="kpi-footer flex-column align-items-stretch gap-2 pt-2">
                             <div class="d-flex justify-content-between align-items-center" style="font-size:0.75rem;">
                                 <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                                    <div class="progress-bar bg-primary" role="progressbar" style="width: ${empty paidRatio ? '0' : paidRatio}%;"></div>
+                                    <c:set var="paidRatioStyle" value="style=\"width: ${empty paidRatio ? 0 : paidRatio}%;\"" />
+                                    <div class="progress-bar bg-primary" role="progressbar" ${paidRatioStyle}></div>
                                 </div>
                                 <span class="fw-bold text-primary">${empty paidRatio ? '0.0' : paidRatio}%</span>
                             </div>
@@ -293,6 +340,7 @@
                                 </th>
                                 <th>MÃ NV</th>
                                 <th>HỌ TÊN & VỊ TRÍ</th>
+                                <th class="text-center" style="min-width: 105px;">NGÀY CÔNG</th>
                                 <th class="text-end">LƯƠNG CƠ BẢN</th>
                                 <th class="text-end">PHỤ CẤP</th>
                                 <th class="text-end">THƯỞNG</th>
@@ -326,6 +374,11 @@
                                                         <div class="text-muted" style="font-size: 0.74rem;"><c:out value="${not empty pr.departmentName ? pr.departmentName : '—'}"/></div>
                                                     </div>
                                                 </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-light text-dark border px-2 py-1" style="font-size: 0.8rem; font-weight: 700;" title="Công thực tế / Ngày chuẩn">
+                                                    <i class="bi bi-calendar-check text-primary me-1"></i><fmt:formatNumber value="${pr.workingDays > 0 ? pr.workingDays : pr.standardDays}" maxFractionDigits="1"/> / <fmt:formatNumber value="${pr.standardDays > 0 ? pr.standardDays : 22}" maxFractionDigits="0"/>
+                                                </span>
                                             </td>
                                             <td class="text-end font-monospace">
                                                 <c:choose>
@@ -402,6 +455,10 @@
                                                             <input type="hidden" name="id" value="${pr.id}">
                                                             <input type="hidden" name="month" value="${selectedMonth}">
                                                             <input type="hidden" name="year" value="${selectedYear}">
+                                                            <input type="hidden" name="page" value="${currentPage}">
+                                                            <input type="hidden" name="deptId" value="${selectedDeptId}">
+                                                            <input type="hidden" name="statusFilter" value="${selectedStatus}">
+                                                            <input type="hidden" name="keyword" value="${keyword}">
                                                             <button type="submit" class="btn btn-sm btn-outline-success py-1 px-2" title="Phê duyệt">
                                                                 <i class="bi bi-check-circle"></i>
                                                             </button>
@@ -413,6 +470,10 @@
                                                             <input type="hidden" name="id" value="${pr.id}">
                                                             <input type="hidden" name="month" value="${selectedMonth}">
                                                             <input type="hidden" name="year" value="${selectedYear}">
+                                                            <input type="hidden" name="page" value="${currentPage}">
+                                                            <input type="hidden" name="deptId" value="${selectedDeptId}">
+                                                            <input type="hidden" name="statusFilter" value="${selectedStatus}">
+                                                            <input type="hidden" name="keyword" value="${keyword}">
                                                             <button type="submit" class="btn btn-sm btn-success py-1 px-2" title="Chi trả lương">
                                                                 <i class="bi bi-cash-coin"></i>
                                                             </button>
@@ -425,7 +486,7 @@
                                     <%-- Dòng tổng cộng --%>
                                     <tr class="table-summary-row">
                                         <td class="text-center text-primary fs-5">Σ</td>
-                                        <td colspan="2">TỔNG CỘNG KỲ THÁNG ${selectedMonth}/${selectedYear} (${totalRecords} NV)</td>
+                                        <td colspan="3">TỔNG CỘNG KỲ THÁNG ${selectedMonth}/${selectedYear} (${totalRecords} NV)</td>
                                         <td class="text-end font-monospace" colspan="5"></td>
                                         <td class="text-end font-monospace text-net-salary fs-6">
                                             <c:choose>
@@ -440,7 +501,7 @@
                                 </c:when>
                                 <c:otherwise>
                                     <tr>
-                                        <td colspan="9" class="text-center py-5 text-muted">
+                                        <td colspan="12" class="text-center py-5 text-muted">
                                             <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                                             Chưa có dữ liệu bảng lương tháng ${selectedMonth}/${selectedYear}.<br>
                                             <small>Nhấn "Tính lương tự động" để tạo bảng lương cho kỳ này.</small>

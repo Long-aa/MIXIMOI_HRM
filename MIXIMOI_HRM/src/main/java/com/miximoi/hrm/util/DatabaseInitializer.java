@@ -219,6 +219,13 @@ public class DatabaseInitializer {
             + "amount NUMERIC(15,0) NOT NULL DEFAULT 0, note TEXT, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
             "CREATE INDEX IF NOT EXISTS idx_payroll_details_pid ON payroll_details(payroll_id)",
 
+            // Bảng timesheet_locks: Lưu trạng thái khóa/mở bảng công tháng
+            "CREATE TABLE IF NOT EXISTS timesheet_locks ("
+            + "id SERIAL PRIMARY KEY, pay_month INTEGER NOT NULL, pay_year INTEGER NOT NULL, "
+            + "is_locked BOOLEAN NOT NULL DEFAULT FALSE, locked_by INTEGER REFERENCES employees(id), "
+            + "locked_at TIMESTAMP, unlocked_by INTEGER REFERENCES employees(id), unlocked_at TIMESTAMP, "
+            + "note TEXT, CONSTRAINT uq_timesheet_month_year UNIQUE(pay_month, pay_year))",
+
             // ===== Module Tuyển Dụng =====
             // Bảng recruitment_requests
             "CREATE TABLE IF NOT EXISTS recruitment_requests ("

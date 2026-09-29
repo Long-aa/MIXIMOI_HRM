@@ -119,12 +119,15 @@
                 <c:if test="${not empty employee and employee.id > 0}">
                     <input type="hidden" name="id" id="employeeId" value="${employee.id}">
                 </c:if>
+                <c:if test="${not empty candidateSource}">
+                    <input type="hidden" name="candidateId" id="candidateIdHidden" value="${candidateSource.id}">
+                </c:if>
 
                 <!-- Avatar URL Resolution -->
                 <c:choose>
                     <c:when test="${not empty employee.avatarUrl}">
                         <c:choose>
-                            <c:when test="${employee.avatarUrl.startsWith('http')}">
+                            <c:when test="${fn:startsWith(employee.avatarUrl, 'http')}">
                                 <c:set var="avatarSrc" value="${employee.avatarUrl}" />
                             </c:when>
                             <c:otherwise>
@@ -151,14 +154,14 @@
                         <div id="sidePanelStep1">
                             <div class="sidebar-card">
                                 <div class="sidebar-card-body text-center">
-                                    <div class="avatar-upload-box upload-drop-zone" id="avatarDropZone" data-upload-input="avatarFileInput" onclick="triggerAvatarUpload(event)">
+                                    <input type="file" id="avatarFileInput" name="avatarFile" accept=".jpg,.jpeg,.png,.webp,image/*" style="display:none;" onchange="previewAvatar(this)">
+                                    <div class="avatar-upload-box upload-drop-zone" id="avatarDropZone" style="cursor:pointer;" onclick="triggerAvatarUpload(event)" title="Nhấn để chọn ảnh chân dung từ máy tính">
                                         <img id="avatarPreviewImg" src="${avatarSrc}" class="avatar-img-preview" alt="Avatar">
-                                        <input type="file" id="avatarFileInput" name="avatarFile" accept=".jpg,.jpeg,.png,.webp,image/*" class="file-input-hidden" onchange="previewAvatar(this)">
                                         <input type="hidden" name="avatarUrl" id="avatarUrlHidden" value="${not empty employee.avatarUrl ? employee.avatarUrl : ''}">
                                     </div>
-                                    <label for="avatarFileInput" class="avatar-upload-btn" data-upload-input="avatarFileInput" style="cursor:pointer;" onclick="triggerAvatarUpload(event)">
-                                        <i class="bi bi-camera-fill"></i> Tải ảnh chân dung (3x4 / 4x6)
-                                    </label>
+                                    <button type="button" class="avatar-upload-btn border-0" style="cursor:pointer;" onclick="triggerAvatarUpload(event)">
+                                        <i class="bi bi-camera-fill me-1"></i> Tải ảnh chân dung (3x4 / 4x6)
+                                    </button>
                                     <div style="font-size:0.7rem; color:#94a3b8; margin-top:6px;">
                                         Hỗ trợ JPG, PNG. Kích thước tối đa 5MB. Ảnh rõ nét, nền sáng màu.
                                     </div>
@@ -195,7 +198,14 @@
                                         <span style="font-size:0.85rem; font-weight:800; color:#2563eb;" id="step1Pct">${empty employee or employee.id == 0 ? '0%' : '100%'}</span>
                                     </div>
                                     <div class="progress" style="height:7px; border-radius:999px; background:#e2e8f0;">
-                                        <div class="progress-bar bg-primary" id="step1ProgressBar" style="width:${empty employee or employee.id == 0 ? '0%' : '100%'}; border-radius:999px;"></div>
+                                        <c:choose>
+                                            <c:when test="${empty employee or employee.id == 0}">
+                                                <div class="progress-bar bg-primary" id="step1ProgressBar" style="width:0%; border-radius:999px;"></div>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <div class="progress-bar bg-primary" id="step1ProgressBar" style="width:100%; border-radius:999px;"></div>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </div>
                                     <div style="font-size:0.72rem; color:#94a3b8; margin-top:8px;">
                                         Vui lòng hoàn thiện các trường đánh dấu sao (<span class="text-danger">*</span>) để mở khóa tiếp tục sang bước Công việc.
@@ -1516,7 +1526,7 @@
         const genderEl = document.querySelector('input[name="gender"]:checked');
         const genderTxt = genderEl ? (genderEl.value === 'MALE' ? 'Nam' : genderEl.value === 'FEMALE' ? 'Nữ' : 'Khác') : '';
         if (document.getElementById('sideProfileAgeGender')) {
-            document.getElementById('sideProfileAgeGender').innerText = `${age} tuổi • ${genderTxt}`;
+            document.getElementById('sideProfileAgeGender').innerText = age + ' tuổi • ' + genderTxt;
         }
     }
     function updateGenderDisplay() {

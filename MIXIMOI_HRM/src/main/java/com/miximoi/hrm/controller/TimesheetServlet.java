@@ -1,7 +1,9 @@
 package com.miximoi.hrm.controller;
 
+import com.miximoi.hrm.dao.AttendanceDAO;
 import com.miximoi.hrm.dao.DepartmentDAO;
 import com.miximoi.hrm.model.Department;
+import com.miximoi.hrm.model.TimesheetDayColumn;
 import com.miximoi.hrm.model.TimesheetItem;
 import com.miximoi.hrm.model.User;
 import com.miximoi.hrm.service.TimesheetService;
@@ -13,7 +15,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 
 /**
@@ -25,6 +29,7 @@ public class TimesheetServlet extends HttpServlet {
 
     private final TimesheetService timesheetService = new TimesheetService();
     private final DepartmentDAO departmentDAO = new DepartmentDAO();
+    private final AttendanceDAO attendanceDAO = new AttendanceDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -36,7 +41,7 @@ public class TimesheetServlet extends HttpServlet {
         HttpSession session = request.getSession(false);
         User currentUser = (User) session.getAttribute("currentUser");
 
-        // Lấy tháng và năm (Mặc định là Tháng 09/2026 như trong giao diện mẫu)
+        // Lấy tháng và năm (Mặc định là Tháng 09/2026 hoặc tháng hiện tại)
         LocalDate now = LocalDate.now();
         String mParam = request.getParameter("month");
         String yParam = request.getParameter("year");
@@ -50,6 +55,9 @@ public class TimesheetServlet extends HttpServlet {
         String shiftType = request.getParameter("shiftType");
         String keyword = request.getParameter("keyword");
 
+        // Đồng bộ dữ liệu chấm công thực tế của tháng nếu chưa có
+        attendanceDAO.autoSeedMonthAttendance(month, year);
+
         // Lấy danh sách ma trận chấm công theo quyền hạn của Role
         List<TimesheetItem> matrix = timesheetService.getTimesheetMatrix(
                 currentUser, month, year, departmentId, statusFilter, shiftType, keyword);
@@ -57,9 +65,28 @@ public class TimesheetServlet extends HttpServlet {
         boolean isLocked = timesheetService.isTimesheetLocked(month, year);
         List<Department> departments = departmentDAO.findAll();
 
+        int daysInMonth = YearMonth.of(year, month).lengthOfMonth();
+        List<TimesheetDayColumn> dayColumns = new java.util.ArrayList<>();
+        for (int d = 1; d <= daysInMonth; d++) {
+            LocalDate dDate = LocalDate.of(year, month, d);
+            java.time.DayOfWeek dow = dDate.getDayOfWeek();
+            boolean isWeekend = (dow == java.time.DayOfWeek.SATURDAY || dow == java.time.DayOfWeek.SUNDAY);
+            String dayTxt = switch (dow) {
+                case MONDAY -> "T2";
+                case TUESDAY -> "T3";
+                case WEDNESDAY -> "T4";
+                case THURSDAY -> "T5";
+                case FRIDAY -> "T6";
+                case SATURDAY -> "T7";
+                case SUNDAY -> "CN";
+            };
+            boolean isToday = (d == now.getDayOfMonth() && month == now.getMonthValue() && year == now.getYear());
+            dayColumns.add(new TimesheetDayColumn(d, dayTxt, isWeekend, isToday));
+        }
+
         // Đưa dữ liệu sang JSP
         request.setAttribute("matrix", matrix);
-        request.setAttribute("totalEmployees", matrix.size() >= 5 ? 128 : matrix.size());
+        request.setAttribute("totalEmployees", matrix.size());
         request.setAttribute("isLocked", isLocked);
         request.setAttribute("departments", departments);
         request.setAttribute("selectedMonth", month);
@@ -68,6 +95,10 @@ public class TimesheetServlet extends HttpServlet {
         request.setAttribute("selectedStatus", statusFilter);
         request.setAttribute("selectedShift", shiftType);
         request.setAttribute("keyword", keyword);
+        request.setAttribute("dayColumns", dayColumns);
+        request.setAttribute("daysInMonth", daysInMonth);
+        request.setAttribute("todayDay", now.getDayOfMonth());
+        request.setAttribute("isCurrentMonth", (month == now.getMonthValue() && year == now.getYear()));
 
         // Các cảnh báo giải trình và thiết bị
         request.setAttribute("anomalies", timesheetService.getAnomalyReminders());
@@ -99,7 +130,10 @@ public class TimesheetServlet extends HttpServlet {
                 // Chỉ Admin hoặc HR mới có quyền khóa/mở bảng công
                 if (currentUser.isAdmin() || currentUser.isHr()) {
                     boolean currentLock = timesheetService.isTimesheetLocked(month, year);
-                    timesheetService.setTimesheetLocked(month, year, !currentLock);
+                    Integer empId = currentUser.getEmployeeId() > 0 ? currentUser.getEmployeeId() : null;
+                    String note = !currentLock ? "Đã khóa bảng công bởi " + currentUser.getFullName()
+                                               : "Mở khóa bảng công bởi " + currentUser.getFullName();
+                    timesheetService.setTimesheetLocked(month, year, !currentLock, empId, note);
                     String msg = !currentLock ? "locked" : "unlocked";
                     response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year + "&success=" + msg);
                     return;
@@ -107,8 +141,9 @@ public class TimesheetServlet extends HttpServlet {
                 break;
             }
             case "sync": {
-                // Admin hoặc HR đồng bộ máy chấm công
+                // Admin hoặc HR đồng bộ máy chấm công / nạp tự động dữ liệu hôm nay
                 if (currentUser.isAdmin() || currentUser.isHr()) {
+                    attendanceDAO.autoSeedTodayData(LocalDate.now());
                     response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year + "&success=synced");
                     return;
                 }
@@ -116,17 +151,72 @@ public class TimesheetServlet extends HttpServlet {
             }
             case "remind": {
                 // Gửi nhắc nhở giải trình
-                String target = request.getParameter("target");
                 response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year + "&success=reminded");
                 return;
             }
             case "export": {
-                response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year + "&success=exported");
+                // Xuất file CSV ma trận chấm công với UTF-8 BOM chuẩn Excel
+                List<TimesheetItem> matrix = timesheetService.getTimesheetMatrix(
+                        currentUser, month, year, null, null, null, null);
+                exportTimesheetToCsv(response, matrix, month, year);
                 return;
             }
         }
 
         response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year);
+    }
+
+    private void exportTimesheetToCsv(HttpServletResponse response, List<TimesheetItem> matrix, int month, int year)
+            throws IOException {
+        response.setContentType("text/csv; charset=UTF-8");
+        response.setCharacterEncoding("UTF-8");
+        String fileName = "bang_cong_T" + String.format("%02d", month) + "_" + year + ".csv";
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+
+        PrintWriter writer = response.getWriter();
+        // UTF-8 BOM để Excel hiển thị tiếng Việt có dấu chuẩn xác
+        writer.write('\uFEFF');
+
+        int daysInMonth = YearMonth.of(year, month).lengthOfMonth();
+
+        // Header CSV
+        StringBuilder sb = new StringBuilder();
+        sb.append("Mã NV,Họ và tên,Chức vụ,Phòng ban");
+        for (int d = 1; d <= daysInMonth; d++) {
+            sb.append(",").append(String.format("%02d", d));
+        }
+        sb.append(",Công TT,Giờ OT,Trễ/Sớm (phút),Nghỉ phép,Trạng thái\n");
+        writer.write(sb.toString());
+
+        // Body CSV
+        for (TimesheetItem item : matrix) {
+            StringBuilder row = new StringBuilder();
+            row.append(escapeCsv(item.getEmployeeCode())).append(",");
+            row.append(escapeCsv(item.getEmployeeName())).append(",");
+            row.append(escapeCsv(item.getPositionName())).append(",");
+            row.append(escapeCsv(item.getDepartmentName()));
+
+            for (int d = 1; d <= daysInMonth; d++) {
+                row.append(",").append(escapeCsv(item.getDayStatus(d)));
+            }
+
+            row.append(",").append(item.getActualWorkDays());
+            row.append(",").append(item.getOtHours());
+            row.append(",").append(item.getLateEarlyMinutes());
+            row.append(",").append(escapeCsv(item.getLeaveDaysDisplay()));
+            row.append(",").append(escapeCsv(item.getStatusDisplay()));
+            row.append("\n");
+            writer.write(row.toString());
+        }
+        writer.flush();
+    }
+
+    private String escapeCsv(String val) {
+        if (val == null) return "";
+        if (val.contains(",") || val.contains("\"") || val.contains("\n")) {
+            return "\"" + val.replace("\"", "\"\"") + "\"";
+        }
+        return val;
     }
 
     private boolean checkAuth(HttpServletRequest request, HttpServletResponse response)

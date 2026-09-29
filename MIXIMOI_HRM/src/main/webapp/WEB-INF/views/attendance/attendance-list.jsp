@@ -456,6 +456,7 @@
                             <thead>
                                 <tr>
                                     <th style="width:42px; padding-left:1.25rem;"><input type="checkbox" id="checkAll" class="form-check-input" style="width:15px;height:15px;"></th>
+                                    <th style="width:115px;">Ngày làm việc</th>
                                     <th>Nhân viên &amp; Phòng ban</th>
                                     <th>Ca làm việc</th>
                                     <th>Giờ Check-in</th>
@@ -469,12 +470,24 @@
                             <tbody>
                                 <c:choose>
                                     <c:when test="${empty attendances}">
-                                        <tr><td colspan="9" class="text-center text-muted py-5"><i class="bi bi-inbox" style="font-size:2.5rem; display:block; margin-bottom:0.75rem;"></i><div style="font-weight:600; color:#64748b;">Không có dữ liệu chấm công</div></td></tr>
+                                        <tr><td colspan="10" class="text-center text-muted py-5"><i class="bi bi-inbox" style="font-size:2.5rem; display:block; margin-bottom:0.75rem;"></i><div style="font-weight:600; color:#64748b;">Không có dữ liệu chấm công</div></td></tr>
                                     </c:when>
                                     <c:otherwise>
                                         <c:forEach var="att" items="${attendances}">
                                             <tr class="${att.status eq 'LATE' ? 'row-late' : att.status eq 'ABSENT' ? 'row-absent' : att.status eq 'WFH' ? 'row-wfh' : ''}">
                                                 <td style="padding-left:1.25rem;"><input type="checkbox" class="form-check-input row-check" value="${att.id}" style="width:15px;height:15px;"></td>
+                                                <td>
+                                                    <c:choose>
+                                                        <c:when test="${att.workDate eq today}">
+                                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1" style="font-size:0.78rem; font-weight:700;">
+                                                                <i class="bi bi-calendar-event me-1"></i>${att.workDate} <small>(Hôm nay)</small>
+                                                            </span>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <span style="font-weight:700; color:#1e293b; font-family:monospace; font-size:0.83rem;">${att.workDate}</span>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </td>
                                                 <td>
                                                     <div class="emp-cell">
                                                         <div class="emp-avatar gen-n">${att.employeeName != null ? att.employeeName.substring(0,1).toUpperCase() : 'NV'}</div>
@@ -671,11 +684,11 @@
                     <form method="get" action="${pageContext.request.contextPath}/attendance" id="filterForm">
                         <input type="hidden" name="tab" value="${empty activeTab ? 'daily' : activeTab}">
                         <div class="row g-2 align-items-center">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="filter-search-wrap">
                                     <i class="bi bi-search"></i>
                                     <input type="text" class="filter-search-input" name="keyword" id="searchEmp"
-                                           placeholder="Tìm theo tên hoặc mã nhân viên (NV-2026-...)" value="${keyword}">
+                                           placeholder="Tìm theo tên hoặc mã NV..." value="${keyword}">
                                 </div>
                             </div>
                             <div class="col-md-2">
@@ -687,20 +700,20 @@
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <select class="form-select filter-select" name="shiftId" id="filterShift">
-                                    <option value="">Tất cả ca làm việc</option>
-                                    <c:forEach var="shift" items="${shifts}">
-                                        <option value="${shift.id}" ${shiftId == shift.id ? 'selected' : ''}>${shift.name}</option>
+                                <select class="form-select filter-select" name="month" onchange="document.getElementById('filterForm').submit();">
+                                    <c:forEach begin="1" end="12" var="m">
+                                        <option value="${m}" ${selectedMonth == m ? 'selected' : ''}>Tháng ${m < 10 ? '0' : ''}${m}</option>
                                     </c:forEach>
                                 </select>
                             </div>
-                            <div class="col-md-2 d-flex align-items-center gap-2">
-                                <label class="toggle-switch-label">
-                                    <input type="checkbox" id="toggleAnomaly" class="form-check-input toggle" role="switch" ${showAnomaly ? 'checked' : ''} name="anomaly" value="true">
-                                    <span>Chỉ hiện ca bất thường</span>
-                                </label>
+                            <div class="col-md-2">
+                                <select class="form-select filter-select" name="year" onchange="document.getElementById('filterForm').submit();">
+                                    <c:forEach begin="2025" end="2027" var="y">
+                                        <option value="${y}" ${selectedYear == y ? 'selected' : ''}>Năm ${y}</option>
+                                    </c:forEach>
+                                </select>
                             </div>
-                            <div class="col-md-2 d-flex gap-2">
+                            <div class="col-md-3 d-flex gap-2">
                                 <button type="submit" class="btn-filter-primary" style="height:38px; background:#2563eb; color:#fff; border:none; border-radius:9px; padding:0 1rem; font-size:0.84rem; font-weight:600; display:inline-flex; align-items:center; gap:5px; flex:1; justify-content:center;">
                                     <i class="bi bi-funnel-fill"></i> Lọc
                                 </button>
@@ -718,7 +731,7 @@
                         <i class="bi bi-wifi text-success me-1"></i>
                         <strong>Đồng bộ ${deviceCount} máy ZKTeco</strong>  — Hoạt động bình thường
                     </div>
-                    <div class="kycong">Kỳ công: Tháng ${selectedMonth}/${selectedYear}</div>
+                    <div class="kycong"><i class="bi bi-arrow-down-up me-1"></i>Kỳ công: Tháng ${selectedMonth < 10 ? '0' : ''}${selectedMonth}/${selectedYear} (Mới nhất ở đầu)</div>
                 </div>
 
                 <!-- Bulk Action Toolbar -->
@@ -755,6 +768,7 @@
                             <thead>
                                 <tr>
                                     <th style="width:42px; padding-left:1.25rem;"><input type="checkbox" id="checkAll" class="form-check-input" style="width:15px;height:15px;"></th>
+                                    <th style="width:115px;">Ngày làm việc</th>
                                     <th>Nhân viên &amp; Phòng ban / Chức vụ</th>
                                     <th>Ca làm việc</th>
                                     <th>Giờ Check-in</th>
@@ -769,7 +783,7 @@
                                 <c:choose>
                                     <c:when test="${empty attendances}">
                                         <tr id="attEmptyRow">
-                                            <td colspan="9" class="text-center text-muted py-5">
+                                            <td colspan="10" class="text-center text-muted py-5">
                                                 <i class="bi bi-clock-history" style="font-size:2.5rem; display:block; margin-bottom:0.75rem;"></i>
                                                 <div style="font-weight:600; font-size:0.95rem; color:#64748b;">Không có dữ liệu chấm công</div>
                                                 <div style="font-size:0.82rem; margin-top:4px;">
@@ -787,6 +801,18 @@
                                                 data-shift="${fn:toLowerCase(not empty att.shiftName ? att.shiftName : '')}"
                                                 data-id="${att.id}">
                                                 <td style="padding-left:1.25rem;"><input type="checkbox" class="form-check-input row-check" value="${att.id}" style="width:15px;height:15px;"></td>
+                                                <td>
+                                                    <c:choose>
+                                                        <c:when test="${att.workDate eq today}">
+                                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1" style="font-size:0.78rem; font-weight:700;">
+                                                                <i class="bi bi-calendar-event me-1"></i>${att.workDate} <small>(Hôm nay)</small>
+                                                            </span>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <span style="font-weight:700; color:#1e293b; font-family:monospace; font-size:0.83rem;">${att.workDate}</span>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </td>
                                                 <td>
                                                     <div class="emp-cell">
                                                         <div class="emp-avatar gen-n">${att.employeeName != null ? att.employeeName.substring(0,1).toUpperCase() : 'NV'}</div>

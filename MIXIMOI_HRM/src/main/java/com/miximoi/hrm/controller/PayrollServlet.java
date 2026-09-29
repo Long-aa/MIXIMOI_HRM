@@ -1,5 +1,6 @@
 package com.miximoi.hrm.controller;
 
+import com.miximoi.hrm.dao.AttendanceDAO;
 import com.miximoi.hrm.dao.DepartmentDAO;
 import com.miximoi.hrm.dao.PayrollDAO;
 import com.miximoi.hrm.model.Department;
@@ -29,6 +30,7 @@ public class PayrollServlet extends HttpServlet {
     private final PayrollService payrollService = new PayrollService();
     private final PayrollDAO     payrollDAO     = new PayrollDAO();
     private final DepartmentDAO  departmentDAO  = new DepartmentDAO();
+    private final AttendanceDAO  attendanceDAO  = new AttendanceDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -55,6 +57,12 @@ public class PayrollServlet extends HttpServlet {
         String deptParam = request.getParameter("deptId");
         Integer deptId = (deptParam != null && !deptParam.isEmpty()) ? Integer.parseInt(deptParam) : null;
         String status = request.getParameter("status");
+
+        // Xuất file CSV / Excel nếu có yêu cầu
+        if ("export".equalsIgnoreCase(request.getParameter("action"))) {
+            exportPayrollToCsv(response, month, year, deptId, status, keyword);
+            return;
+        }
 
         // Lấy danh sách bảng lương theo bộ lọc
         List<Payroll> allPayrolls = payrollDAO.search(month, year, deptId, status, keyword, 0, 0);
@@ -111,6 +119,7 @@ public class PayrollServlet extends HttpServlet {
         request.setAttribute("keyword",         keyword);
         request.setAttribute("selectedDeptId",  deptId);
         request.setAttribute("selectedStatus",  status);
+        request.setAttribute("isTimesheetLocked", attendanceDAO.isTimesheetLocked(month, year));
 
         String success = request.getParameter("success");
         if (success != null) request.setAttribute("successMsg", success);
@@ -146,36 +155,90 @@ public class PayrollServlet extends HttpServlet {
             if (yStr != null && !yStr.isEmpty()) year  = Integer.parseInt(yStr);
         } catch (Exception ignored) {}
 
+        String pageParam = request.getParameter("page");
+        String deptParam = request.getParameter("deptId");
+        String statusParam = request.getParameter("statusFilter");
+        String kwParam = request.getParameter("keyword");
+
+        StringBuilder extra = new StringBuilder();
+        if (pageParam != null && !pageParam.isEmpty()) extra.append("&page=").append(pageParam);
+        if (deptParam != null && !deptParam.isEmpty()) extra.append("&deptId=").append(deptParam);
+        if (statusParam != null && !statusParam.isEmpty()) extra.append("&status=").append(statusParam);
+        if (kwParam != null && !kwParam.isEmpty()) {
+            try { extra.append("&keyword=").append(java.net.URLEncoder.encode(kwParam, "UTF-8")); } catch (Exception ignored) {}
+        }
+
         switch (action) {
             case "calculate": {
+                // Đảm bảo dữ liệu chấm công đã có đầy đủ trước khi chốt công và tính lương
+                attendanceDAO.autoSeedMonthAttendance(month, year);
                 payrollService.calculatePayrollForPeriod(month, year, userId);
                 response.sendRedirect(request.getContextPath()
-                        + "/payroll?month=" + month + "&year=" + year + "&success=calculated");
+                        + "/payroll?month=" + month + "&year=" + year + "&success=calculated" + extra);
+                break;
+            }
+            case "toggle_lock": {
+                boolean currentlyLocked = attendanceDAO.isTimesheetLocked(month, year);
+                attendanceDAO.setTimesheetLocked(month, year, !currentlyLocked, userId, 
+                        !currentlyLocked ? "Khóa chốt kỳ tính lương" : "Mở khóa kỳ tính lương");
+                response.sendRedirect(request.getContextPath()
+                        + "/payroll?month=" + month + "&year=" + year + "&success=" + (!currentlyLocked ? "locked" : "unlocked") + extra);
                 break;
             }
             case "approve": {
                 int id = Integer.parseInt(request.getParameter("id"));
                 payrollService.approve(id, userId);
                 response.sendRedirect(request.getContextPath()
-                        + "/payroll?month=" + month + "&year=" + year + "&success=approved");
+                        + "/payroll?month=" + month + "&year=" + year + "&success=approved" + extra);
                 break;
             }
             case "approve_all": {
                 payrollService.approveAll(month, year, userId);
                 response.sendRedirect(request.getContextPath()
-                        + "/payroll?month=" + month + "&year=" + year + "&success=approved_all");
+                        + "/payroll?month=" + month + "&year=" + year + "&success=approved_all" + extra);
                 break;
             }
             case "pay": {
                 int id = Integer.parseInt(request.getParameter("id"));
                 payrollService.payPayrollSingle(id, userId, "BANK_TRANSFER", null);
                 response.sendRedirect(request.getContextPath()
-                        + "/payroll?month=" + month + "&year=" + year + "&success=paid");
+                        + "/payroll?month=" + month + "&year=" + year + "&success=paid" + extra);
                 break;
             }
             default:
                 response.sendRedirect(request.getContextPath()
-                        + "/payroll?month=" + month + "&year=" + year);
+                        + "/payroll?month=" + month + "&year=" + year + extra);
+        }
+    }
+
+    private void exportPayrollToCsv(HttpServletResponse response, int month, int year, Integer deptId, String status, String keyword)
+            throws IOException {
+        List<Payroll> list = payrollDAO.search(month, year, deptId, status, keyword, 0, 0);
+        response.setContentType("text/csv; charset=UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=\"bang_luong_" + month + "_" + year + ".csv\"");
+        response.setCharacterEncoding("UTF-8");
+
+        try (java.io.PrintWriter writer = response.getWriter()) {
+            writer.write('\uFEFF'); // UTF-8 BOM để Excel hiển thị tiếng Việt không bị lỗi font
+            writer.println("Mã NV,Họ và tên,Phòng ban,Ngày công TT,Ngày công chuẩn,Lương cơ bản,Phụ cấp,Thưởng,Tăng ca (OT),Khấu trừ,Thực nhận (Net),Trạng thái");
+            if (list != null) {
+                for (Payroll p : list) {
+                    writer.println(String.format("\"%s\",\"%s\",\"%s\",%.1f,%.1f,%s,%s,%s,%s,%s,%s,\"%s\"",
+                            p.getEmployeeCode() != null ? p.getEmployeeCode() : "",
+                            p.getEmployeeName() != null ? p.getEmployeeName().replace("\"", "\"\"") : "",
+                            p.getDepartmentName() != null ? p.getDepartmentName().replace("\"", "\"\"") : "",
+                            p.getWorkingDays(),
+                            p.getStandardDays(),
+                            p.getBaseSalary() != null ? p.getBaseSalary().toString() : "0",
+                            p.getAllowance() != null ? p.getAllowance().toString() : "0",
+                            p.getBonus() != null ? p.getBonus().toString() : "0",
+                            p.getOvertimeAmount() != null ? p.getOvertimeAmount().toString() : "0",
+                            p.getDeduction() != null ? p.getDeduction().toString() : "0",
+                            p.getNetSalary() != null ? p.getNetSalary().toString() : "0",
+                            p.getStatus() != null ? p.getStatus() : "DRAFT"
+                    ));
+                }
+            }
         }
     }
 

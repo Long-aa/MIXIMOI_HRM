@@ -36,7 +36,7 @@ public class AttendanceDAO {
                    + "WHERE a.employee_id = ? "
                    + "AND EXTRACT(MONTH FROM a.work_date) = ? "
                    + "AND EXTRACT(YEAR FROM a.work_date) = ? "
-                   + "ORDER BY a.work_date DESC";
+                   + "ORDER BY a.work_date DESC, a.check_in DESC NULLS LAST, a.id DESC";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
@@ -106,7 +106,7 @@ public class AttendanceDAO {
                 sql.append("AND EXTRACT(YEAR FROM a.work_date) = ? ");
             }
         }
-        sql.append("ORDER BY a.work_date DESC, e.employee_code ASC");
+        sql.append("ORDER BY a.work_date DESC, a.check_in DESC NULLS LAST, a.id DESC");
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -256,6 +256,119 @@ public class AttendanceDAO {
             System.out.println("[AttendanceDAO] Auto-seeded " + empIds.size() + " bản ghi chấm công ngày " + today);
         } catch (SQLException e) {
             System.err.println("autoSeedTodayData lỗi: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Tự động nạp dữ liệu chấm công cho cả tháng (từ ngày 01 đến ngày hiện tại hoặc hết tháng)
+     * nếu tháng đó chưa có đủ dữ liệu thực tế. Đảm bảo dữ liệu realtime và đa dạng.
+     */
+    public void autoSeedMonthAttendance(int month, int year) {
+        String checkCountSql = "SELECT COUNT(DISTINCT work_date) FROM attendance WHERE EXTRACT(MONTH FROM work_date) = ? AND EXTRACT(YEAR FROM work_date) = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(checkCountSql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next() && rs.getInt(1) >= 15) {
+                    return; // Đã có đủ ít nhất 15 ngày làm việc được ghi nhận trong tháng này
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("AttendanceDAO.autoSeedMonthAttendance count error: " + e.getMessage());
+        }
+
+        List<Integer> empIds = new ArrayList<>();
+        String empSql = "SELECT id FROM employees WHERE status = 'ACTIVE' ORDER BY id";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(empSql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) empIds.add(rs.getInt("id"));
+        } catch (SQLException e) { return; }
+        if (empIds.isEmpty()) return;
+
+        LocalDate today = LocalDate.now();
+        int maxDaysInMonth = java.time.YearMonth.of(year, month).lengthOfMonth();
+        int lastDayToSeed = maxDaysInMonth;
+        if (year == today.getYear() && month == today.getMonthValue()) {
+            lastDayToSeed = today.getDayOfMonth(); // Chỉ seed đến ngày hôm nay
+        } else if (year > today.getYear() || (year == today.getYear() && month > today.getMonthValue())) {
+            return; // Tháng tương lai chưa tới
+        }
+
+        String insertSql = "INSERT INTO attendance (employee_id, work_date, check_in, check_out, total_hours, status, notes, method) "
+                         + "VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (employee_id, work_date) DO NOTHING";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            for (int d = 1; d <= lastDayToSeed; d++) {
+                LocalDate date = LocalDate.of(year, month, d);
+                java.time.DayOfWeek dow = date.getDayOfWeek();
+                if (dow == java.time.DayOfWeek.SATURDAY || dow == java.time.DayOfWeek.SUNDAY) {
+                    continue; // Nghỉ tuần
+                }
+
+                for (int i = 0; i < empIds.size(); i++) {
+                    int empId = empIds.get(i);
+                    int hash = (empId * 37 + d * 13) % 100;
+                    String status;
+                    LocalTime ci;
+                    LocalTime co;
+                    double hrs;
+                    String notes;
+                    String method = (empId % 2 == 0) ? "FaceID" : "Fingerprint";
+
+                    if (hash < 75) {
+                        status = "ON_TIME";
+                        int minuteOff = (empId + d) % 15;
+                        ci = LocalTime.of(8, 15 + minuteOff);
+                        co = LocalTime.of(17, 30 + ((empId * 2 + d) % 25));
+                        hrs = 8.0;
+                        notes = "Xác thực bằng " + method;
+                    } else if (hash < 87) {
+                        status = "LATE";
+                        int lateMins = 10 + ((empId + d) % 25);
+                        ci = LocalTime.of(8, 35).plusMinutes(lateMins);
+                        co = LocalTime.of(17, 35 + ((empId + d) % 15));
+                        hrs = 8.0;
+                        notes = "Check-in " + method + " — Đi muộn " + lateMins + " phút";
+                    } else if (hash < 94) {
+                        status = "WFH";
+                        method = "GPS";
+                        ci = LocalTime.of(8, (empId + d) % 15);
+                        co = LocalTime.of(17, 5 + ((empId + d) % 25));
+                        hrs = 8.0;
+                        notes = "WFH — GPS Mobile xác thực vị trí";
+                    } else if (hash < 98) {
+                        status = "ON_LEAVE";
+                        method = "SYSTEM_LEAVE";
+                        ci = LocalTime.of(8, 0);
+                        co = LocalTime.of(17, 30);
+                        hrs = 8.0;
+                        notes = "Nghỉ phép năm đã duyệt";
+                    } else {
+                        status = "ABSENT";
+                        method = "SYSTEM";
+                        ci = null;
+                        co = null;
+                        hrs = 0.0;
+                        notes = "Vắng mặt chưa rõ lý do";
+                    }
+
+                    ps.setInt(1, empId);
+                    ps.setDate(2, Date.valueOf(date));
+                    ps.setTime(3, ci != null ? Time.valueOf(ci) : null);
+                    ps.setTime(4, co != null ? Time.valueOf(co) : null);
+                    ps.setDouble(5, hrs);
+                    ps.setString(6, status);
+                    ps.setString(7, notes);
+                    ps.setString(8, method);
+                    ps.addBatch();
+                }
+            }
+            ps.executeBatch();
+            System.out.println("[AttendanceDAO] autoSeedMonthAttendance: Đã đồng bộ dữ liệu chấm công Tháng " + month + "/" + year + " đến ngày " + lastDayToSeed);
+        } catch (SQLException e) {
+            System.err.println("AttendanceDAO.autoSeedMonthAttendance lỗi: " + e.getMessage());
         }
     }
 
@@ -483,9 +596,9 @@ public class AttendanceDAO {
         return false;
     }
 
-    /** Phê duyệt giải trình: chuyển trạng thái sang ON_TIME và thêm ghi chú */
+    /** Phê duyệt giải trình: chuyển trạng thái sang ON_TIME, cập nhật giờ làm và thêm ghi chú */
     public boolean approveExplain(int id) {
-        String sql = "UPDATE attendance SET status='ON_TIME', notes=COALESCE(notes, '') || ' [Đã duyệt giải trình]' WHERE id=?";
+        String sql = "UPDATE attendance SET status='ON_TIME', total_hours = CASE WHEN total_hours <= 0 THEN 8.0 ELSE total_hours END, notes=COALESCE(notes, '') || ' [Đã duyệt giải trình]' WHERE id=?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -494,6 +607,78 @@ public class AttendanceDAO {
             System.err.println("AttendanceDAO.approveExplain lỗi: " + e.getMessage());
         }
         return false;
+    }
+
+    /** Kiểm tra xem bảng công tháng/năm đã bị khóa chưa */
+    public boolean isTimesheetLocked(int month, int year) {
+        String sql = "SELECT is_locked FROM timesheet_locks WHERE pay_month = ? AND pay_year = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBoolean("is_locked");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("AttendanceDAO.isTimesheetLocked lỗi: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /** Khóa hoặc mở khóa bảng công tháng/năm có ghi vết lịch sử */
+    public boolean setTimesheetLocked(int month, int year, boolean locked, Integer userId, String note) {
+        String sql = "INSERT INTO timesheet_locks (pay_month, pay_year, is_locked, "
+                   + (locked ? "locked_by, locked_at" : "unlocked_by, unlocked_at") + ", note) "
+                   + "VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?) "
+                   + "ON CONFLICT (pay_month, pay_year) DO UPDATE SET "
+                   + "is_locked = EXCLUDED.is_locked, "
+                   + (locked ? "locked_by = EXCLUDED.locked_by, locked_at = CURRENT_TIMESTAMP" 
+                             : "unlocked_by = EXCLUDED.unlocked_by, unlocked_at = CURRENT_TIMESTAMP") + ", "
+                   + "note = EXCLUDED.note";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            ps.setBoolean(3, locked);
+            if (userId != null && userId > 0) {
+                ps.setInt(4, userId);
+            } else {
+                ps.setNull(4, Types.INTEGER);
+            }
+            ps.setString(5, note);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("AttendanceDAO.setTimesheetLocked lỗi: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /** Đếm số lượng đơn/bản ghi giải trình đang chờ duyệt */
+    public int countPendingExplains(Integer departmentId) {
+        StringBuilder sql = new StringBuilder(
+            "SELECT COUNT(*) FROM attendance a "
+          + "JOIN employees e ON a.employee_id = e.id "
+          + "WHERE a.notes IS NOT NULL AND a.notes <> '' "
+          + "AND (a.status IN ('LATE', 'EARLY_LEAVE', 'ABSENT') OR a.notes ILIKE '%giải trình%') "
+          + "AND a.notes NOT LIKE '%[Đã duyệt giải trình]%'"
+        );
+        if (departmentId != null && departmentId > 0) {
+            sql.append(" AND e.department_id = ?");
+        }
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            if (departmentId != null && departmentId > 0) {
+                ps.setInt(1, departmentId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("AttendanceDAO.countPendingExplains lỗi: " + e.getMessage());
+        }
+        return 0;
     }
 
     /** Xóa bản ghi chấm công */
@@ -600,16 +785,26 @@ public class AttendanceDAO {
     }
 
     public double countWorkingDays(int employeeId, int month, int year) {
-        String sql = "SELECT COUNT(*) FROM attendance WHERE employee_id = ? " +
-                     "AND EXTRACT(MONTH FROM work_date) = ? AND EXTRACT(YEAR FROM work_date) = ? " +
-                     "AND status IN ('ON_TIME', 'LATE', 'EARLY_LEAVE', 'WFH', 'COMPLETE', 'ON_LEAVE')";
+        String sql = "SELECT COALESCE(SUM("
+                   + "    CASE "
+                   + "        WHEN status = 'ON_LEAVE' THEN 1.0 "
+                   + "        WHEN status IN ('ON_TIME', 'COMPLETE', 'WFH', 'LATE', 'EARLY_LEAVE') THEN "
+                   + "            CASE "
+                   + "                WHEN total_hours >= 6.5 OR total_hours <= 0 THEN 1.0 "
+                   + "                WHEN total_hours >= 3.5 THEN 0.5 "
+                   + "                ELSE ROUND((total_hours / 8.0)::numeric, 1) "
+                   + "            END "
+                   + "        ELSE 0.0 "
+                   + "    END"
+                   + "), 0.0) FROM attendance "
+                   + "WHERE employee_id = ? AND EXTRACT(MONTH FROM work_date) = ? AND EXTRACT(YEAR FROM work_date) = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
             ps.setInt(2, month);
             ps.setInt(3, year);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getDouble(1);
+                if (rs.next()) return Math.round(rs.getDouble(1) * 10.0) / 10.0;
             }
         } catch (SQLException e) {
             System.err.println("AttendanceDAO.countWorkingDays lỗi: " + e.getMessage());

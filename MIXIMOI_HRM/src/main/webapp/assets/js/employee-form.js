@@ -780,8 +780,12 @@
     // 10. FILE UPLOADS, PREVIEW & DRAG-DROP
     // =========================================================================
     window.triggerAvatarUpload = function (event) {
-        if (event && event.target && event.target.tagName === 'INPUT') return;
-        const input = $('avatarFileInput');
+        if (event) {
+            if (event.target && event.target.tagName === 'INPUT') return;
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        const input = document.getElementById('avatarFileInput');
         if (!input) return showMessage('Không tìm thấy ô tải ảnh chân dung.');
         input.click();
     };
