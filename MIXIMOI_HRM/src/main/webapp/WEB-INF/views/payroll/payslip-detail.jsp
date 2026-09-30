@@ -252,7 +252,23 @@
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td>2. Phụ cấp (ăn trưa, xăng xe, ...)</td>
+                                                <td>
+                                                    2. Lương tính theo ngày công thực tế
+                                                    <small class="text-muted d-block" style="font-size:0.75rem;">
+                                                        (${payroll.workingDays}/${payroll.standardDays} ngày công)
+                                                    </small>
+                                                </td>
+                                                <td class="text-end fw-semibold text-primary">
+                                                    <c:choose>
+                                                        <c:when test="${not empty earnedSalary and earnedSalary > 0}">
+                                                            <fmt:formatNumber value="${earnedSalary}" pattern="#,###"/>
+                                                        </c:when>
+                                                        <c:otherwise><fmt:formatNumber value="${payroll.baseSalary}" pattern="#,###"/></c:otherwise>
+                                                    </c:choose>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>3. Phụ cấp (ăn trưa, xăng xe, ...)</td>
                                                 <td class="text-end fw-semibold">
                                                     <c:choose>
                                                         <c:when test="${not empty payroll.allowance and payroll.allowance > 0}">
@@ -263,7 +279,7 @@
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td>3. Thưởng hiệu suất (KPI/Bonus)</td>
+                                                <td>4. Thưởng hiệu suất (KPI/Bonus)</td>
                                                 <td class="text-end fw-semibold">
                                                     <c:choose>
                                                         <c:when test="${not empty payroll.bonus and payroll.bonus > 0}">
@@ -274,7 +290,7 @@
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td>4. Lương làm thêm giờ (OT)</td>
+                                                <td>5. Lương làm thêm giờ (OT)</td>
                                                 <td class="text-end fw-semibold">
                                                     <c:choose>
                                                         <c:when test="${not empty payroll.overtimeAmount and payroll.overtimeAmount > 0}">
@@ -332,12 +348,13 @@
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td>4. Thuế Thu nhập cá nhân (TNCN)</td>
-                                                <td class="text-end fw-semibold text-muted">0</td>
-                                            </tr>
-                                            <tr>
-                                                <td>5. Tạm ứng lương trong kỳ</td>
-                                                <td class="text-end fw-semibold text-muted">0</td>
+                                                <td>4. Thuế Thu nhập cá nhân (TNCN lũy tiến)</td>
+                                                <td class="text-end fw-semibold text-danger">
+                                                    <c:choose>
+                                                        <c:when test="${tncn > 0}"><fmt:formatNumber value="${tncn}" pattern="#,###"/></c:when>
+                                                        <c:otherwise>0</c:otherwise>
+                                                    </c:choose>
+                                                </td>
                                             </tr>
                                             <tr class="fw-bold bg-light">
                                                 <td class="py-2 text-dark">TỔNG CÁC KHOẢN KHẤU TRỪ</td>
@@ -381,12 +398,22 @@
                                 <i class="bi bi-info-circle-fill text-primary me-1"></i>
                                 <c:choose>
                                     <c:when test="${payroll.status eq 'PAID'}">
-                                        Lương đã được chi trả thành công.
+                                        <strong>ĐÃ CHI TRẢ THÀNH CÔNG:</strong>
+                                        <c:if test="${not empty payment}">
+                                            Hình thức: <strong><c:out value="${payment.paymentMethod eq 'CASH' ? 'Tiền mặt tại quỹ' : 'Chuyển khoản Ngân hàng (Napas 24/7)'}"/></strong>
+                                            • Ngày chi: <strong>${payment.paymentDate}</strong>
+                                            • Mã GD: <span class="font-monospace text-primary">PM-${payment.id}</span>
+                                            <c:if test="${not empty payment.notes}">
+                                                • Ghi chú: <em><c:out value="${payment.notes}"/></em>
+                                            </c:if>
+                                        </c:if>
+                                        <c:if test="${empty payment}">
+                                            Đã hoàn tất thanh toán trên cổng Napas.
+                                        </c:if>
                                         <c:if test="${not empty payroll.approvedAt}">
-                                            Phê duyệt lúc: <fmt:formatDate value="${payroll.approvedAt}" pattern="HH:mm dd/MM/yyyy" type="both"/>.
+                                            (Phê duyệt: <fmt:formatDate value="${payroll.approvedAt}" pattern="HH:mm dd/MM/yyyy" type="both"/>).
                                         </c:if>
                                         Người duyệt: <strong><c:out value="${not empty payroll.approvedByName ? payroll.approvedByName : 'Quản trị viên'}"/></strong>.
-                                        Nếu có thắc mắc, vui lòng phản hồi phòng Nhân sự trong vòng 03 ngày làm việc.
                                     </c:when>
                                     <c:otherwise>
                                         Phiếu lương đang ở trạng thái <strong><c:out value="${payroll.status}"/></strong>.

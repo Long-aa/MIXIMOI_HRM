@@ -217,6 +217,22 @@
         .ts-table td.emp-info-col {
             text-align: left; padding-left: 0.75rem; min-width: 200px;
         }
+
+        /* Freeze columns (Cố định cột Mã NV & Họ tên khi scroll ngang) */
+        .ts-table th.sticky-col-code,
+        .ts-table td.sticky-col-code {
+            position: sticky; left: 0; z-index: 4; background: #fff;
+            box-shadow: 1px 0 3px rgba(0,0,0,0.04);
+        }
+        .ts-table thead th.sticky-col-code { background: #f8fafc; z-index: 5; }
+        .ts-table th.sticky-col-name,
+        .ts-table td.sticky-col-name {
+            position: sticky; left: 78px; z-index: 4; background: #fff;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        }
+        .ts-table thead th.sticky-col-name { background: #f8fafc; z-index: 5; }
+        .ts-table tbody tr:hover td.sticky-col-code,
+        .ts-table tbody tr:hover td.sticky-col-name { background: #f8fafc; }
         
         .emp-profile-wrap { display: flex; align-items: center; gap: 9px; }
         .emp-avatar-img {
@@ -639,8 +655,8 @@
                         <thead>
                             <tr>
                                 <th style="width:38px; padding-left:1rem;"><input type="checkbox" class="form-check-input" style="cursor:pointer;"></th>
-                                <th style="width:80px;">Mã NV</th>
-                                <th class="text-start" style="min-width:210px;">Họ tên &amp; Chức vụ</th>
+                                <th style="width:80px;" class="sticky-col-code">Mã NV</th>
+                                <th class="text-start sticky-col-name" style="min-width:210px;">Họ tên &amp; Chức vụ</th>
                                 <th style="width:95px;">Phòng ban</th>
                                 
                                 <!-- Toàn bộ các ngày trong tháng (1..${daysInMonth != null ? daysInMonth : 30}) -->
@@ -667,7 +683,7 @@
                                 <th style="width:85px;">Công TT</th>
                                 <th style="width:80px;">Giờ OT</th>
                                 <th style="width:85px;">Trễ/Sớm</th>
-                                <th style="width:90px;">Nghỉ phép</th>
+                                <th style="width:90px;">Nghỉ / Vắng</th>
                                 <th style="width:130px;">Trạng thái</th>
                                 <th style="width:70px; padding-right:1rem;">Thao tác</th>
                             </tr>
@@ -686,8 +702,8 @@
                                     <c:forEach var="item" items="${matrix}">
                                         <tr>
                                             <td style="padding-left:1rem;"><input type="checkbox" class="form-check-input"></td>
-                                            <td><span class="fw-bold text-primary" style="font-size:0.84rem;">${item.employeeCode}</span></td>
-                                            <td class="emp-info-col">
+                                            <td class="sticky-col-code"><span class="fw-bold text-primary" style="font-size:0.84rem;">${item.employeeCode}</span></td>
+                                            <td class="emp-info-col sticky-col-name">
                                                 <div class="emp-profile-wrap">
                                                     <div class="emp-avatar-img">${item.employeeName.substring(0,1)}</div>
                                                     <div>

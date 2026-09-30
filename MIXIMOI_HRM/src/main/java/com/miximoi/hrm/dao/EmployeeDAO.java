@@ -80,11 +80,17 @@ public class EmployeeDAO {
                 sql.append("AND (e.status = 'ON_LEAVE' OR EXISTS (SELECT 1 FROM leave_requests lr WHERE lr.employee_id = e.id AND lr.status = 'APPROVED' AND CURRENT_DATE BETWEEN lr.start_date AND lr.end_date)) ");
             } else if ("INACTIVE".equalsIgnoreCase(status.trim())) {
                 sql.append("AND (e.status = 'INACTIVE' OR e.status = 'TERMINATED') ");
+            } else if ("NEW".equalsIgnoreCase(status.trim())) {
+                sql.append("AND (e.start_date IS NOT NULL AND e.start_date >= (CURRENT_DATE - INTERVAL '90 days')) ");
             } else {
                 sql.append("AND e.status = ? ");
             }
         }
-        sql.append("ORDER BY e.employee_code");
+        if ("NEW".equalsIgnoreCase(status != null ? status.trim() : "")) {
+            sql.append("ORDER BY e.start_date DESC, e.employee_code");
+        } else {
+            sql.append("ORDER BY e.employee_code");
+        }
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -98,7 +104,7 @@ public class EmployeeDAO {
             }
             if (departmentId != null && departmentId > 0) ps.setInt(idx++, departmentId);
             if (positionId != null && positionId > 0) ps.setInt(idx++, positionId);
-            if (status != null && !status.trim().isEmpty() && !"ON_LEAVE".equalsIgnoreCase(status.trim()) && !"INACTIVE".equalsIgnoreCase(status.trim())) {
+            if (status != null && !status.trim().isEmpty() && !"ON_LEAVE".equalsIgnoreCase(status.trim()) && !"INACTIVE".equalsIgnoreCase(status.trim()) && !"NEW".equalsIgnoreCase(status.trim())) {
                 ps.setString(idx, status.trim());
             }
 

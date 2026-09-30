@@ -72,6 +72,32 @@
             background: #1d4ed8;
             box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
         }
+        .kpi-card-link {
+            text-decoration: none !important;
+            color: inherit !important;
+            display: block;
+            height: 100%;
+        }
+        .kpi-card {
+            cursor: pointer;
+            transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            user-select: none;
+        }
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 28px -6px rgba(37, 99, 235, 0.16), 0 8px 16px -8px rgba(0, 0, 0, 0.08);
+            border-color: #93c5fd !important;
+        }
+        .kpi-card:hover .kpi-label {
+            color: #2563eb;
+        }
+        .kpi-card:hover .kpi-icon-box {
+            transform: scale(1.12);
+        }
+        .kpi-icon-box {
+            transition: transform 0.2s ease;
+        }
     </style>
 </head>
 <body>
@@ -181,98 +207,110 @@
             <div class="row g-3 mb-3">
                 <!-- KPI 1: Tổng nhân viên -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Tổng nhân viên</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value">${kpiStats.totalEmployees}</span>
-                                    <span class="kpi-unit">nhân sự</span>
+                    <a href="${pageContext.request.contextPath}/employees<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">?departmentId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Xem danh sách toàn bộ nhân viên">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Tổng nhân viên</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value">${kpiStats.totalEmployees}</span>
+                                        <span class="kpi-unit">nhân sự</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box blue">
+                                    <i class="bi bi-people-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box blue">
-                                <i class="bi bi-people-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="trend-badge positive">
+                                    <i class="bi bi-shield-check"></i> Toàn hệ thống
+                                </span>
+                                <span class="text-muted">Nhân sự hiện hữu <i class="bi bi-arrow-right-short ms-1 text-primary"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="trend-badge positive">
-                                <i class="bi bi-shield-check"></i> Toàn hệ thống
-                            </span>
-                            <span class="text-muted">Nhân sự hiện hữu</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- KPI 2: Nhân viên đang làm việc -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Nhân viên đang làm việc</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value">${kpiStats.activeEmployees}</span>
-                                    <span class="kpi-unit">nhân sự</span>
+                    <a href="${pageContext.request.contextPath}/employees?status=ACTIVE<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">&departmentId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Lọc danh sách nhân viên đang làm việc (ACTIVE)">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Nhân viên đang làm việc</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value">${kpiStats.activeEmployees}</span>
+                                        <span class="kpi-unit">nhân sự</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box green">
+                                    <i class="bi bi-person-check-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box green">
-                                <i class="bi bi-person-check-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="trend-badge positive">
+                                    <i class="bi bi-check-circle"></i> Đang hoạt động
+                                </span>
+                                <span class="text-muted">Trạng thái ACTIVE <i class="bi bi-arrow-right-short ms-1 text-success"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="trend-badge positive">
-                                <i class="bi bi-check-circle"></i> Đang hoạt động
-                            </span>
-                            <span class="text-muted">Trạng thái ACTIVE</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- KPI 3: Nhân viên mới -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Nhân viên mới</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value">${kpiStats.newHires}</span>
-                                    <span class="kpi-unit">tuyển mới</span>
+                    <a href="${pageContext.request.contextPath}/employees?status=NEW<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">&departmentId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Lọc danh sách nhân viên mới gia nhập gần đây">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Nhân viên mới</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value">${kpiStats.newHires}</span>
+                                        <span class="kpi-unit">tuyển mới</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box purple">
+                                    <i class="bi bi-person-plus-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box purple">
-                                <i class="bi bi-person-plus-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="trend-badge" style="background:#eff6ff; color:#2563eb;">
+                                    <i class="bi bi-calendar-event"></i> Trong kỳ lọc
+                                </span>
+                                <span class="text-muted">Gia nhập gần đây <i class="bi bi-arrow-right-short ms-1 text-primary"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="trend-badge" style="background:#eff6ff; color:#2563eb;">
-                                <i class="bi bi-calendar-event"></i> Trong kỳ lọc
-                            </span>
-                            <span class="text-muted">Gia nhập gần đây</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- KPI 4: Nhân viên nghỉ việc -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Nhân viên nghỉ việc</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value">${kpiStats.inactiveEmployees}</span>
-                                    <span class="kpi-unit">nghỉ việc</span>
+                    <a href="${pageContext.request.contextPath}/employees?status=INACTIVE<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">&departmentId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Lọc danh sách nhân viên đã thôi việc (INACTIVE)">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Nhân viên nghỉ việc</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value">${kpiStats.inactiveEmployees}</span>
+                                        <span class="kpi-unit">nghỉ việc</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box coral">
+                                    <i class="bi bi-person-dash-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box coral">
-                                <i class="bi bi-person-dash-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="trend-badge text-secondary" style="background:#f1f5f9;">
+                                    <i class="bi bi-person-x"></i> Đã thôi việc
+                                </span>
+                                <span class="text-muted">Trạng thái INACTIVE <i class="bi bi-arrow-right-short ms-1 text-secondary"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="trend-badge text-secondary" style="background:#f1f5f9;">
-                                <i class="bi bi-person-x"></i> Đã thôi việc
-                            </span>
-                            <span class="text-muted">Trạng thái INACTIVE</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
             </div>
 
@@ -280,98 +318,110 @@
             <div class="row g-3 mb-4">
                 <!-- KPI 5: Phòng ban -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Phòng ban</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value">${kpiStats.departmentCount}</span>
-                                    <span class="kpi-unit">đơn vị</span>
+                    <a href="${pageContext.request.contextPath}/departments" 
+                       class="kpi-card-link" title="Xem danh sách cơ cấu phòng ban">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Phòng ban</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value">${kpiStats.departmentCount}</span>
+                                        <span class="kpi-unit">đơn vị</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box cyan">
+                                    <i class="bi bi-buildings-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box cyan">
-                                <i class="bi bi-buildings-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="kpi-chip-soft">Đang vận hành</span>
+                                <span class="text-muted">Cơ cấu tổ chức <i class="bi bi-arrow-right-short ms-1 text-info"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="kpi-chip-soft">Đang vận hành</span>
-                            <span class="text-muted">Cơ cấu tổ chức</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- KPI 6: Tổng quỹ lương -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Tổng quỹ lương</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value text-primary">
-                                        <fmt:formatNumber value="${payrollSummary.totalNet}" type="number" groupingUsed="true"/>
-                                    </span>
-                                    <span class="kpi-unit text-primary fw-bold">đ</span>
+                    <a href="${pageContext.request.contextPath}/payroll?month=${currentMonth}&year=${currentYear}<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">&deptId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Xem bảng lương chi tiết kỳ tháng ${currentMonth}/${currentYear}">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Tổng quỹ lương</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value text-primary">
+                                            <fmt:formatNumber value="${payrollSummary.totalNet}" type="number" groupingUsed="true"/>
+                                        </span>
+                                        <span class="kpi-unit text-primary fw-bold">đ</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box blue">
+                                    <i class="bi bi-wallet2"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box blue">
-                                <i class="bi bi-wallet2"></i>
+                            <div class="kpi-footer">
+                                <span class="trend-badge" style="background:#eff6ff; color:#2563eb;">
+                                    <i class="bi bi-cash-stack"></i> Thực chi trả
+                                </span>
+                                <span class="text-muted">Theo kỳ lọc <i class="bi bi-arrow-right-short ms-1 text-primary"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="trend-badge" style="background:#eff6ff; color:#2563eb;">
-                                <i class="bi bi-cash-stack"></i> Thực chi trả
-                            </span>
-                            <span class="text-muted">Theo kỳ lọc</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- KPI 7: Hợp đồng sắp hết hạn -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Hợp đồng sắp hết hạn</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value text-warning" style="color: #ea580c !important;">
-                                        <fmt:formatNumber value="${kpiStats.expiringContracts}" minIntegerDigits="2"/>
-                                    </span>
-                                    <span class="kpi-unit">hợp đồng</span>
+                    <a href="${pageContext.request.contextPath}/contracts?status=EXPIRING_SOON<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">&departmentId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Xem danh sách hợp đồng sắp hết hạn trong 30 ngày">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Hợp đồng sắp hết hạn</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value text-warning" style="color: #ea580c !important;">
+                                            <fmt:formatNumber value="${kpiStats.expiringContracts}" minIntegerDigits="2"/>
+                                        </span>
+                                        <span class="kpi-unit">hợp đồng</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box amber">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box amber">
-                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="kpi-chip-warning">
+                                    <i class="bi bi-dot fs-5 p-0"></i> Cần rà soát
+                                </span>
+                                <span class="text-muted">Trong 30 ngày tới <i class="bi bi-arrow-right-short ms-1 text-warning"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="kpi-chip-warning">
-                                <i class="bi bi-dot fs-5 p-0"></i> Cần rà soát
-                            </span>
-                            <span class="text-muted">Trong 30 ngày tới</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- KPI 8: Đơn nghỉ phép chờ duyệt -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Đơn nghỉ phép chờ duyệt</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value text-primary">${kpiStats.pendingLeaves}</span>
-                                    <span class="kpi-unit">yêu cầu</span>
+                    <a href="${pageContext.request.contextPath}/leave?status=PENDING<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">&departmentId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Xem danh sách đơn nghỉ phép chờ phê duyệt">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Đơn nghỉ phép chờ duyệt</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value text-primary">${kpiStats.pendingLeaves}</span>
+                                        <span class="kpi-unit">yêu cầu</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box blue">
+                                    <i class="bi bi-clipboard2-check-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box blue">
-                                <i class="bi bi-clipboard2-check-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="kpi-chip-soft">Chờ duyệt</span>
+                                <span class="text-danger fw-semibold">Cần xử lý <i class="bi bi-arrow-right-short ms-1"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="kpi-chip-soft">Chờ duyệt</span>
-                            <span class="text-danger fw-semibold">Cần xử lý</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
             </div>
 
@@ -603,7 +653,7 @@
                                             <span class="urgent-task-sub">Trong 30 ngày tới</span>
                                         </div>
                                     </div>
-                                    <a href="${pageContext.request.contextPath}/contracts" class="urgent-action-btn">
+                                    <a href="${pageContext.request.contextPath}/contracts?status=EXPIRING_SOON" class="urgent-action-btn" title="Xem danh sách hợp đồng sắp hết hạn">
                                         Xem danh sách <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </div>
@@ -617,7 +667,7 @@
                                             <span class="urgent-task-sub">Chờ phê duyệt</span>
                                         </div>
                                     </div>
-                                    <a href="${pageContext.request.contextPath}/leave" class="urgent-action-btn">
+                                    <a href="${pageContext.request.contextPath}/leave?status=PENDING" class="urgent-action-btn" title="Duyệt đơn nghỉ phép đang chờ">
                                         Duyệt ngay <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </div>
@@ -631,7 +681,7 @@
                                             <span class="urgent-task-sub">Thiếu CCCD, MST hoặc Ngân hàng</span>
                                         </div>
                                     </div>
-                                    <a href="${pageContext.request.contextPath}/employees" class="urgent-action-btn">
+                                    <a href="${pageContext.request.contextPath}/employees" class="urgent-action-btn" title="Kiểm tra danh sách nhân sự">
                                         Kiểm tra <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </div>
@@ -645,7 +695,7 @@
                                             <span class="urgent-task-sub">Đang tìm kiếm ứng viên</span>
                                         </div>
                                     </div>
-                                    <a href="${pageContext.request.contextPath}/recruitment" class="urgent-action-btn">
+                                    <a href="${pageContext.request.contextPath}/recruitment" class="urgent-action-btn" title="Xem yêu cầu tuyển dụng">
                                         Xem yêu cầu <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </div>
@@ -659,7 +709,7 @@
                                             <span class="urgent-task-sub">Đăng ký ca OT gần đây</span>
                                         </div>
                                     </div>
-                                    <a href="${pageContext.request.contextPath}/attendance" class="urgent-action-btn">
+                                    <a href="${pageContext.request.contextPath}/overtime?status=PENDING" class="urgent-action-btn" title="Duyệt tăng ca đang chờ">
                                         Kiểm tra <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </div>

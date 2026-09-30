@@ -103,31 +103,42 @@ public class TimesheetService {
                     Attendance att = empDays.get(d);
                     if (att != null) {
                         String st = att.getStatus() != null ? att.getStatus().toUpperCase() : "ON_TIME";
-                        if ("ON_LEAVE".equals(st)) {
-                            item.setDayStatus(d, "P");
-                            leaveDays += 1.0;
-                            actualWorkDays += 1.0;
-                        } else if ("LATE".equals(st) || "EARLY_LEAVE".equals(st)) {
-                            item.setDayStatus(d, "M");
-                            actualWorkDays += 1.0;
-                            lateEarlyMinutes += 15;
-                        } else if ("WFH".equals(st)) {
-                            item.setDayStatus(d, "1.0");
-                            actualWorkDays += 1.0;
-                        } else if ("ABSENT".equals(st)) {
-                            item.setDayStatus(d, "V");
-                            unexcusedAbsent += 1;
-                        } else if ("HALF_DAY".equals(st)) {
-                            item.setDayStatus(d, "0.5");
-                            actualWorkDays += 0.5;
-                            leaveDays += 0.5;
-                        } else if ("BUSINESS_TRIP".equals(st) || "MISSION".equals(st)) {
-                            item.setDayStatus(d, "CT");
-                            actualWorkDays += 1.0;
-                        } else {
-                            // ON_TIME, COMPLETE, WORKING
-                            item.setDayStatus(d, "1.0");
-                            actualWorkDays += 1.0;
+                        switch (st) {
+                            case "ON_LEAVE" -> {
+                                item.setDayStatus(d, "P");
+                                leaveDays += 1.0;
+                                actualWorkDays += 1.0;
+                            }
+                            case "LATE", "EARLY_LEAVE" -> {
+                                item.setDayStatus(d, "M");
+                                actualWorkDays += 1.0;
+                                int lateMins = att.getMinutesLate();
+                                int earlyMins = att.getMinutesEarly();
+                                int totalDiff = lateMins + earlyMins;
+                                lateEarlyMinutes += (totalDiff > 0 ? totalDiff : 15);
+                            }
+                            case "WFH" -> {
+                                item.setDayStatus(d, "1.0");
+                                actualWorkDays += 1.0;
+                            }
+                            case "ABSENT" -> {
+                                item.setDayStatus(d, "V");
+                                unexcusedAbsent += 1;
+                            }
+                            case "HALF_DAY" -> {
+                                item.setDayStatus(d, "0.5");
+                                actualWorkDays += 0.5;
+                                leaveDays += 0.5;
+                            }
+                            case "BUSINESS_TRIP", "MISSION" -> {
+                                item.setDayStatus(d, "CT");
+                                actualWorkDays += 1.0;
+                            }
+                            default -> {
+                                // ON_TIME, COMPLETE, WORKING
+                                item.setDayStatus(d, "1.0");
+                                actualWorkDays += 1.0;
+                            }
                         }
                     } else {
                         // Không có bản ghi chấm công
@@ -156,11 +167,11 @@ public class TimesheetService {
                 item.setLateEarlyMinutes(lateEarlyMinutes);
 
                 if (leaveDays > 0 && unexcusedAbsent > 0) {
-                    item.setLeaveDaysDisplay(leaveDays + " (" + unexcusedAbsent + "V)");
+                    item.setLeaveDaysDisplay(leaveDays + "P (" + unexcusedAbsent + "V)");
                 } else if (leaveDays > 0) {
-                    item.setLeaveDaysDisplay(String.valueOf(leaveDays));
+                    item.setLeaveDaysDisplay(leaveDays + "P");
                 } else if (unexcusedAbsent > 0) {
-                    item.setLeaveDaysDisplay(unexcusedAbsent + " (V)");
+                    item.setLeaveDaysDisplay(unexcusedAbsent + "V");
                 } else {
                     item.setLeaveDaysDisplay("0");
                 }

@@ -668,3 +668,25 @@ CREATE TABLE IF NOT EXISTS system_settings (
     description    VARCHAR(255),
     updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- =============================================================
+-- 30. NHẬT KÝ KIỂM TOÁN HỆ THỐNG (Audit Logs)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id          SERIAL PRIMARY KEY,
+    user_id     INTEGER,
+    username    VARCHAR(100) NOT NULL,
+    user_role   VARCHAR(50)  NOT NULL,
+    action      VARCHAR(100) NOT NULL,
+    module      VARCHAR(50)  NOT NULL,
+    record_id   INTEGER,
+    details     TEXT,
+    ip_address  VARCHAR(50),
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_module ON audit_logs(module);
+CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
+

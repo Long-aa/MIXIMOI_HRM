@@ -67,6 +67,20 @@ public class PaymentDAO {
         return false;
     }
 
+    public Payment findByPayrollId(int payrollId) {
+        String sql = BASE_SELECT + "WHERE p.payroll_id = ? ORDER BY p.id DESC LIMIT 1";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, payrollId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return mapRow(rs);
+            }
+        } catch (SQLException e) {
+            System.err.println("PaymentDAO.findByPayrollId error: " + e.getMessage());
+        }
+        return null;
+    }
+
     public boolean insert(Payment p) {
         String sql = "INSERT INTO payments (payroll_id, employee_id, amount, payment_date, payment_method, status, notes) "
                    + "VALUES (?, ?, ?, ?, ?, ?, ?)";

@@ -318,7 +318,19 @@ public class DatabaseInitializer {
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_overtime_code ON overtime(overtime_code) WHERE overtime_code IS NOT NULL",
 
             // Bảng work_shifts: unique index
-            "CREATE UNIQUE INDEX IF NOT EXISTS idx_work_shifts_name ON work_shifts(name)"
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_work_shifts_name ON work_shifts(name)",
+
+            // Bảng audit_logs: Nhật ký kiểm toán cho các thao tác nhạy cảm
+            "CREATE TABLE IF NOT EXISTS audit_logs ("
+            + "id SERIAL PRIMARY KEY, user_id INTEGER, username VARCHAR(100) NOT NULL, "
+            + "user_role VARCHAR(50) NOT NULL, action VARCHAR(100) NOT NULL, module VARCHAR(50) NOT NULL, "
+            + "record_id INTEGER, details TEXT, ip_address VARCHAR(50), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+            "CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_audit_module ON audit_logs(module)",
+
+            // Đồng bộ trừ giờ nghỉ trưa cho các bản ghi về sớm bị lưu nhầm 8.0h
+            "UPDATE attendance SET total_hours = ROUND(GREATEST(0.1, (EXTRACT(EPOCH FROM (check_out - check_in))/60 - CASE WHEN EXTRACT(EPOCH FROM (check_out - check_in))/60 >= 300 THEN 60 ELSE 0 END)/60.0)::numeric, 1) "
+            + "WHERE check_in IS NOT NULL AND check_out IS NOT NULL AND status = 'EARLY_LEAVE' AND total_hours = 8.0"
         };
 
         for (String sql : alterSqls) {
@@ -346,11 +358,10 @@ public class DatabaseInitializer {
 
         if (empIds.isEmpty()) return;
 
-        int e1 = empIds.get(0);
-        int e2 = empIds.size() > 1 ? empIds.get(1) : e1;
-        int e3 = empIds.size() > 2 ? empIds.get(2) : e1;
-        int e4 = empIds.size() > 3 ? empIds.get(3) : e1;
-        int e5 = empIds.size() > 4 ? empIds.get(4) : e1;
+        int e1 = getSafeEmpId(empIds, 0, 1);
+        int e2 = getSafeEmpId(empIds, 1, e1);
+        int e3 = getSafeEmpId(empIds, 2, e1);
+        int e4 = getSafeEmpId(empIds, 3, e1);
 
         String insertSql = "INSERT INTO overtime (employee_id, overtime_date, start_time, end_time, hours, coefficient, amount, "
                          + "project_name, ot_type, reason, lead_approver_id, lead_status, hr_status, status, created_at) "
@@ -452,8 +463,13 @@ public class DatabaseInitializer {
                          + "VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (employee_id, work_date) DO NOTHING";
 
         try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            boolean isAfterShift = LocalTime.now().isAfter(LocalTime.of(17, 30));
             for (int i = 0; i < empIds.size(); i++) {
                 int empId = empIds.get(i);
+                if (empId == 1) {
+                    // Để trống ngày hôm nay cho nhân viên 1 (tài khoản demo/test) để người dùng tự kiểm tra check-in / check-out thực tế
+                    continue;
+                }
                 String method = (i % 2 == 0) ? "FaceID" : "Fingerprint";
                 String status;
                 LocalTime ci = null, co = null;
@@ -464,22 +480,22 @@ public class DatabaseInitializer {
                 if (mod < 6) {
                     status = "ON_TIME";
                     ci = LocalTime.of(8, 15 + (i % 12));
-                    co = LocalTime.of(17, 30 + (i % 20));
-                    hrs = 9.0;
+                    co = isAfterShift ? LocalTime.of(17, 30 + (i % 20)) : null;
+                    hrs = isAfterShift ? 8.0 : 0.0;
                     notes = "Xác thực qua máy chấm công " + method;
                 } else if (mod < 8) {
                     status = "LATE";
                     int late = 10 + (i * 3) % 30;
                     ci = LocalTime.of(8, 35).plusMinutes(late);
-                    co = LocalTime.of(17, 35);
-                    hrs = 8.0;
+                    co = isAfterShift ? LocalTime.of(17, 35) : null;
+                    hrs = isAfterShift ? 8.0 : 0.0;
                     notes = "Đi muộn " + late + " phút (Máy " + method + ")";
                 } else if (mod == 8) {
                     status = "WFH";
                     method = "GPS";
                     ci = LocalTime.of(8, 5);
-                    co = LocalTime.of(17, 10);
-                    hrs = 8.0;
+                    co = isAfterShift ? LocalTime.of(17, 10) : null;
+                    hrs = isAfterShift ? 8.0 : 0.0;
                     notes = "WFH — GPS Mobile xác thực";
                 } else {
                     status = (i % 2 == 0) ? "ON_LEAVE" : "ABSENT";
@@ -516,14 +532,13 @@ public class DatabaseInitializer {
 
         if (empIds.isEmpty()) return;
 
-        int e1 = empIds.get(0);
-        int e2 = empIds.size() > 1 ? empIds.get(1) : e1;
-        int e3 = empIds.size() > 2 ? empIds.get(2) : e1;
-        int e4 = empIds.size() > 3 ? empIds.get(3) : e1;
-        int e5 = empIds.size() > 4 ? empIds.get(4) : e1;
-        int e6 = empIds.size() > 5 ? empIds.get(5) : e1;
-        int e7 = empIds.size() > 6 ? empIds.get(6) : e1;
-        int e8 = empIds.size() > 7 ? empIds.get(7) : e1;
+        int e1 = getSafeEmpId(empIds, 0, 1);
+        int e2 = getSafeEmpId(empIds, 1, e1);
+        int e4 = getSafeEmpId(empIds, 3, e1);
+        int e5 = getSafeEmpId(empIds, 4, e1);
+        int e6 = getSafeEmpId(empIds, 5, e1);
+        int e7 = getSafeEmpId(empIds, 6, e1);
+        int e8 = getSafeEmpId(empIds, 7, e1);
 
         LocalDate today = LocalDate.now();
 
@@ -1412,6 +1427,16 @@ public class DatabaseInitializer {
             }
         }
         System.out.println("[DatabaseInitializer] Đã nạp dữ liệu Kỳ đánh giá, KPI và Hiệu suất nhân sự mẫu!");
+    }
+
+    private static int getSafeEmpId(List<Integer> list, int index, int fallback) {
+        if (list != null && list.size() > index) {
+            Integer val = list.get(index);
+            if (val != null) {
+                return val;
+            }
+        }
+        return fallback;
     }
 }
 

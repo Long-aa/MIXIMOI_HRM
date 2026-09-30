@@ -73,15 +73,9 @@ public class EmployeeServlet extends HttpServlet {
         }
 
         switch (action) {
-            case "export":
-                exportEmployeesToCsv(request, response);
-                break;
-            case "template":
-                downloadCsvTemplate(response);
-                break;
-            case "new":
-            case "create":
-            case "add": {
+            case "export" -> exportEmployeesToCsv(request, response);
+            case "template" -> downloadCsvTemplate(response);
+            case "new", "create", "add" -> {
                 // Tự động điền dữ liệu nếu chuyển từ ứng viên trúng tuyển (1-Click Hire Onboarding)
                 String candIdStr = request.getParameter("candidateId");
                 if (candIdStr != null && !candIdStr.trim().isEmpty()) {
@@ -115,9 +109,8 @@ public class EmployeeServlet extends HttpServlet {
                 prepareFormData(request);
                 request.getRequestDispatcher("/WEB-INF/views/employee/employee-form.jsp")
                         .forward(request, response);
-                break;
             }
-            case "edit": {
+            case "edit" -> {
                 int id = parseSafeInt(request.getParameter("id"), 0);
                 Employee emp = employeeService.getById(id);
                 if (emp == null) {
@@ -132,9 +125,8 @@ public class EmployeeServlet extends HttpServlet {
                 prepareFormData(request);
                 request.getRequestDispatcher("/WEB-INF/views/employee/employee-form.jsp")
                         .forward(request, response);
-                break;
             }
-            case "detail": {
+            case "detail" -> {
                 int id = parseSafeInt(request.getParameter("id"), 0);
                 Employee emp = employeeService.getById(id);
                 if (emp == null) {
@@ -183,9 +175,8 @@ public class EmployeeServlet extends HttpServlet {
 
                 request.getRequestDispatcher("/WEB-INF/views/employee/employee-detail.jsp")
                         .forward(request, response);
-                break;
             }
-            default: {
+            default -> {
                 String keyword = request.getParameter("keyword");
                 String deptStr = request.getParameter("departmentId");
                 String posStr = request.getParameter("positionId");
@@ -250,11 +241,8 @@ public class EmployeeServlet extends HttpServlet {
         }
 
         switch (action) {
-            case "import": {
-                importEmployeesFromCsv(request, response);
-                break;
-            }
-            case "add": {
+            case "import" -> importEmployeesFromCsv(request, response);
+            case "add" -> {
                 Employee emp = bindEmployee(request, new Employee());
                 // Handle file uploads (Avatar, CCCD mặt trước/sau, Hồ sơ đính kèm)
                 try {
@@ -442,9 +430,8 @@ public class EmployeeServlet extends HttpServlet {
                             + (createdContractId > 0 ? ("&contractId=" + createdContractId) : "");
                     response.sendRedirect(redirectUrl);
                 }
-                break;
             }
-            case "update": {
+            case "update" -> {
                 int id = parseSafeInt(request.getParameter("id"), 0);
                 Employee emp = employeeService.getById(id);
                 if (emp == null) {
@@ -585,17 +572,15 @@ public class EmployeeServlet extends HttpServlet {
 
                     response.sendRedirect(request.getContextPath() + "/employees?success=updated");
                 }
-                break;
             }
-            case "delete": {
+            case "delete" -> {
                 int id = parseSafeInt(request.getParameter("id"), 0);
                 if (id > 0) {
                     employeeService.deactivate(id);
                 }
                 response.sendRedirect(request.getContextPath() + "/employees?success=deleted");
-                break;
             }
-            case "bulkDelete": {
+            case "bulkDelete" -> {
                 String[] idsArr = request.getParameterValues("ids");
                 int count = 0;
                 if (idsArr != null && idsArr.length > 0) {
@@ -611,9 +596,8 @@ public class EmployeeServlet extends HttpServlet {
                     }
                 }
                 response.sendRedirect(request.getContextPath() + "/employees?success=deleted&count=" + count);
-                break;
             }
-            case "bulkExport": {
+            case "bulkExport" -> {
                 String[] idsArr = request.getParameterValues("ids");
                 List<Employee> list;
                 if (idsArr != null && idsArr.length > 0) {
@@ -641,10 +625,8 @@ public class EmployeeServlet extends HttpServlet {
                     list = employeeService.search(keyword, deptId, posId, status);
                 }
                 exportListToCsv(response, list);
-                break;
             }
-            default:
-                response.sendRedirect(request.getContextPath() + "/employees");
+            default -> response.sendRedirect(request.getContextPath() + "/employees");
         }
     }
 
@@ -686,14 +668,12 @@ public class EmployeeServlet extends HttpServlet {
                     gender = "Nữ";
                 }
 
-                String empType = "Chính thức";
-                if (emp.getEmployeeTypeId() == 2) {
-                    empType = "Thử việc";
-                } else if (emp.getEmployeeTypeId() == 3) {
-                    empType = "Thời vụ";
-                } else if (emp.getEmployeeTypeId() == 4) {
-                    empType = "Cộng tác viên";
-                }
+                String empType = switch (emp.getEmployeeTypeId()) {
+                    case 2 -> "Thử việc";
+                    case 3 -> "Thời vụ";
+                    case 4 -> "Cộng tác viên";
+                    default -> "Chính thức";
+                };
 
                 String st = "Đang làm việc";
                 if ("ON_LEAVE".equalsIgnoreCase(emp.getStatus())) {
@@ -735,10 +715,10 @@ public class EmployeeServlet extends HttpServlet {
     }
 
     private void importEmployeesFromCsv(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        Part filePart = null;
+        Part filePart;
         try {
             filePart = request.getPart("file");
-        } catch (Exception ex) {
+        } catch (ServletException | IOException ex) {
             request.getSession().setAttribute("importErrorMessage", "Không thể đọc file tải lên: " + ex.getMessage());
             response.sendRedirect(request.getContextPath() + "/employees?importError=read");
             return;
@@ -788,7 +768,7 @@ public class EmployeeServlet extends HttpServlet {
                     continue;
                 }
 
-                String empCode = cols.size() > 0 ? cols.get(0).trim() : "";
+                String empCode = !cols.isEmpty() ? cols.get(0).trim() : "";
                 String fullName = cols.size() > 1 ? cols.get(1).trim() : "";
                 String email = cols.size() > 2 ? cols.get(2).trim() : "";
                 String phone = cols.size() > 3 ? cols.get(3).trim() : "";
@@ -916,7 +896,7 @@ public class EmployeeServlet extends HttpServlet {
                 String[] parts = str.split("-");
                 return LocalDate.of(Integer.parseInt(parts[2]), Integer.parseInt(parts[1]), Integer.parseInt(parts[0]));
             }
-        } catch (Exception ignored) {
+        } catch (java.time.DateTimeException | NumberFormatException ignored) {
         }
         return null;
     }
@@ -998,7 +978,7 @@ public class EmployeeServlet extends HttpServlet {
             return url;
         } catch (IllegalArgumentException ex) {
             throw ex;
-        } catch (Exception ex) {
+        } catch (ServletException | IOException ex) {
             System.err.println("EmployeeServlet: upload lỗi [" + fieldName + "]: " + ex.getMessage());
             return null;
         }

@@ -18,9 +18,9 @@ import java.util.Map;
 
 /**
  * Servlet hiển thị Dashboard tổng quan và xử lý bộ lọc dữ liệu thời gian thực.
- * URL: /dashboard
+ * URL: /dashboard, /reports
  */
-@WebServlet("/dashboard")
+@WebServlet({"/dashboard", "/reports"})
 public class DashboardServlet extends HttpServlet {
 
     private final DashboardDAO dashboardDAO = new DashboardDAO();
@@ -74,7 +74,7 @@ public class DashboardServlet extends HttpServlet {
         String deptParam = request.getParameter("departmentId");
         if (deptParam != null && !deptParam.trim().isEmpty() && !"all".equalsIgnoreCase(deptParam)) {
             try {
-                departmentId = Integer.parseInt(deptParam.trim());
+                departmentId = Integer.valueOf(deptParam.trim());
             } catch (NumberFormatException ignored) {}
         }
 

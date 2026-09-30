@@ -66,7 +66,7 @@ public class UploadServlet extends HttpServlet {
         if (contentType == null) {
             try {
                 contentType = Files.probeContentType(file.toPath());
-            } catch (Exception ignored) {}
+            } catch (IOException ignored) {}
         }
         if (contentType == null) {
             String lower = file.getName().toLowerCase();

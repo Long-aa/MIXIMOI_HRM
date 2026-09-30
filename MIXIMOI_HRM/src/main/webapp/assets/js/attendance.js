@@ -254,16 +254,56 @@ document.addEventListener('DOMContentLoaded', function() {
         const editSt = document.getElementById('editAttStatus');
         const editNt = document.getElementById('editAttNotes');
 
+        const formatTime = function(t) {
+            if (!t || t === 'null' || t === '—') return '';
+            let s = t.split('.')[0].trim();
+            // Xử lý định dạng AM/PM nếu có (VD: 08:04:22 AM -> 08:04:22, 04:22:22 PM -> 16:22:22)
+            const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
+            if (m) {
+                let h = parseInt(m[1], 10);
+                const min = m[2];
+                const sec = m[3] || '00';
+                const mer = m[4].toUpperCase();
+                if (mer === 'PM' && h < 12) h += 12;
+                if (mer === 'AM' && h === 12) h = 0;
+                s = (h < 10 ? '0' : '') + h + ':' + min + ':' + sec;
+            }
+            return s;
+        };
+
         if (editId) editId.value = id || '';
-        if (editEmp) editEmp.value = empId || '';
         if (editDate) editDate.value = date || '';
-        if (editIn) editIn.value = checkIn || '';
-        if (editOut) editOut.value = checkOut || '';
+        if (editIn) editIn.value = formatTime(checkIn);
+        if (editOut) editOut.value = formatTime(checkOut);
         if (editSt) editSt.value = status || 'ON_TIME';
         if (editNt) editNt.value = notes || '';
 
+        if (editEmp) {
+            editEmp.value = empId || '';
+            // Nếu option nhân viên chưa khớp, tìm và chọn chính xác
+            if (empId) {
+                let matched = false;
+                for (let i = 0; i < editEmp.options.length; i++) {
+                    if (editEmp.options[i].value === String(empId)) {
+                        editEmp.selectedIndex = i;
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched) {
+                    const opt = document.createElement('option');
+                    opt.value = empId;
+                    opt.textContent = 'Nhân viên #' + empId;
+                    opt.selected = true;
+                    editEmp.appendChild(opt);
+                }
+            }
+        }
+
         const modalEl = document.getElementById('editAttendanceModal');
         if (modalEl) {
+            const form = modalEl.querySelector('form');
+            if (form) form.classList.remove('was-validated');
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
         }

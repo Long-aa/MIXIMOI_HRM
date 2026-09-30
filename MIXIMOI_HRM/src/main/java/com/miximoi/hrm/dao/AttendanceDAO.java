@@ -8,7 +8,6 @@ import java.sql.*;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -223,7 +222,7 @@ public class AttendanceDAO {
              PreparedStatement ps = conn.prepareStatement(insertSql)) {
             for (int i = 0; i < empIds.size(); i++) {
                 int empId = empIds.get(i);
-                String status; LocalTime ci = null, co = null; double hrs = 0; String notes = null;
+                String status; LocalTime ci = null, co = null; double hrs = 0; String notes;
                 int mod = i % 10;
                 if (mod < 5) {
                     status = "ON_TIME"; int off = (int)(Math.random()*10)-2;
@@ -264,20 +263,6 @@ public class AttendanceDAO {
      * nếu tháng đó chưa có đủ dữ liệu thực tế. Đảm bảo dữ liệu realtime và đa dạng.
      */
     public void autoSeedMonthAttendance(int month, int year) {
-        String checkCountSql = "SELECT COUNT(DISTINCT work_date) FROM attendance WHERE EXTRACT(MONTH FROM work_date) = ? AND EXTRACT(YEAR FROM work_date) = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(checkCountSql)) {
-            ps.setInt(1, month);
-            ps.setInt(2, year);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next() && rs.getInt(1) >= 15) {
-                    return; // Đã có đủ ít nhất 15 ngày làm việc được ghi nhận trong tháng này
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("AttendanceDAO.autoSeedMonthAttendance count error: " + e.getMessage());
-        }
-
         List<Integer> empIds = new ArrayList<>();
         String empSql = "SELECT id FROM employees WHERE status = 'ACTIVE' ORDER BY id";
         try (Connection conn = DBConnection.getConnection();
@@ -287,13 +272,31 @@ public class AttendanceDAO {
         } catch (SQLException e) { return; }
         if (empIds.isEmpty()) return;
 
+        String checkCountSql = "SELECT COUNT(*) FROM attendance WHERE EXTRACT(MONTH FROM work_date) = ? AND EXTRACT(YEAR FROM work_date) = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(checkCountSql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                int minExpected = Math.max(15, empIds.size() * 12);
+                if (rs.next() && rs.getInt(1) >= minExpected) {
+                    return; // Đã có đủ dữ liệu chấm công cho số lượng nhân viên
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("AttendanceDAO.autoSeedMonthAttendance count error: " + e.getMessage());
+        }
+
         LocalDate today = LocalDate.now();
         int maxDaysInMonth = java.time.YearMonth.of(year, month).lengthOfMonth();
         int lastDayToSeed = maxDaysInMonth;
         if (year == today.getYear() && month == today.getMonthValue()) {
-            lastDayToSeed = today.getDayOfMonth(); // Chỉ seed đến ngày hôm nay
+            lastDayToSeed = today.getDayOfMonth() - 1; // Chỉ seed đến ngày hôm qua, để hôm nay người dùng tự chấm công thực tế
         } else if (year > today.getYear() || (year == today.getYear() && month > today.getMonthValue())) {
             return; // Tháng tương lai chưa tới
+        }
+        if (lastDayToSeed < 1) {
+            return;
         }
 
         String insertSql = "INSERT INTO attendance (employee_id, work_date, check_in, check_out, total_hours, status, notes, method) "
@@ -378,11 +381,12 @@ public class AttendanceDAO {
      */
     public boolean checkInWithMethod(int employeeId, LocalDate date, LocalTime checkInTime, String method) {
         Attendance existing = findByEmployeeAndDate(employeeId, date);
-        String status = checkInTime.isAfter(LocalTime.of(8, 35)) ? "LATE" : "ON_TIME";
         String methodLabel = (method != null && !method.isEmpty()) ? method : "FaceID";
-        String notes = "Check-in bằng " + methodLabel + " lúc " + checkInTime;
+        String timeStr = checkInTime.toString().substring(0, Math.min(8, checkInTime.toString().length()));
 
         if (existing == null) {
+            String status = checkInTime.isAfter(LocalTime.of(8, 35)) ? "LATE" : "ON_TIME";
+            String notes = "Check-in bằng " + methodLabel + " lúc " + timeStr;
             String sql = "INSERT INTO attendance (employee_id, work_date, check_in, total_hours, status, notes, method) VALUES (?,?,?,?,?,?,?)";
             try (Connection conn = DBConnection.getConnection();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -392,7 +396,10 @@ public class AttendanceDAO {
                 ps.setString(7, methodLabel);
                 return ps.executeUpdate() > 0;
             } catch (SQLException e) { System.err.println("checkInWithMethod insert lỗi: " + e.getMessage()); }
-        } else {
+        } else if (existing.getCheckIn() == null) {
+            // Đã có bản ghi nhưng chưa điểm danh vào (lần đầu check-in trong ngày)
+            String status = checkInTime.isAfter(LocalTime.of(8, 35)) ? "LATE" : "ON_TIME";
+            String notes = "Check-in bằng " + methodLabel + " lúc " + timeStr;
             String sql = "UPDATE attendance SET check_in=?, status=?, notes=?, method=? WHERE id=?";
             try (Connection conn = DBConnection.getConnection();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -400,6 +407,10 @@ public class AttendanceDAO {
                 ps.setString(2, status); ps.setString(3, notes); ps.setString(4, methodLabel); ps.setInt(5, existing.getId());
                 return ps.executeUpdate() > 0;
             } catch (SQLException e) { System.err.println("checkInWithMethod update lỗi: " + e.getMessage()); }
+        } else {
+            // ĐÃ CHECK-IN TRƯỚC ĐÓ: TUYỆT ĐỐI KHÔNG GHI ĐÈ GIỜ CHECK-IN VÀ STATUS BAN ĐẦU!
+            // Bảo lưu giờ đến thực tế ban đầu để không biến người đúng giờ thành đi muộn khi bấm lại
+            return true;
         }
         return false;
     }
@@ -452,48 +463,19 @@ public class AttendanceDAO {
         return list;
     }
 
-    /** Check-in của nhân viên */
+    /** Check-in của nhân viên (mặc định FaceID) */
     public boolean checkIn(int employeeId, LocalDate date, LocalTime checkInTime) {
-        Attendance existing = findByEmployeeAndDate(employeeId, date);
-        String status = "ON_TIME";
-        if (checkInTime.isAfter(LocalTime.of(8, 35))) {
-            status = "LATE";
-        }
-
-        if (existing == null) {
-            String sql = "INSERT INTO attendance (employee_id, work_date, check_in, total_hours, status) VALUES (?,?,?,?,?)";
-            try (Connection conn = DBConnection.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setInt(1, employeeId);
-                ps.setDate(2, Date.valueOf(date));
-                ps.setTime(3, Time.valueOf(checkInTime));
-                ps.setDouble(4, 0.0);
-                ps.setString(5, status);
-                return ps.executeUpdate() > 0;
-            } catch (SQLException e) {
-                System.err.println("AttendanceDAO.checkIn lỗi: " + e.getMessage());
-            }
-        } else {
-            String sql = "UPDATE attendance SET check_in=?, status=? WHERE id=?";
-            try (Connection conn = DBConnection.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setTime(1, Time.valueOf(checkInTime));
-                ps.setString(2, status);
-                ps.setInt(3, existing.getId());
-                return ps.executeUpdate() > 0;
-            } catch (SQLException e) {
-                System.err.println("AttendanceDAO.checkIn update lỗi: " + e.getMessage());
-            }
-        }
-        return false;
+        return checkInWithMethod(employeeId, date, checkInTime, "FaceID");
     }
 
     /** Check-out của nhân viên */
     public boolean checkOut(int employeeId, LocalDate date, LocalTime checkOutTime) {
         Attendance existing = findByEmployeeAndDate(employeeId, date);
+        String timeStr = checkOutTime.toString().substring(0, Math.min(8, checkOutTime.toString().length()));
+
         if (existing == null) {
             // Check out without prior check-in
-            String sql = "INSERT INTO attendance (employee_id, work_date, check_out, total_hours, status) VALUES (?,?,?,?,?)";
+            String sql = "INSERT INTO attendance (employee_id, work_date, check_out, total_hours, status, notes, method) VALUES (?,?,?,?,?,?,?)";
             try (Connection conn = DBConnection.getConnection();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setInt(1, employeeId);
@@ -501,27 +483,56 @@ public class AttendanceDAO {
                 ps.setTime(3, Time.valueOf(checkOutTime));
                 ps.setDouble(4, 4.0);
                 ps.setString(5, "ON_TIME");
+                ps.setString(6, "Check-out ra về lúc " + timeStr + " (chưa check-in sáng)");
+                ps.setString(7, "Manual");
                 return ps.executeUpdate() > 0;
             } catch (SQLException e) {
                 System.err.println("AttendanceDAO.checkOut insert lỗi: " + e.getMessage());
             }
         } else {
-            double hours = 8.0;
-            if (existing.getCheckIn() != null) {
-                long minutes = Duration.between(existing.getCheckIn(), checkOutTime).toMinutes();
-                hours = Math.max(0.0, Math.round((minutes / 60.0) * 10.0) / 10.0);
+            LocalTime checkIn = existing.getCheckIn();
+            double hours = calculateWorkHours(checkIn, checkOutTime);
+
+            // Xác định trạng thái chính xác:
+            // 1. Nếu buổi sáng đã đi muộn (LATE) -> giữ nguyên LATE
+            // 2. Nếu check-out trước 17:00 và giờ làm < 8.0 -> EARLY_LEAVE
+            // 3. Nếu check-out từ 17:00 trở đi hoặc đã đủ 8h -> ON_TIME
+            String currentStatus = existing.getStatus();
+            String newStatus;
+            if ("LATE".equalsIgnoreCase(currentStatus)) {
+                newStatus = "LATE";
+            } else if (checkOutTime.isBefore(LocalTime.of(17, 0)) && hours < 8.0) {
+                newStatus = "EARLY_LEAVE";
+            } else {
+                newStatus = "ON_TIME";
             }
-            String status = existing.getStatus();
-            if (checkOutTime.isBefore(LocalTime.of(17, 0)) && !"LATE".equalsIgnoreCase(status)) {
-                status = "EARLY_LEAVE";
+
+            // Bảo vệ nếu đã từng check-out trước đó trong ngày:
+            // Giữ giờ checkout muộn nhất, không để giờ checkout mới nhỏ hơn giờ checkout cũ
+            LocalTime finalCheckOut = checkOutTime;
+            if (existing.getCheckOut() != null && checkOutTime.isBefore(existing.getCheckOut())) {
+                finalCheckOut = existing.getCheckOut();
+                if (existing.getTotalHours() > hours) {
+                    hours = existing.getTotalHours();
+                    newStatus = existing.getStatus();
+                }
             }
-            String sql = "UPDATE attendance SET check_out=?, total_hours=?, status=? WHERE id=?";
+
+            String notes = existing.getNotes();
+            if (notes == null || notes.isEmpty()) {
+                notes = "Check-out ra về lúc " + timeStr;
+            } else if (!notes.contains("Check-out")) {
+                notes = notes + " | Check-out lúc " + timeStr;
+            }
+
+            String sql = "UPDATE attendance SET check_out=?, total_hours=?, status=?, notes=? WHERE id=?";
             try (Connection conn = DBConnection.getConnection();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setTime(1, Time.valueOf(checkOutTime));
+                ps.setTime(1, Time.valueOf(finalCheckOut));
                 ps.setDouble(2, hours);
-                ps.setString(3, status);
-                ps.setInt(4, existing.getId());
+                ps.setString(3, newStatus);
+                ps.setString(4, notes);
+                ps.setInt(5, existing.getId());
                 return ps.executeUpdate() > 0;
             } catch (SQLException e) {
                 System.err.println("AttendanceDAO.checkOut update lỗi: " + e.getMessage());
@@ -530,14 +541,28 @@ public class AttendanceDAO {
         return false;
     }
 
+    /** Helper tính số giờ làm việc thực tế (trừ 1h nghỉ trưa nếu làm từ 5 tiếng trở lên, tối đa 8.0h) */
+    public double calculateWorkHours(LocalTime checkIn, LocalTime checkOut) {
+        if (checkIn != null && checkOut != null) {
+            if (checkOut.isAfter(checkIn)) {
+                long minutes = Duration.between(checkIn, checkOut).toMinutes();
+                if (minutes >= 300) {
+                    minutes = Math.max(0, minutes - 60);
+                }
+                double hours = Math.max(0.1, Math.round((minutes / 60.0) * 10.0) / 10.0);
+                return Math.min(8.0, hours);
+            }
+            return 0.5;
+        } else if (checkIn != null || checkOut != null) {
+            return 4.0;
+        }
+        return 0.0;
+    }
+
     /** Lưu chấm công thủ công hoặc điều chỉnh (Upsert) */
     public boolean upsertManual(int employeeId, LocalDate date, LocalTime checkIn, LocalTime checkOut, String status, String notes) {
         Attendance existing = findByEmployeeAndDate(employeeId, date);
-        double hours = 8.0;
-        if (checkIn != null && checkOut != null) {
-            long minutes = Duration.between(checkIn, checkOut).toMinutes();
-            hours = Math.max(0.0, Math.round((minutes / 60.0) * 10.0) / 10.0);
-        }
+        double hours = calculateWorkHours(checkIn, checkOut);
 
         if (existing == null) {
             String sql = "INSERT INTO attendance (employee_id, work_date, check_in, check_out, total_hours, status, notes) "
@@ -575,11 +600,7 @@ public class AttendanceDAO {
 
     /** Cập nhật chấm công theo ID */
     public boolean update(int id, LocalTime checkIn, LocalTime checkOut, String status, String notes) {
-        double hours = 8.0;
-        if (checkIn != null && checkOut != null) {
-            long minutes = Duration.between(checkIn, checkOut).toMinutes();
-            hours = Math.max(0.0, Math.round((minutes / 60.0) * 10.0) / 10.0);
-        }
+        double hours = calculateWorkHours(checkIn, checkOut);
         String sql = "UPDATE attendance SET check_in=?, check_out=?, total_hours=?, status=?, notes=? WHERE id=?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

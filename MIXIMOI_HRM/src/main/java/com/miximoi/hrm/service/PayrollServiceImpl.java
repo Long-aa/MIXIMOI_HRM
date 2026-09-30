@@ -81,6 +81,10 @@ public class PayrollServiceImpl {
              new BonusDAO(), new SalaryDeductionDAO(), new SalaryConfigDAO());
     }
 
+    public PayrollDAO getPayrollDAO() {
+        return payrollDAO;
+    }
+
     // =========================================================================
     //  Core: Xu ly luong hang thang voi JDBC Transaction
     // =========================================================================
@@ -163,7 +167,7 @@ public class PayrollServiceImpl {
 
                     successCount++;
 
-                } catch (Exception empEx) {
+                } catch (SQLException | RuntimeException empEx) {
                     // Log loi cho tung nhan vien nhung KHONG break toan bo batch
                     // De dam bao cac nhan vien khac van duoc tinh luong
                     System.err.println("[PayrollService] Loi tinh luong cho NV #"

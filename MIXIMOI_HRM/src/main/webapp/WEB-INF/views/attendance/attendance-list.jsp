@@ -44,6 +44,21 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 </c:if>
+                <c:if test="${not empty param.info}">
+                    <div class="alert alert-info alert-dismissible fade show border-0 shadow-sm mb-3" role="alert" style="border-radius:10px; font-size:0.875rem; background:#eff6ff; color:#1e40af; border-left:4px solid #3b82f6 !important;">
+                        <i class="bi bi-info-circle-fill me-2 text-primary"></i>
+                        <c:choose>
+                            <c:when test="${param.info eq 'already_checked_in'}">
+                                <strong>Thông báo bảo lưu:</strong> Bạn đã check-in vào ca hôm nay lúc <strong>${todayCheckIn != null ? todayCheckIn : 'buổi sáng'}</strong>. Giờ vào ban đầu được cố định để bảo vệ ngày công và không bị thay đổi.
+                            </c:when>
+                            <c:when test="${param.info eq 'already_checked_out'}">
+                                <strong>Thông báo:</strong> Bạn đã ghi nhận check-out ra về hôm nay lúc <strong>${todayCheckOut != null ? todayCheckOut : 'trước đó'}</strong>. Dữ liệu ca làm đã hoàn tất an toàn.
+                            </c:when>
+                            <c:otherwise>${param.info}</c:otherwise>
+                        </c:choose>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                </c:if>
 
                 <!-- Employee Banner + Check-in/out with Biometric Methods -->
                 <div class="emp-att-banner">
@@ -607,6 +622,21 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 </c:if>
+                <c:if test="${not empty param.info}">
+                    <div class="alert alert-info alert-dismissible fade show border-0 shadow-sm mb-3" role="alert" style="border-radius:10px; font-size:0.875rem; background:#eff6ff; color:#1e40af; border-left:4px solid #3b82f6 !important;">
+                        <i class="bi bi-info-circle-fill me-2 text-primary"></i>
+                        <c:choose>
+                            <c:when test="${param.info eq 'already_checked_in'}">
+                                <strong>Thông báo:</strong> Nhân viên đã check-in vào ca hôm nay. Giờ check-in ban đầu được giữ nguyên để bảo đảm tính toàn vẹn dữ liệu.
+                            </c:when>
+                            <c:when test="${param.info eq 'already_checked_out'}">
+                                <strong>Thông báo:</strong> Lượt check-out đã được ghi nhận trước đó trong ngày.
+                            </c:when>
+                            <c:otherwise>${param.info}</c:otherwise>
+                        </c:choose>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                </c:if>
 
                 <!-- Page Header -->
                 <div class="att-page-header">
@@ -972,11 +1002,11 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark mb-1" style="font-size:0.83rem;">Giờ Check-in</label>
-                            <input type="time" class="form-control" name="checkIn" style="border-radius:9px; font-size:0.875rem; font-family:monospace;">
+                            <input type="time" step="1" class="form-control" name="checkIn" style="border-radius:9px; font-size:0.875rem; font-family:monospace;">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark mb-1" style="font-size:0.83rem;">Giờ Check-out</label>
-                            <input type="time" class="form-control" name="checkOut" style="border-radius:9px; font-size:0.875rem; font-family:monospace;">
+                            <input type="time" step="1" class="form-control" name="checkOut" style="border-radius:9px; font-size:0.875rem; font-family:monospace;">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark mb-1" style="font-size:0.83rem;">Phương thức chấm công</label>
@@ -1045,6 +1075,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark mb-1" style="font-size:0.83rem;">Nhân viên <span class="text-danger">*</span></label>
                             <select class="form-select" name="employeeId" id="editAttEmpId" required style="border-radius:9px; font-size:0.875rem;">
+                                <option value="">-- Chọn nhân viên --</option>
                                 <c:forEach var="emp" items="${employees}">
                                     <option value="${emp.id}">${emp.fullName} (${emp.employeeCode})</option>
                                 </c:forEach>
@@ -1056,11 +1087,11 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark mb-1" style="font-size:0.83rem;">Giờ Check-in</label>
-                            <input type="time" class="form-control" name="checkIn" id="editAttCheckIn" style="border-radius:9px; font-size:0.875rem; font-family:monospace;">
+                            <input type="time" step="1" class="form-control" name="checkIn" id="editAttCheckIn" style="border-radius:9px; font-size:0.875rem; font-family:monospace;">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark mb-1" style="font-size:0.83rem;">Giờ Check-out</label>
-                            <input type="time" class="form-control" name="checkOut" id="editAttCheckOut" style="border-radius:9px; font-size:0.875rem; font-family:monospace;">
+                            <input type="time" step="1" class="form-control" name="checkOut" id="editAttCheckOut" style="border-radius:9px; font-size:0.875rem; font-family:monospace;">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark mb-1" style="font-size:0.83rem;">Trạng thái</label>

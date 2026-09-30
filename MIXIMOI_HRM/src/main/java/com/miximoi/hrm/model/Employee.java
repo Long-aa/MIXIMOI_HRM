@@ -216,13 +216,8 @@ public class Employee {
      */
     public boolean isNewEmployee() {
         LocalDate now = LocalDate.now();
-        if (createdAt != null && createdAt.toLocalDate().isAfter(now.minusDays(30))) {
-            return true;
-        }
-        if (startDate != null && startDate.isAfter(now.minusDays(30))) {
-            return true;
-        }
-        return false;
+        return (createdAt != null && createdAt.toLocalDate().isAfter(now.minusDays(30)))
+                || (startDate != null && startDate.isAfter(now.minusDays(30)));
     }
 
     @Override

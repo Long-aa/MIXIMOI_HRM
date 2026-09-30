@@ -97,15 +97,15 @@
 
             <!-- KPI Stats Cards -->
             <div class="emp-stats-grid">
-                <div class="emp-stat-card">
+                <a href="${pageContext.request.contextPath}/employees" class="emp-stat-card text-decoration-none ${empty status ? 'border-primary' : ''}" style="color:inherit; cursor:pointer;" title="Xem tất cả nhân sự">
                     <div class="emp-stat-icon blue"><i class="bi bi-people-fill"></i></div>
                     <div>
                         <div class="emp-stat-label">Tổng nhân sự</div>
                         <div class="emp-stat-value">${statsTotal}</div>
                         <div class="emp-stat-meta">Toàn bộ hồ sơ trong hệ thống</div>
                     </div>
-                </div>
-                <div class="emp-stat-card">
+                </a>
+                <a href="${pageContext.request.contextPath}/employees?status=ACTIVE" class="emp-stat-card text-decoration-none ${status eq 'ACTIVE' ? 'border-primary' : ''}" style="color:inherit; cursor:pointer;" title="Lọc nhân sự đang làm việc">
                     <div class="emp-stat-icon green"><i class="bi bi-person-check-fill"></i></div>
                     <div>
                         <div class="emp-stat-label">Đang làm việc</div>
@@ -120,23 +120,23 @@
                             </c:choose>
                         </div>
                     </div>
-                </div>
-                <div class="emp-stat-card">
+                </a>
+                <a href="${pageContext.request.contextPath}/employees?status=ON_LEAVE" class="emp-stat-card text-decoration-none ${status eq 'ON_LEAVE' ? 'border-primary' : ''}" style="color:inherit; cursor:pointer;" title="Lọc nhân sự đang nghỉ phép">
                     <div class="emp-stat-icon amber"><i class="bi bi-hourglass-split"></i></div>
                     <div>
                         <div class="emp-stat-label">Đang nghỉ phép</div>
                         <div class="emp-stat-value">${statsOnLeave}</div>
                         <div class="emp-stat-meta">Quý hiện tại</div>
                     </div>
-                </div>
-                <div class="emp-stat-card">
+                </a>
+                <a href="${pageContext.request.contextPath}/employees?status=INACTIVE" class="emp-stat-card text-decoration-none ${status eq 'INACTIVE' ? 'border-primary' : ''}" style="color:inherit; cursor:pointer;" title="Lọc nhân sự đã nghỉ việc">
                     <div class="emp-stat-icon slate"><i class="bi bi-person-dash-fill"></i></div>
                     <div>
                         <div class="emp-stat-label">Nghỉ việc / Lưu trữ</div>
                         <div class="emp-stat-value">${statsInactive}</div>
                         <div class="emp-stat-meta">Hồ sơ đã kết thúc</div>
                     </div>
-                </div>
+                </a>
             </div>
 
             <!-- Search & Filter -->
@@ -171,6 +171,7 @@
                             <select class="form-select filter-select" name="status">
                                 <option value="">Tất cả trạng thái</option>
                                 <option value="ACTIVE"   ${status eq 'ACTIVE'   ? 'selected' : ''}>Đang làm việc</option>
+                                <option value="NEW"      ${status eq 'NEW'      ? 'selected' : ''}>Mới tuyển / Gần đây</option>
                                 <option value="ON_LEAVE" ${status eq 'ON_LEAVE' ? 'selected' : ''}>Đang nghỉ phép</option>
                                 <option value="INACTIVE" ${status eq 'INACTIVE' ? 'selected' : ''}>Đã nghỉ việc</option>
                             </select>

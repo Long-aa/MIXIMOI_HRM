@@ -1,6 +1,7 @@
 package com.miximoi.hrm.controller;
 
 import com.miximoi.hrm.dao.AttendanceDAO;
+import com.miximoi.hrm.dao.AuditLogDAO;
 import com.miximoi.hrm.dao.DepartmentDAO;
 import com.miximoi.hrm.model.Department;
 import com.miximoi.hrm.model.TimesheetDayColumn;
@@ -50,7 +51,7 @@ public class TimesheetServlet extends HttpServlet {
 
         // Các bộ lọc
         String deptParam = request.getParameter("departmentId");
-        Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.parseInt(deptParam) : null;
+        Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.valueOf(deptParam) : null;
         String statusFilter = request.getParameter("status");
         String shiftType = request.getParameter("shiftType");
         String keyword = request.getParameter("keyword");
@@ -61,6 +62,11 @@ public class TimesheetServlet extends HttpServlet {
         // Lấy danh sách ma trận chấm công theo quyền hạn của Role
         List<TimesheetItem> matrix = timesheetService.getTimesheetMatrix(
                 currentUser, month, year, departmentId, statusFilter, shiftType, keyword);
+
+        if ("export".equalsIgnoreCase(request.getParameter("action"))) {
+            exportTimesheetToCsv(response, matrix, month, year);
+            return;
+        }
 
         boolean isLocked = timesheetService.isTimesheetLocked(month, year);
         List<Department> departments = departmentDAO.findAll();
@@ -126,7 +132,7 @@ public class TimesheetServlet extends HttpServlet {
         } catch (NumberFormatException ignored) {}
 
         switch (action) {
-            case "lock": {
+            case "lock" -> {
                 // Chỉ Admin hoặc HR mới có quyền khóa/mở bảng công
                 if (currentUser.isAdmin() || currentUser.isHr()) {
                     boolean currentLock = timesheetService.isTimesheetLocked(month, year);
@@ -134,33 +140,33 @@ public class TimesheetServlet extends HttpServlet {
                     String note = !currentLock ? "Đã khóa bảng công bởi " + currentUser.getFullName()
                                                : "Mở khóa bảng công bởi " + currentUser.getFullName();
                     timesheetService.setTimesheetLocked(month, year, !currentLock, empId, note);
+                    AuditLogDAO.logAction(request, !currentLock ? "LOCK_TIMESHEET" : "UNLOCK_TIMESHEET", "TIMESHEET", null, note + " (Kỳ " + month + "/" + year + ")");
                     String msg = !currentLock ? "locked" : "unlocked";
                     response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year + "&success=" + msg);
                     return;
                 }
-                break;
             }
-            case "sync": {
+            case "sync" -> {
                 // Admin hoặc HR đồng bộ máy chấm công / nạp tự động dữ liệu hôm nay
                 if (currentUser.isAdmin() || currentUser.isHr()) {
                     attendanceDAO.autoSeedTodayData(LocalDate.now());
                     response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year + "&success=synced");
                     return;
                 }
-                break;
             }
-            case "remind": {
+            case "remind" -> {
                 // Gửi nhắc nhở giải trình
                 response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year + "&success=reminded");
                 return;
             }
-            case "export": {
+            case "export" -> {
                 // Xuất file CSV ma trận chấm công với UTF-8 BOM chuẩn Excel
                 List<TimesheetItem> matrix = timesheetService.getTimesheetMatrix(
                         currentUser, month, year, null, null, null, null);
                 exportTimesheetToCsv(response, matrix, month, year);
                 return;
             }
+            default -> {}
         }
 
         response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year);

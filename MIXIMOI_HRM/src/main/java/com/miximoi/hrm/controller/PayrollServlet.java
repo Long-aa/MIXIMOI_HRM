@@ -1,6 +1,7 @@
 package com.miximoi.hrm.controller;
 
 import com.miximoi.hrm.dao.AttendanceDAO;
+import com.miximoi.hrm.dao.AuditLogDAO;
 import com.miximoi.hrm.dao.DepartmentDAO;
 import com.miximoi.hrm.dao.PayrollDAO;
 import com.miximoi.hrm.model.Department;
@@ -55,7 +56,7 @@ public class PayrollServlet extends HttpServlet {
 
         String keyword = request.getParameter("keyword");
         String deptParam = request.getParameter("deptId");
-        Integer deptId = (deptParam != null && !deptParam.isEmpty()) ? Integer.parseInt(deptParam) : null;
+        Integer deptId = (deptParam != null && !deptParam.isEmpty()) ? Integer.valueOf(deptParam) : null;
         String status = request.getParameter("status");
 
         // Xuất file CSV / Excel nếu có yêu cầu
@@ -88,7 +89,7 @@ public class PayrollServlet extends HttpServlet {
         int totalPages  = (int) Math.ceil((double) totalRecords / pageSize);
 
         int page = 1;
-        try { page = Integer.parseInt(request.getParameter("page")); } catch (Exception ignored) {}
+        try { page = Integer.parseInt(request.getParameter("page")); } catch (NumberFormatException ignored) {}
         if (page < 1) page = 1;
         if (page > totalPages && totalPages > 0) page = totalPages;
 
@@ -153,7 +154,7 @@ public class PayrollServlet extends HttpServlet {
             String yStr = request.getParameter("year");
             if (mStr != null && !mStr.isEmpty()) month = Integer.parseInt(mStr);
             if (yStr != null && !yStr.isEmpty()) year  = Integer.parseInt(yStr);
-        } catch (Exception ignored) {}
+        } catch (NumberFormatException ignored) {}
 
         String pageParam = request.getParameter("page");
         String deptParam = request.getParameter("deptId");
@@ -165,49 +166,49 @@ public class PayrollServlet extends HttpServlet {
         if (deptParam != null && !deptParam.isEmpty()) extra.append("&deptId=").append(deptParam);
         if (statusParam != null && !statusParam.isEmpty()) extra.append("&status=").append(statusParam);
         if (kwParam != null && !kwParam.isEmpty()) {
-            try { extra.append("&keyword=").append(java.net.URLEncoder.encode(kwParam, "UTF-8")); } catch (Exception ignored) {}
+            try { extra.append("&keyword=").append(java.net.URLEncoder.encode(kwParam, "UTF-8")); } catch (java.io.UnsupportedEncodingException ignored) {}
         }
 
         switch (action) {
-            case "calculate": {
+            case "calculate" -> {
                 // Đảm bảo dữ liệu chấm công đã có đầy đủ trước khi chốt công và tính lương
                 attendanceDAO.autoSeedMonthAttendance(month, year);
                 payrollService.calculatePayrollForPeriod(month, year, userId);
+                AuditLogDAO.logAction(request, "CALCULATE_PAYROLL", "PAYROLL", null, "Tính lương kỳ " + month + "/" + year);
                 response.sendRedirect(request.getContextPath()
                         + "/payroll?month=" + month + "&year=" + year + "&success=calculated" + extra);
-                break;
             }
-            case "toggle_lock": {
+            case "toggle_lock" -> {
                 boolean currentlyLocked = attendanceDAO.isTimesheetLocked(month, year);
                 attendanceDAO.setTimesheetLocked(month, year, !currentlyLocked, userId, 
                         !currentlyLocked ? "Khóa chốt kỳ tính lương" : "Mở khóa kỳ tính lương");
+                AuditLogDAO.logAction(request, !currentlyLocked ? "LOCK_PAYROLL" : "UNLOCK_PAYROLL", "PAYROLL", null, 
+                        (!currentlyLocked ? "Khóa chốt" : "Mở khóa") + " kỳ tính lương " + month + "/" + year);
                 response.sendRedirect(request.getContextPath()
                         + "/payroll?month=" + month + "&year=" + year + "&success=" + (!currentlyLocked ? "locked" : "unlocked") + extra);
-                break;
             }
-            case "approve": {
+            case "approve" -> {
                 int id = Integer.parseInt(request.getParameter("id"));
                 payrollService.approve(id, userId);
+                AuditLogDAO.logAction(request, "APPROVE_PAYSLIP", "PAYROLL", id, "Phê duyệt phiếu lương ID " + id);
                 response.sendRedirect(request.getContextPath()
                         + "/payroll?month=" + month + "&year=" + year + "&success=approved" + extra);
-                break;
             }
-            case "approve_all": {
+            case "approve_all" -> {
                 payrollService.approveAll(month, year, userId);
+                AuditLogDAO.logAction(request, "APPROVE_ALL_PAYSLIPS", "PAYROLL", null, "Phê duyệt toàn bộ phiếu lương kỳ " + month + "/" + year);
                 response.sendRedirect(request.getContextPath()
                         + "/payroll?month=" + month + "&year=" + year + "&success=approved_all" + extra);
-                break;
             }
-            case "pay": {
+            case "pay" -> {
                 int id = Integer.parseInt(request.getParameter("id"));
                 payrollService.payPayrollSingle(id, userId, "BANK_TRANSFER", null);
+                AuditLogDAO.logAction(request, "PAY_PAYSLIP", "PAYMENT", id, "Thanh toán phiếu lương ID " + id + " (Chuyển khoản)");
                 response.sendRedirect(request.getContextPath()
                         + "/payroll?month=" + month + "&year=" + year + "&success=paid" + extra);
-                break;
             }
-            default:
-                response.sendRedirect(request.getContextPath()
-                        + "/payroll?month=" + month + "&year=" + year + extra);
+            default -> response.sendRedirect(request.getContextPath()
+                    + "/payroll?month=" + month + "&year=" + year + extra);
         }
     }
 
