@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
@@ -21,6 +21,14 @@
         <div class="app-content">
 
             <!-- Alerts -->
+            <c:if test="${not empty param.error}">
+                <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3" role="alert" style="border-radius:10px; font-size:0.875rem;">
+                    <i class="bi bi-exclamation-triangle-fill me-2 text-danger"></i>
+                    <strong>Không thể gửi đơn:</strong> <c:out value="${param.error}"/>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </c:if>
+
             <c:if test="${not empty param.success}">
                 <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3" role="alert" style="border-radius:10px; font-size:0.875rem;">
                     <i class="bi bi-check-circle-fill me-2 text-success"></i>
@@ -87,15 +95,20 @@
 
                 <div class="leave-actions-group">
                     <!-- Dropdown Năm tài chính -->
-                    <div class="fy-select-btn">
-                        <i class="bi bi-calendar3 text-primary"></i>
-                        <span>Năm tài chính 2026</span>
-                        <i class="bi bi-chevron-down text-muted" style="font-size:0.75rem;"></i>
+                    <div class="dropdown">
+                        <button class="fy-select-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-calendar3 text-primary"></i>
+                            <span>Năm tài chính 2026</span>
+                        </button>
+                        <ul class="dropdown-menu shadow border-0" style="border-radius:10px; font-size:0.84rem;">
+                            <li><a class="dropdown-item active fw-bold" href="${pageContext.request.contextPath}/leave"><i class="bi bi-check2 me-1"></i> Năm tài chính 2026 (Hiện tại)</a></li>
+                            <li><a class="dropdown-item text-muted" href="${pageContext.request.contextPath}/leave?year=2025">Năm tài chính 2025 (Lưu trữ)</a></li>
+                        </ul>
                     </div>
 
                     <!-- Nút Cấu hình quỹ phép (Admin & HR) -->
                     <c:if test="${sessionScope.currentUser.admin or sessionScope.currentUser.hr}">
-                        <button type="button" class="btn-leave-outline" onclick="alert('Cấu hình quỹ phép năm 2026: 12 ngày phép chuẩn + thâm niên theo Điều 113 BLLĐ.');">
+                        <button type="button" class="btn-leave-outline" data-bs-toggle="modal" data-bs-target="#leaveQuotaConfigModal">
                             <i class="bi bi-sliders"></i> Cấu hình quỹ phép
                         </button>
                     </c:if>
@@ -221,7 +234,7 @@
                             </div>
                             <div class="lkpi-sub d-flex align-items-center justify-content-between">
                                 <div class="progress flex-grow-1 me-2" style="height:5px;">
-                                    <div class="progress-bar bg-warning" style="width: ${empty deptAbsencePct ? 0 : deptAbsencePct}%;"></div>
+                                    <div class="progress-bar bg-warning dynamic-progress" data-pct="${empty deptAbsencePct ? 0 : deptAbsencePct}"></div>
                                 </div>
                                 <span class="fw-bold text-dark" style="font-size:0.75rem;">${empty deptAbsencePct ? '0' : deptAbsencePct}%</span>
                             </div>
@@ -345,7 +358,7 @@
                             <div class="lkpi-sub d-flex align-items-center justify-content-between">
                                 <c:set var="usedPct" value="${companyQuota > 0 ? totalUsedDays * 100 / companyQuota : 0}"/>
                                 <div class="progress flex-grow-1 me-2" style="height:5px;">
-                                    <div class="progress-bar bg-primary" style="width: ${usedPct}%;"></div>
+                                    <div class="progress-bar bg-primary dynamic-progress" data-pct="${usedPct}"></div>
                                 </div>
                                 <span class="fw-bold text-dark" style="font-size:0.75rem;">${usedPct}%</span>
                             </div>
@@ -384,11 +397,11 @@
 
                         <!-- Segmented Progress Bar (Dynamic) -->
                         <div class="segmented-bar">
-                            <div class="seg-1" style="width:${annualPct}%" title="Phép thường niên: ${annualPct}%"></div>
-                            <div class="seg-2" style="width:${sickPct}%" title="Nghỉ ốm &amp; BHYT: ${sickPct}%"></div>
-                            <div class="seg-3" style="width:${personalPct}%" title="Việc riêng có lương: ${personalPct}%"></div>
-                            <div class="seg-4" style="width:${maternityPct}%" title="Chế độ Thai sản: ${maternityPct}%"></div>
-                            <div class="seg-5" style="width:${unpaidPct}%" title="Nghỉ không hưởng lương: ${unpaidPct}%"></div>
+                            <div class="seg-1 dynamic-progress" data-pct="${annualPct}" title="Phép thường niên: ${annualPct}%"></div>
+                            <div class="seg-2 dynamic-progress" data-pct="${sickPct}" title="Nghỉ ốm &amp; BHYT: ${sickPct}%"></div>
+                            <div class="seg-3 dynamic-progress" data-pct="${personalPct}" title="Việc riêng có lương: ${personalPct}%"></div>
+                            <div class="seg-4 dynamic-progress" data-pct="${maternityPct}" title="Chế độ Thai sản: ${maternityPct}%"></div>
+                            <div class="seg-5 dynamic-progress" data-pct="${unpaidPct}" title="Nghỉ không hưởng lương: ${unpaidPct}%"></div>
                         </div>
 
                         <!-- Legend Items (3x2 grid) - Dynamic -->
@@ -665,13 +678,29 @@
 
                                         <!-- Thời gian nghỉ -->
                                         <td>
-                                            <div class="ldate-main">${lr.startDate} – ${lr.endDate}</div>
+                                            <div class="ldate-main">
+                                                <c:choose>
+                                                    <c:when test="${lr.startDate eq lr.endDate}">
+                                                        ${lr.startDate}
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        ${lr.startDate} – ${lr.endDate}
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </div>
                                             <div class="ldate-sub">${lr.timeNote != null ? lr.timeNote : 'Theo ca hành chính'}</div>
                                         </td>
 
                                         <!-- Số ngày -->
                                         <td class="text-center">
-                                            <strong class="text-dark">${lr.days}</strong> <span style="font-size:0.75rem; color:#64748b;">ngày</span>
+                                            <c:choose>
+                                                <c:when test="${lr.days == 0.5}">
+                                                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle py-1 px-2 fw-bold" style="font-size:0.76rem;">0.5 ngày</span>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <strong class="text-dark">${lr.getDaysDisplay()}</strong>
+                                                </c:otherwise>
+                                            </c:choose>
                                         </td>
 
                                         <!-- Lý do nghỉ -->
@@ -695,7 +724,7 @@
                                                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle py-1 px-2" style="font-size:0.74rem; font-weight:700;"><i class="bi bi-shield-plus me-1"></i>BHXH 75%</span>
                                                     </c:when>
                                                     <c:when test="${lr.leaveType eq 'UNPAID'}">
-                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1 px-2" style="font-size:0.74rem; font-weight:700;"><i class="bi bi-dash-circle me-1"></i>Trừ ${lr.days} công</span>
+                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1 px-2" style="font-size:0.74rem; font-weight:700;"><i class="bi bi-dash-circle me-1"></i>Trừ ${lr.getDaysDisplay()} công</span>
                                                     </c:when>
                                                     <c:otherwise>
                                                         <span class="badge bg-info-subtle text-info border border-info-subtle py-1 px-2" style="font-size:0.74rem; font-weight:700;"><i class="bi bi-gift me-1"></i>Có hưởng lương</span>
@@ -706,10 +735,14 @@
 
                                         <!-- Phê duyệt (Workflow TP -> HR) -->
                                         <td class="text-center">
-                                            <span class="step-tp-hr">
-                                                <span>TP</span>
-                                                <i class="bi bi-${lr.managerStatus eq 'APPROVED' ? 'check-circle-fill text-success' : lr.managerStatus eq 'REJECTED' ? 'x-circle-fill text-danger' : 'arrow-right'}"></i>
-                                                <span>HR</span>
+                                            <span class="step-tp-hr d-inline-flex align-items-center gap-1">
+                                                <span class="badge ${lr.managerApprovedAt != null or lr.status eq 'APPROVED' ? 'bg-success text-white' : lr.status eq 'REJECTED' ? 'bg-danger text-white' : 'bg-light text-muted border'}" style="font-size:0.7rem;" title="${lr.managerName != null ? lr.managerName : 'Chưa duyệt'}">
+                                                    TP <c:if test="${lr.managerApprovedAt != null or lr.status eq 'APPROVED'}"><i class="bi bi-check"></i></c:if>
+                                                </span>
+                                                <i class="bi bi-arrow-right text-muted" style="font-size:0.65rem;"></i>
+                                                <span class="badge ${lr.hrApprovedAt != null or lr.status eq 'APPROVED' ? 'bg-success text-white' : 'bg-light text-muted border'}" style="font-size:0.7rem;" title="${lr.hrName != null ? lr.hrName : 'Chờ HR duyệt'}">
+                                                    HR <c:if test="${lr.hrApprovedAt != null or lr.status eq 'APPROVED'}"><i class="bi bi-check"></i></c:if>
+                                                </span>
                                             </span>
                                         </td>
 
@@ -719,8 +752,14 @@
                                                 <c:when test="${lr.status eq 'APPROVED'}">
                                                     <span class="status-pill-matrix approved"><i class="bi bi-check-circle-fill"></i> Đã duyệt</span>
                                                 </c:when>
+                                                <c:when test="${lr.status eq 'MANAGER_APPROVED'}">
+                                                    <span class="status-pill-matrix" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a;"><i class="bi bi-clock-history"></i> TP đã duyệt</span>
+                                                </c:when>
                                                 <c:when test="${lr.status eq 'REJECTED'}">
                                                     <span class="status-pill-matrix anomaly"><i class="bi bi-x-circle-fill"></i> Từ chối</span>
+                                                </c:when>
+                                                <c:when test="${lr.status eq 'CANCELLED'}">
+                                                    <span class="status-pill-matrix" style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1;"><i class="bi bi-dash-circle"></i> Đã hủy</span>
                                                 </c:when>
                                                 <c:otherwise>
                                                     <span class="status-pill-matrix pending"><i class="bi bi-clock-history"></i> Chờ duyệt</span>
@@ -731,11 +770,12 @@
                                         <!-- Thao tác Phân Quyền Theo Role -->
                                         <td style="padding-right:1rem;">
                                             <div class="laction-btn-group justify-content-center">
-                                                <%-- 1. Nút Duyệt Cấp 1 (TP) cho Manager --%>
-                                                <c:if test="${sessionScope.currentUser.manager and not sessionScope.currentUser.admin and not sessionScope.currentUser.hr and lr.status eq 'PENDING' and lr.managerStatus ne 'APPROVED'}">
-                                                    <form method="post" action="${pageContext.request.contextPath}/leave" class="d-inline">
-                                                        <input type="hidden" name="action" value="approve">
+                                                <%-- 1. Nút Duyệt Cấp 1 (TP) cho Manager khi đơn đang PENDING --%>
+                                                <c:if test="${sessionScope.currentUser.manager and lr.status eq 'PENDING'}">
+                                                    <form method="post" action="${pageContext.request.contextPath}/leave" class="d-inline leave-action-form">
+                                                        <input type="hidden" name="action" value="managerApprove">
                                                         <input type="hidden" name="id" value="${lr.id}">
+                                                        <input type="hidden" name="managerNote" value="Trưởng phòng đã xác nhận bàn giao và đồng ý duyệt">
                                                         <button type="submit" class="laction-btn ok" title="Trưởng phòng: Phê duyệt Cấp 1">
                                                             <i class="bi bi-check-circle text-success"></i>
                                                         </button>
@@ -746,53 +786,51 @@
                                                     </button>
                                                 </c:if>
 
-                                                <%-- 2. Nút Duyệt Cấp 2 (HR) cho HR & Admin --%>
-                                                <c:if test="${(sessionScope.currentUser.hr or sessionScope.currentUser.admin) and lr.status eq 'PENDING'}">
-                                                    <form method="post" action="${pageContext.request.contextPath}/leave" class="d-inline">
-                                                        <input type="hidden" name="action" value="approve">
+                                                <%-- 2. Nút Duyệt Cấp 2 (HR) cho HR & Admin khi đơn PENDING hoặc MANAGER_APPROVED --%>
+                                                <c:if test="${(sessionScope.currentUser.hr or sessionScope.currentUser.admin) and (lr.status eq 'PENDING' or lr.status eq 'MANAGER_APPROVED')}">
+                                                    <form method="post" action="${pageContext.request.contextPath}/leave" class="d-inline leave-action-form">
+                                                        <input type="hidden" name="action" value="hrApprove">
                                                         <input type="hidden" name="id" value="${lr.id}">
-                                                        <button type="submit" class="laction-btn ok" title="${sessionScope.currentUser.admin ? 'Toàn quyền: Phê duyệt đơn' : 'HR: Phê duyệt Cấp 2'}">
-                                                            <i class="bi bi-check-circle"></i>
+                                                        <button type="submit" class="laction-btn ok" title="${lr.status eq 'MANAGER_APPROVED' ? 'HR: Phê duyệt hoàn tất Cấp 2 & đồng bộ chấm công' : 'HR / Admin: Phê duyệt đơn'}">
+                                                            <i class="bi bi-check2-all text-primary"></i>
                                                         </button>
                                                     </form>
                                                     <button type="button" class="laction-btn no" title="Từ chối đơn"
                                                             onclick="openRejectLeaveModal('${lr.id}', '${lr.employeeName}', '${lr.leaveCode}')">
-                                                        <i class="bi bi-x-circle"></i>
+                                                        <i class="bi bi-x-circle text-danger"></i>
                                                     </button>
                                                 </c:if>
 
-                                                <%-- 3. Nút cho Nhân viên cá nhân: Hủy đơn nếu còn PENDING --%>
-                                                <c:if test="${sessionScope.currentUser.employee and not sessionScope.currentUser.admin and not sessionScope.currentUser.hr and not sessionScope.currentUser.manager and not sessionScope.currentUser.accountant and lr.status eq 'PENDING'}">
-                                                    <form method="post" action="${pageContext.request.contextPath}/leave" class="d-inline"
-                                                          onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn nghỉ phép này không?');">
+                                                <%-- 3. Nút cho Nhân viên cá nhân hủy đơn của mình (hoặc Admin/HR hủy đơn) --%>
+                                                <c:if test="${(lr.employeeId == sessionScope.currentUser.employeeId or sessionScope.currentUser.admin or sessionScope.currentUser.hr) and (lr.status eq 'PENDING' or lr.status eq 'MANAGER_APPROVED')}">
+                                                    <form method="post" action="${pageContext.request.contextPath}/leave" class="d-inline leave-action-form"
+                                                          onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn nghỉ phép #${lr.leaveCode} không? Dữ liệu chấm công liên quan sẽ được tự động hoàn tác.');">
                                                         <input type="hidden" name="action" value="cancel">
                                                         <input type="hidden" name="id" value="${lr.id}">
-                                                        <button type="submit" class="laction-btn no" title="Hủy đơn xin nghỉ phép của tôi">
+                                                        <button type="submit" class="laction-btn no" title="Hủy đơn xin nghỉ phép">
                                                             <i class="bi bi-trash text-danger"></i>
                                                         </button>
                                                     </form>
                                                 </c:if>
 
-                                                <!-- Xem chi tiết (Tất cả Role) -->
-                                                <button type="button" class="laction-btn" title="Xem chi tiết đơn"
-                                                        onclick="openViewLeaveModal(this)"
-                                                        data-code="${lr.leaveCode}"
-                                                        data-name="${lr.employeeName}"
-                                                        data-empcode="${lr.employeeCode}"
-                                                        data-dept="${lr.departmentName}"
-                                                        data-type="${lr.getLeaveTypeDisplay()}"
-                                                        data-dates="${lr.startDate} đến ${lr.endDate} (${lr.days} ngày)"
-                                                        data-reason="${lr.reason}"
-                                                        data-handover="${lr.handoverPerson}"
-                                                        data-mgr="${lr.managerStatus}"
-                                                        data-hr="${lr.hrStatus}"
-                                                        data-status="${lr.getStatusDisplay()}">
+                                                <!-- Xem chi tiết đầy đủ -->
+                                                <a href="${pageContext.request.contextPath}/leave?action=detail&id=${lr.id}" class="laction-btn" title="Xem chi tiết đầy đủ đơn #${lr.leaveCode}">
                                                     <i class="bi bi-eye"></i>
-                                                </button>
+                                                </a>
+
                                                 <!-- Đính kèm -->
-                                                <button type="button" class="laction-btn" title="Tài liệu đính kèm" onclick="alert('Đơn có đính kèm giấy xác nhận y tế / thiệp báo.');">
-                                                    <i class="bi bi-paperclip"></i>
-                                                </button>
+                                                <c:choose>
+                                                    <c:when test="${not empty lr.attachmentUrl}">
+                                                        <a href="${lr.attachmentUrl}" target="_blank" class="laction-btn" title="Mở tài liệu / chứng từ đính kèm">
+                                                            <i class="bi bi-paperclip text-primary fw-bold"></i>
+                                                        </a>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <button type="button" class="laction-btn text-muted" title="Không có tài liệu đính kèm" disabled style="opacity:0.4;">
+                                                            <i class="bi bi-paperclip"></i>
+                                                        </button>
+                                                    </c:otherwise>
+                                                </c:choose>
                                             </div>
                                         </td>
                                     </tr>
@@ -866,10 +904,56 @@
                  Tab: Balance - Bảng theo dõi tồn phép nhân viên
                  =============================================================== --%>
             <c:if test="${activeTab eq 'balance'}">
-            <div class="leave-table-card" style="margin-top:16px;">
-                <div class="table-card-header">
-                    <h3 class="table-card-title"><i class="bi bi-person-vcard me-2"></i>Bảng Theo Dõi Tồn Phép Nhân Viên</h3>
-                    <span class="badge bg-primary-soft"><c:out value="${fn:length(leaveBalances)}"/> nhân viên</span>
+            <!-- Thống kê nhanh Quỹ phép toàn công ty -->
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <div class="p-3 bg-white border rounded-3 shadow-sm d-flex align-items-center gap-3">
+                        <div style="width:44px; height:44px; border-radius:10px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <div>
+                            <span class="text-muted text-uppercase" style="font-size:0.72rem; font-weight:700;">Nhân sự theo dõi</span>
+                            <h4 class="mb-0 fw-bold text-dark"><c:out value="${fn:length(leaveBalances)}"/> <span style="font-size:0.85rem; font-weight:600; color:#64748b;">nhân viên</span></h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white border rounded-3 shadow-sm d-flex align-items-center gap-3">
+                        <div style="width:44px; height:44px; border-radius:10px; background:#ecfdf5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+                            <i class="bi bi-calendar2-check-fill"></i>
+                        </div>
+                        <div>
+                            <span class="text-muted text-uppercase" style="font-size:0.72rem; font-weight:700;">Hạn mức chuẩn</span>
+                            <h4 class="mb-0 fw-bold text-success">12 <span style="font-size:0.85rem; font-weight:600; color:#64748b;">ngày/năm (+ thâm niên)</span></h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white border rounded-3 shadow-sm d-flex align-items-center gap-3">
+                        <div style="width:44px; height:44px; border-radius:10px; background:#fffbeb; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+                        <div>
+                            <span class="text-muted text-uppercase" style="font-size:0.72rem; font-weight:700;">Bảo lưu phép tồn cũ</span>
+                            <h4 class="mb-0 fw-bold text-warning">Tối đa 5 ngày <span style="font-size:0.85rem; font-weight:600; color:#64748b;">(đến 31/03)</span></h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="leave-table-card" style="margin-top:8px;">
+                <div class="table-card-header flex-wrap gap-2 py-3 px-3">
+                    <div>
+                        <h3 class="table-card-title"><i class="bi bi-person-vcard me-2"></i>Bảng Theo Dõi Tồn Phép Nhân Viên</h3>
+                        <p class="text-muted mb-0" style="font-size:0.78rem;">Tính toán tự động theo Điều 113, 114 Bộ Luật Lao Động (12 ngày chuẩn + thâm niên + bảo lưu - đã dùng)</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="position-relative" style="min-width:240px;">
+                            <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted ms-3" style="font-size:0.8rem;"></i>
+                            <input type="text" id="balanceSearchInput" class="form-control form-control-sm ps-5" placeholder="Tìm theo tên, mã NV, phòng ban..." style="border-radius:8px;">
+                        </div>
+                        <span class="badge bg-primary-soft"><c:out value="${fn:length(leaveBalances)}"/> nhân sự</span>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="leave-table" id="balanceTable">
@@ -890,21 +974,21 @@
                         <tbody>
                             <c:choose>
                                 <c:when test="${empty leaveBalances}">
-                                    <tr><td colspan="10" class="text-center text-muted py-4">Không có dữ liệu</td></tr>
+                                    <tr id="balanceEmptyRow"><td colspan="10" class="text-center text-muted py-4">Không có dữ liệu tồn phép</td></tr>
                                 </c:when>
                                 <c:otherwise>
                                     <c:forEach var="bal" items="${leaveBalances}">
-                                        <tr>
+                                        <tr class="balance-row" data-keyword="${fn:toLowerCase(bal.fullName)} ${fn:toLowerCase(bal.employeeCode)} ${fn:toLowerCase(bal.departmentName)} ${fn:toLowerCase(bal.positionName)}">
                                             <td><span class="emp-code">${bal.employeeCode}</span></td>
-                                            <td>${bal.fullName}</td>
+                                            <td><strong>${bal.fullName}</strong></td>
                                             <td>${bal.departmentName}</td>
                                             <td>${bal.positionName}</td>
                                             <td>${bal.yearsOfService} năm</td>
                                             <td>${bal.standardDays}</td>
                                             <td>+${bal.seniorityDays}</td>
                                             <td>${bal.carryOverDays}</td>
-                                            <td class="text-danger">${bal.usedDays}</td>
-                                            <td><strong class="text-success">${bal.availableDays}</strong></td>
+                                            <td class="text-danger fw-bold">${bal.usedDays}</td>
+                                            <td><strong class="text-success fs-6">${bal.availableDays}</strong> ngày</td>
                                         </tr>
                                     </c:forEach>
                                 </c:otherwise>
@@ -920,18 +1004,49 @@
                  =============================================================== --%>
             <c:if test="${activeTab eq 'policy'}">
             <div class="leave-table-card" style="margin-top:16px; padding:24px;">
-                <h3 class="table-card-title mb-4"><i class="bi bi-calendar-event me-2"></i>Lịch Nghỉ Lễ &amp; Quy Định 2026</h3>
-                <h5 class="mb-3" style="color:#1e40af;">&#127881; Ngày nghỉ lễ theo quy định (Điều 112 BLLĐ 2019)</h5>
+                <h3 class="table-card-title mb-4"><i class="bi bi-calendar-event me-2"></i>Lịch Nghỉ Lễ &amp; Quy Định Lao Động 2026</h3>
+                <h5 class="mb-3" style="color:#1e40af;"><i class="bi bi-flag-fill text-danger me-2"></i>Các ngày nghỉ Lễ &amp; Tết Quốc gia hưởng nguyên lương (Điều 112 BLLĐ 2019)</h5>
                 <div class="table-responsive mb-4">
                     <table class="leave-table">
-                        <thead><tr><th>Dịp lễ</th><th>Ngày nghỉ</th><th>Số ngày</th><th>Ghi chú</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Dịp Lễ / Tết</th>
+                                <th style="width:160px;">Ngày nghỉ chính thức</th>
+                                <th style="width:140px; text-align:center;">Hệ số lương đi làm</th>
+                                <th style="width:100px; text-align:center;">Năm</th>
+                                <th>Căn cứ pháp lý &amp; Chế độ</th>
+                            </tr>
+                        </thead>
                         <tbody>
-                            <tr><td>&#127761; Tết Dương lịch</td><td>01/01/2026</td><td>1 ngày</td><td>Bù nếu trùng cuối tuần</td></tr>
-                            <tr><td>&#127878; Tết Nguyên Đán</td><td>28/01 &#8211; 03/02/2026</td><td>7 ngày</td><td>Theo lịch âm dương</td></tr>
-                            <tr><td>&#127802; Giỗ Tổ Hùng Vương</td><td>18/04/2026</td><td>1 ngày</td><td>10/3 &#226;m l&#7883;ch</td></tr>
-                            <tr><td>&#127894; Ngày Giải phóng</td><td>30/04/2026</td><td>1 ngày</td><td>&#8211;</td></tr>
-                            <tr><td>&#128119; Ngày Quốc tế Lao động</td><td>01/05/2026</td><td>1 ngày</td><td>Nghỉ bù 04/05</td></tr>
-                            <tr><td>&#127483; Quốc Khánh</td><td>02/09/2026</td><td>2 ngày</td><td>Bao gồm 1 ngày liền kề</td></tr>
+                            <c:choose>
+                                <c:when test="${not empty holidays}">
+                                    <c:forEach var="h" items="${holidays}">
+                                        <tr>
+                                            <td><strong>${h.name}</strong></td>
+                                            <td>
+                                                <span class="badge bg-light text-primary border px-2 py-1" style="font-size:0.83rem;">
+                                                    <i class="bi bi-calendar-check me-1"></i>${h.holidayDate}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-bold">
+                                                    x${h.coefficient} lương
+                                                </span>
+                                            </td>
+                                            <td class="text-center fw-bold text-muted">${h.year}</td>
+                                            <td><span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>Hưởng 100% lương, không trừ vào phép năm</span></td>
+                                        </tr>
+                                    </c:forEach>
+                                </c:when>
+                                <c:otherwise>
+                                    <tr><td><strong>Tết Dương lịch</strong></td><td>01/01/2026</td><td class="text-center"><span class="badge bg-success-subtle text-success border px-2 py-1">x3.0 lương</span></td><td class="text-center">2026</td><td>Hưởng 100% lương</td></tr>
+                                    <tr><td><strong>Tết Nguyên Đán</strong></td><td>16/02 – 20/02/2026</td><td class="text-center"><span class="badge bg-success-subtle text-success border px-2 py-1">x3.0 lương</span></td><td class="text-center">2026</td><td>5 ngày theo Luật LĐ</td></tr>
+                                    <tr><td><strong>Giỗ Tổ Hùng Vương</strong></td><td>26/04/2026</td><td class="text-center"><span class="badge bg-success-subtle text-success border px-2 py-1">x3.0 lương</span></td><td class="text-center">2026</td><td>10/3 Âm lịch</td></tr>
+                                    <tr><td><strong>Ngày Giải phóng Miền Nam</strong></td><td>30/04/2026</td><td class="text-center"><span class="badge bg-success-subtle text-success border px-2 py-1">x3.0 lương</span></td><td class="text-center">2026</td><td>Nghỉ lễ quốc gia</td></tr>
+                                    <tr><td><strong>Quốc tế Lao Động</strong></td><td>01/05/2026</td><td class="text-center"><span class="badge bg-success-subtle text-success border px-2 py-1">x3.0 lương</span></td><td class="text-center">2026</td><td>Nghỉ lễ quốc gia</td></tr>
+                                    <tr><td><strong>Quốc Khánh</strong></td><td>01/09 – 02/09/2026</td><td class="text-center"><span class="badge bg-success-subtle text-success border px-2 py-1">x3.0 lương</span></td><td class="text-center">2026</td><td>2 ngày hưởng lương</td></tr>
+                                </c:otherwise>
+                            </c:choose>
                         </tbody>
                     </table>
                 </div>
@@ -1031,6 +1146,14 @@
                             <input type="text" name="handoverPerson" class="form-control" placeholder="Họ tên người nhận bàn giao — Số điện thoại liên hệ khẩn cấp..." required>
                         </div>
 
+                        <!-- Tài liệu đính kèm minh chứng -->
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold" style="font-size:0.83rem;">
+                                <i class="bi bi-paperclip me-1 text-primary"></i>Tài liệu đính kèm (Chứng từ y tế / Thiệp cưới / Giấy tờ liên quan)
+                            </label>
+                            <input type="text" name="attachmentUrl" class="form-control" placeholder="Đường dẫn file hoặc URL chứng từ minh chứng (VD: /uploads/giay_ra_vien.pdf)...">
+                        </div>
+
                         <!-- Lý do nghỉ phép -->
                         <div class="col-12">
                             <label class="form-label fw-bold" style="font-size:0.83rem;">Lý do xin nghỉ cụ thể <span class="text-danger">*</span></label>
@@ -1050,11 +1173,117 @@
     </div>
 </div>
 
+<!-- Modal Cấu hình Quỹ phép & Chính sách (Admin & HR) -->
+<div class="modal fade" id="leaveQuotaConfigModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:18px;">
+            <div class="modal-header border-bottom py-3 px-4" style="background:#f8fafc; border-top-left-radius:18px; border-top-right-radius:18px;">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:42px; height:42px; border-radius:12px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:1.35rem;">
+                        <i class="bi bi-sliders"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0">Cấu hình Quỹ phép &amp; Chính sách Lao động</h5>
+                        <span class="text-muted" style="font-size:0.78rem;">Quy định chế độ theo Bộ Luật Lao Động 2019 (Điều 112, 113, 114)</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" style="font-size:0.86rem;">
+                <div class="row g-3">
+                    <!-- Điều 113: Phép năm cơ bản -->
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3 h-100" style="background:#ffffff;">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold">Điều 113 BLLĐ</span>
+                                <h6 class="fw-bold mb-0 text-dark" style="font-size:0.9rem;">Hạn mức phép năm chuẩn</h6>
+                            </div>
+                            <p class="text-muted mb-2" style="font-size:0.8rem;">Người lao động làm việc đủ 12 tháng được nghỉ hưởng nguyên lương:</p>
+                            <ul class="mb-0 ps-3 text-secondary" style="font-size:0.82rem;">
+                                <li><strong>12 ngày làm việc:</strong> Điều kiện lao động bình thường</li>
+                                <li><strong>14 ngày làm việc:</strong> Lao động chưa thành niên, khuyết tật, nặng nhọc</li>
+                                <li><strong>16 ngày làm việc:</strong> Đặc biệt nặng nhọc, độc hại, nguy hiểm</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Điều 114: Tăng thêm theo thâm niên -->
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3 h-100" style="background:#ffffff;">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold">Điều 114 BLLĐ</span>
+                                <h6 class="fw-bold mb-0 text-dark" style="font-size:0.9rem;">Quy tắc cộng dồn Thâm niên</h6>
+                            </div>
+                            <p class="text-muted mb-2" style="font-size:0.8rem;">Cứ <strong>đủ 05 năm</strong> làm việc cho doanh nghiệp thì số ngày nghỉ phép năm được tăng thêm <strong>01 ngày</strong>:</p>
+                            <div class="p-2 bg-light rounded text-dark font-monospace text-center" style="font-size:0.8rem;">
+                                Phép thâm niên = Floor(Số năm làm việc / 5)
+                            </div>
+                            <small class="text-muted mt-2 d-block" style="font-size:0.75rem;">Hệ thống MIXIMOI tự động tính theo ngày ký hợp đồng đầu tiên.</small>
+                        </div>
+                    </div>
+
+                    <!-- Kỳ hạn bảo lưu phép năm cũ -->
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3 h-100" style="background:#fffbeb;">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle fw-bold">Quy chế nội bộ</span>
+                                <h6 class="fw-bold mb-0 text-dark" style="font-size:0.9rem;">Thời hạn bảo lưu phép tồn</h6>
+                            </div>
+                            <p class="text-secondary mb-2" style="font-size:0.8rem;">Số ngày phép năm 2025 chưa nghỉ hết được chuyển sang năm 2026 và có hạn dùng đến hết:</p>
+                            <div class="alert alert-warning py-2 mb-0 text-center fw-bold" style="font-size:0.85rem;">
+                                <i class="bi bi-clock-history me-1"></i> 31 tháng 03 năm 2026
+                            </div>
+                            <small class="text-muted mt-1 d-block" style="font-size:0.75rem;">Sau ngày 31/03, phép tồn năm trước sẽ tự động hết hiệu lực trên hệ thống.</small>
+                        </div>
+                    </div>
+
+                    <!-- Capacity Guard: Ngưỡng cảnh báo vắng mặt -->
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3 h-100" style="background:#fef2f2;">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold">Capacity Guard</span>
+                                <h6 class="fw-bold mb-0 text-dark" style="font-size:0.9rem;">Giới hạn quân số phòng ban</h6>
+                            </div>
+                            <p class="text-secondary mb-2" style="font-size:0.8rem;">Cảnh báo tự động cho Trưởng phòng &amp; HR khi tỷ lệ vắng mặt đồng thời của phòng ban:</p>
+                            <div class="alert alert-danger py-2 mb-0 text-center fw-bold" style="font-size:0.85rem;">
+                                <i class="bi bi-shield-exclamation me-1"></i> Tỷ lệ vắng mặt &ge; 30% quân số
+                            </div>
+                            <small class="text-muted mt-1 d-block" style="font-size:0.75rem;">Đảm bảo quân số trực chiến và tiến độ vận hành sản xuất kinh doanh.</small>
+                        </div>
+                    </div>
+
+                    <!-- Lễ tết & Thanh toán phép khi thôi việc -->
+                    <div class="col-12">
+                        <div class="p-3 border rounded-3" style="background:#f8fafc;">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <strong class="text-dark d-block mb-1"><i class="bi bi-calendar-event text-primary me-1"></i> Ngày Lễ, Tết năm 2026:</strong>
+                                    <span class="text-muted" style="font-size:0.8rem;">11 ngày nghỉ lễ chính thức (Tết Dương lịch, Tết Âm lịch 5 ngày, Giỗ Tổ Hùng Vương, 30/4 - 1/5, Quốc khánh 2 ngày). Hệ số làm thêm 300%.</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong class="text-dark d-block mb-1"><i class="bi bi-cash-stack text-success me-1"></i> Thanh toán ngày phép khi thôi việc:</strong>
+                                    <span class="text-muted" style="font-size:0.8rem;">Số ngày chưa nghỉ được thanh toán bằng tiền theo công thức: <code>Phép tồn &times; (Lương cơ bản / 26)</code>.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top py-3 px-4">
+                <span class="text-muted me-auto" style="font-size:0.8rem;"><i class="bi bi-shield-check text-success me-1"></i>Đang áp dụng toàn hệ thống MIXIMOI HRM</span>
+                <button type="button" class="btn btn-primary px-4 fw-bold" data-bs-dismiss="modal" style="height:38px; background:#2563eb; border:none;">
+                    Đã rõ quy định
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Shared Modal: Từ chối đơn nghỉ phép -->
 <div class="modal fade" id="sharedRejectLeaveModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
-            <form method="post" action="${pageContext.request.contextPath}/leave">
+            <form method="post" action="${pageContext.request.contextPath}/leave" id="sharedRejectLeaveForm">
                 <input type="hidden" name="action" value="reject">
                 <input type="hidden" name="id" id="sharedRejectLeaveId" value="">
                 <div class="modal-header border-bottom py-3">
@@ -1077,42 +1306,73 @@
 
 <!-- Shared Modal: Xem chi tiết đơn nghỉ phép -->
 <div class="modal fade" id="sharedViewLeaveModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
-            <div class="modal-header border-bottom py-3">
-                <h6 class="modal-title fw-bold text-dark"><i class="bi bi-calendar-check text-primary me-1"></i> Chi tiết đơn nghỉ phép <span id="sharedViewLeaveCode">—</span></h6>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:18px;">
+            <div class="modal-header border-bottom py-3 px-4">
+                <h6 class="modal-title fw-bold text-dark"><i class="bi bi-calendar-check text-primary me-2"></i> Chi tiết đơn nghỉ phép <span id="sharedViewLeaveCode" class="text-primary font-monospace">—</span></h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-3" style="font-size:0.84rem;">
-                <div class="mb-2"><strong>Nhân sự:</strong> <span id="sharedViewLeaveEmp">—</span></div>
-                <div class="mb-2"><strong>Loại nghỉ phép:</strong> <span id="sharedViewLeaveType">—</span></div>
-                <div class="mb-2"><strong>Thời gian nghỉ:</strong> <span id="sharedViewLeaveDates">—</span></div>
-                <div class="mb-2"><strong>Lý do xin nghỉ:</strong> <span id="sharedViewLeaveReason">—</span></div>
-                <div class="mb-2"><strong>Người nhận bàn giao:</strong> <span id="sharedViewLeaveHandover">—</span></div>
-                <div class="p-2 bg-light rounded mt-3">
-                    <div>• Trạng thái quản lý (TP): <strong id="sharedViewLeaveMgr">—</strong></div>
-                    <div>• Trạng thái nhân sự (HR): <strong id="sharedViewLeaveHr">—</strong></div>
-                    <div>• Kết luận: <strong id="sharedViewLeaveStatus">—</strong></div>
+            <div class="modal-body p-4" style="font-size:0.86rem;">
+                <div class="row g-3">
+                    <div class="col-md-6"><strong>Nhân sự:</strong> <span id="sharedViewLeaveEmp">—</span></div>
+                    <div class="col-md-6"><strong>Loại nghỉ phép:</strong> <span id="sharedViewLeaveType">—</span></div>
+                    <div class="col-md-6"><strong>Thời gian nghỉ:</strong> <span id="sharedViewLeaveDates">—</span></div>
+                    <div class="col-md-6"><strong>Số ngày nghỉ:</strong> <span id="sharedViewLeaveDays" class="badge bg-primary px-2 py-1">—</span></div>
+                    <div class="col-12"><strong>Người nhận bàn giao:</strong> <span id="sharedViewLeaveHandover">—</span></div>
+                    <div class="col-12">
+                        <strong>Lý do xin nghỉ:</strong>
+                        <div id="sharedViewLeaveReason" class="p-3 mt-1 rounded bg-light border text-secondary">—</div>
+                    </div>
+                    <div class="col-12" id="sharedViewLeaveAttachBlock">
+                        <strong>Tài liệu đính kèm:</strong> <span id="sharedViewLeaveAttach">—</span>
+                    </div>
+                    <div class="col-12">
+                        <div class="p-3 bg-light rounded-3 border mt-2">
+                            <div class="fw-bold mb-2 text-secondary" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Tiến trình phê duyệt đa cấp</div>
+                            <div class="mb-1">• Trưởng phòng (Cấp 1): <strong id="sharedViewLeaveMgr">—</strong></div>
+                            <div class="mb-1">• Phòng Nhân sự HR (Cấp 2): <strong id="sharedViewLeaveHr">—</strong></div>
+                            <div>• Kết luận trạng thái: <span id="sharedViewLeaveStatus" class="badge bg-secondary">—</span></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer border-top py-2">
-                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            <div class="modal-footer border-top py-3 px-4 d-flex justify-content-between">
+                <a href="#" id="sharedViewLeaveDetailLink" class="btn btn-sm btn-outline-primary fw-bold px-3" style="height:34px; display:inline-flex; align-items:center;">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> Xem toàn bộ trang chi tiết &amp; In đơn
+                </a>
+                <button type="button" class="btn btn-sm btn-secondary px-3" data-bs-dismiss="modal" style="height:34px;">Đóng</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+    // Tính toán số ngày nghỉ loại trừ Thứ 7, Chủ Nhật và Ngày Lễ 2026
     function calculateLeaveDays() {
         const start = document.getElementById('leaveStartDate').value;
         const end = document.getElementById('leaveEndDate').value;
-        if (start && end) {
+        const target = document.getElementById('leaveDaysCalculated');
+        if (start && end && target) {
             const d1 = new Date(start);
             const d2 = new Date(end);
             if (d2 >= d1) {
-                const diffTime = Math.abs(d2 - d1);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                document.getElementById('leaveDaysCalculated').value = diffDays;
+                const VN_HOLIDAYS_2026 = new Set([
+                    '2026-01-01',
+                    '2026-02-16', '2026-02-17', '2026-02-18', '2026-02-19', '2026-02-20',
+                    '2026-04-26', '2026-04-30', '2026-05-01',
+                    '2026-09-01', '2026-09-02'
+                ]);
+                let count = 0;
+                let cur = new Date(d1);
+                while (cur <= d2) {
+                    const dow = cur.getDay();
+                    const ymd = cur.getFullYear() + '-' + String(cur.getMonth() + 1).padStart(2, '0') + '-' + String(cur.getDate()).padStart(2, '0');
+                    if (dow !== 0 && dow !== 6 && !VN_HOLIDAYS_2026.has(ymd)) {
+                        count++;
+                    }
+                    cur.setDate(cur.getDate() + 1);
+                }
+                target.value = count;
             }
         }
     }
@@ -1126,6 +1386,7 @@
             var endEl = document.getElementById('leaveEndDate');
             if (startEl && !startEl.value) startEl.value = today;
             if (endEl && !endEl.value) endEl.value = today;
+            calculateLeaveDays();
         });
     }
 
@@ -1138,18 +1399,63 @@
     }
 
     function openViewLeaveModal(btn) {
+        var id = btn.getAttribute('data-id') || '';
         document.getElementById('sharedViewLeaveCode').textContent = btn.getAttribute('data-code') || '';
         document.getElementById('sharedViewLeaveEmp').textContent = (btn.getAttribute('data-name') || '') + ' (' + (btn.getAttribute('data-empcode') || '') + ') • ' + (btn.getAttribute('data-dept') || '');
         document.getElementById('sharedViewLeaveType').textContent = btn.getAttribute('data-type') || '';
         document.getElementById('sharedViewLeaveDates').textContent = btn.getAttribute('data-dates') || '';
+        var daysEl = document.getElementById('sharedViewLeaveDays');
+        if (daysEl) daysEl.textContent = (btn.getAttribute('data-days') || '1') + ' ngày làm việc';
         document.getElementById('sharedViewLeaveReason').textContent = btn.getAttribute('data-reason') || '';
         document.getElementById('sharedViewLeaveHandover').textContent = btn.getAttribute('data-handover') || '—';
         document.getElementById('sharedViewLeaveMgr').textContent = btn.getAttribute('data-mgr') || '—';
         document.getElementById('sharedViewLeaveHr').textContent = btn.getAttribute('data-hr') || '—';
-        document.getElementById('sharedViewLeaveStatus').textContent = btn.getAttribute('data-status') || '—';
+        var statusEl = document.getElementById('sharedViewLeaveStatus');
+        if (statusEl) statusEl.textContent = btn.getAttribute('data-status') || '—';
+
+        var attachVal = btn.getAttribute('data-attachment') || '';
+        var attachSpan = document.getElementById('sharedViewLeaveAttach');
+        if (attachSpan) {
+            if (attachVal) {
+                attachSpan.innerHTML = '<a href="' + attachVal + '" target="_blank" class="text-primary fw-bold text-decoration-none"><i class="bi bi-paperclip me-1"></i>Xem tài liệu minh chứng</a>';
+            } else {
+                attachSpan.textContent = 'Không có tài liệu đính kèm';
+            }
+        }
+
+        var linkEl = document.getElementById('sharedViewLeaveDetailLink');
+        if (linkEl && id) {
+            linkEl.href = '${pageContext.request.contextPath}/leave?action=detail&id=' + id;
+        }
+
         var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('sharedViewLeaveModal'));
         modal.show();
     }
+
+    // Tìm kiếm tức thì trong Bảng tồn phép năm (tab=balance)
+    document.addEventListener('DOMContentLoaded', function() {
+        var balanceInput = document.getElementById('balanceSearchInput');
+        if (balanceInput) {
+            balanceInput.addEventListener('input', function() {
+                var kw = this.value.toLowerCase().trim();
+                var rows = document.querySelectorAll('.balance-row');
+                var visibleCount = 0;
+                rows.forEach(function(r) {
+                    var text = r.getAttribute('data-keyword') || '';
+                    if (!kw || text.indexOf(kw) !== -1) {
+                        r.style.display = '';
+                        visibleCount++;
+                    } else {
+                        r.style.display = 'none';
+                    }
+                });
+                var emptyRow = document.getElementById('balanceEmptyRow');
+                if (emptyRow) {
+                    emptyRow.style.display = (visibleCount === 0) ? '' : 'none';
+                }
+            });
+        }
+    });
 </script>
 
 <script src="${pageContext.request.contextPath}/assets/js/leave.js"></script>

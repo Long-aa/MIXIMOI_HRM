@@ -94,6 +94,7 @@ public class TimesheetService {
                 int lateEarlyMinutes = 0;
                 double leaveDays = 0.0;
                 int unexcusedAbsent = 0;
+                int minorLateCount = 0;
 
                 for (int d = 1; d <= daysInMonth; d++) {
                     LocalDate date = LocalDate.of(year, month, d);
@@ -111,11 +112,34 @@ public class TimesheetService {
                             }
                             case "LATE", "EARLY_LEAVE" -> {
                                 item.setDayStatus(d, "M");
-                                actualWorkDays += 1.0;
                                 int lateMins = att.getMinutesLate();
                                 int earlyMins = att.getMinutesEarly();
                                 int totalDiff = lateMins + earlyMins;
-                                lateEarlyMinutes += (totalDiff > 0 ? totalDiff : 15);
+                                if (totalDiff <= 0) totalDiff = 15;
+                                lateEarlyMinutes += totalDiff;
+
+                                double dayCredit = 1.0;
+                                if (att.getTotalHours() > 0 && att.getTotalHours() < 3.5) {
+                                    dayCredit = Math.round((att.getTotalHours() / 8.0) * 10.0) / 10.0;
+                                } else if (att.getTotalHours() >= 3.5 && att.getTotalHours() < 6.5) {
+                                    dayCredit = 0.5;
+                                }
+
+                                // Quy chuẩn tính công tự động:
+                                // 1. Trễ < 15 phút: Miễn phạt tối đa 3 lần/tháng. Lần thứ 4 trở đi trừ 0.25 công.
+                                // 2. Trễ từ 15 - 60 phút: Khấu trừ 0.25 công.
+                                // 3. Trễ/về sớm > 60 phút: Khấu trừ 0.50 công.
+                                double penalty = 0.0;
+                                if (totalDiff < 15) {
+                                    minorLateCount++;
+                                    if (minorLateCount > 3) penalty = 0.25;
+                                } else if (totalDiff <= 60) {
+                                    penalty = 0.25;
+                                } else {
+                                    penalty = 0.50;
+                                }
+
+                                actualWorkDays += Math.max(0.0, dayCredit - penalty);
                             }
                             case "WFH" -> {
                                 item.setDayStatus(d, "1.0");
@@ -137,7 +161,13 @@ public class TimesheetService {
                             default -> {
                                 // ON_TIME, COMPLETE, WORKING
                                 item.setDayStatus(d, "1.0");
-                                actualWorkDays += 1.0;
+                                double dayCredit = 1.0;
+                                if (att.getTotalHours() > 0 && att.getTotalHours() < 3.5) {
+                                    dayCredit = Math.round((att.getTotalHours() / 8.0) * 10.0) / 10.0;
+                                } else if (att.getTotalHours() >= 3.5 && att.getTotalHours() < 6.5) {
+                                    dayCredit = 0.5;
+                                }
+                                actualWorkDays += dayCredit;
                             }
                         }
                     } else {

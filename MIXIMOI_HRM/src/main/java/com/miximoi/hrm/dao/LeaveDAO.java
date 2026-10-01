@@ -1,19 +1,19 @@
 package com.miximoi.hrm.dao;
 
 import com.miximoi.hrm.model.EmployeeLeaveBalance;
+import com.miximoi.hrm.model.Holiday;
 import com.miximoi.hrm.model.LeaveRequest;
 import com.miximoi.hrm.model.User;
 import com.miximoi.hrm.util.DBConnection;
 
 import java.sql.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
  * DAO xử lý dữ liệu đơn nghỉ phép & nghỉ lễ kết nối trực tiếp CSDL PostgreSQL.
- * Khớp hoàn toàn với bảng leave_requests trong schema.sql.
+ * Khớp hoàn toàn với bảng leave_requests và holidays trong schema.sql.
  */
 public class LeaveDAO {
 
@@ -21,20 +21,63 @@ public class LeaveDAO {
             "SELECT lr.id, lr.leave_code, lr.employee_id, lr.leave_type, lr.start_date, lr.end_date, " +
             "       lr.total_days, lr.reason, lr.status, lr.approved_by_id, lr.approved_at, " +
             "       lr.reject_reason, lr.created_at, lr.updated_at, " +
+            "       lr.manager_id, lr.manager_approved_at, lr.manager_note, " +
+            "       lr.hr_id, lr.hr_approved_at, lr.attachment_url, " +
+            "       lr.handover_person, lr.time_note, " +
             "       e.employee_code, e.full_name AS employee_name, e.department_id, " +
             "       d.name AS department_name, p.name AS position_name, " +
-            "       ap.full_name AS approved_by_name " +
+            "       ap.full_name AS approved_by_name, " +
+            "       m.full_name AS manager_name, " +
+            "       h.full_name AS hr_name " +
             "FROM leave_requests lr " +
             "JOIN employees e ON lr.employee_id = e.id " +
             "LEFT JOIN departments d ON e.department_id = d.id " +
             "LEFT JOIN positions p ON e.position_id = p.id " +
-            "LEFT JOIN employees ap ON lr.approved_by_id = ap.id ";
+            "LEFT JOIN employees ap ON lr.approved_by_id = ap.id " +
+            "LEFT JOIN employees m ON lr.manager_id = m.id " +
+            "LEFT JOIN employees h ON lr.hr_id = h.id ";
 
     public LeaveDAO() {
         initSampleDataIfEmpty();
     }
 
     private void initSampleDataIfEmpty() {
+        // Tự động migration các cột và bảng cần thiết
+        try (Connection conn = DBConnection.getConnection();
+             Statement st = conn.createStatement()) {
+            st.execute("ALTER TABLE leave_requests ALTER COLUMN total_days TYPE NUMERIC(4,1)");
+            st.execute("ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS manager_id INTEGER REFERENCES employees(id)");
+            st.execute("ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS manager_approved_at TIMESTAMP");
+            st.execute("ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS manager_note TEXT");
+            st.execute("ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS hr_id INTEGER REFERENCES employees(id)");
+            st.execute("ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS hr_approved_at TIMESTAMP");
+            st.execute("ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS attachment_url VARCHAR(255)");
+
+            st.execute("CREATE TABLE IF NOT EXISTS holidays (" +
+                       "id SERIAL PRIMARY KEY, " +
+                       "holiday_date DATE NOT NULL UNIQUE, " +
+                       "name VARCHAR(150) NOT NULL, " +
+                       "year INTEGER NOT NULL, " +
+                       "coefficient NUMERIC(3,1) NOT NULL DEFAULT 3.0)");
+
+            try (ResultSet rsH = st.executeQuery("SELECT COUNT(*) FROM holidays WHERE year = 2026")) {
+                if (rsH.next() && rsH.getInt(1) == 0) {
+                    st.execute("INSERT INTO holidays (holiday_date, name, year, coefficient) VALUES " +
+                               "('2026-01-01', 'Tết Dương Lịch 2026', 2026, 3.0), " +
+                               "('2026-02-16', 'Tết Nguyên Đán (29 Tết)', 2026, 3.0), " +
+                               "('2026-02-17', 'Tết Nguyên Đán (Mùng 1)', 2026, 3.0), " +
+                               "('2026-02-18', 'Tết Nguyên Đán (Mùng 2)', 2026, 3.0), " +
+                               "('2026-02-19', 'Tết Nguyên Đán (Mùng 3)', 2026, 3.0), " +
+                               "('2026-02-20', 'Tết Nguyên Đán (Mùng 4)', 2026, 3.0), " +
+                               "('2026-04-26', 'Giỗ Tổ Hùng Vương (10/3 AL)', 2026, 3.0), " +
+                               "('2026-04-30', 'Ngày Giải phóng Miền Nam', 2026, 3.0), " +
+                               "('2026-05-01', 'Ngày Quốc tế Lao Động', 2026, 3.0), " +
+                               "('2026-09-01', 'Nghỉ liền kề Quốc Khánh', 2026, 3.0), " +
+                               "('2026-09-02', 'Quốc Khánh Nước CHXHCNVN', 2026, 3.0) ON CONFLICT DO NOTHING");
+                }
+            }
+        } catch (SQLException ignored) {}
+
         String checkSql = "SELECT COUNT(*) FROM leave_requests";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(checkSql);
@@ -42,18 +85,19 @@ public class LeaveDAO {
             if (rs.next() && rs.getInt(1) == 0) {
                 // Kiểm tra xem đã có nhân viên nào chưa
                 String checkEmp = "SELECT id FROM employees ORDER BY id LIMIT 5";
-                List<Integer> empIds = new ArrayList<>();
+                int[] empIds = new int[4];
+                int empCount = 0;
                 try (PreparedStatement pse = conn.prepareStatement(checkEmp);
                      ResultSet rse = pse.executeQuery()) {
-                    while (rse.next()) {
-                        empIds.add(rse.getInt("id"));
+                    while (rse.next() && empCount < 4) {
+                        empIds[empCount++] = rse.getInt("id");
                     }
                 }
-                if (!empIds.isEmpty()) {
-                    int e1 = empIds.get(0);
-                    int e2 = empIds.size() > 1 ? empIds.get(1) : e1;
-                    int e3 = empIds.size() > 2 ? empIds.get(2) : e1;
-                    int e4 = empIds.size() > 3 ? empIds.get(3) : e1;
+                if (empCount > 0) {
+                    int e1 = empIds[0];
+                    int e2 = empCount > 1 ? empIds[1] : e1;
+                    int e3 = empCount > 2 ? empIds[2] : e1;
+                    int e4 = empCount > 3 ? empIds[3] : e1;
 
                     String insert = "INSERT INTO leave_requests (leave_code, employee_id, leave_type, start_date, end_date, total_days, reason, status, approved_by_id, approved_at, reject_reason, created_at) VALUES " +
                             "('LP-2026-015', ?, 'ANNUAL', '2026-09-28', '2026-09-30', 3, 'Giải quyết việc gia đình cá nhân', 'PENDING', NULL, NULL, NULL, NOW() - INTERVAL '5 hours'), " +
@@ -234,17 +278,22 @@ public class LeaveDAO {
 
     /** Tạo đơn nghỉ phép mới */
     public boolean insert(LeaveRequest lr) {
-        String sql = "INSERT INTO leave_requests (leave_code, employee_id, leave_type, start_date, end_date, total_days, reason, status, created_at) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', NOW())";
+        String sql = "INSERT INTO leave_requests (leave_code, employee_id, leave_type, start_date, end_date, total_days, days, reason, status, handover_person, attachment_url, time_note, created_at) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, NOW())";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            double numDays = lr.getDays() > 0 ? lr.getDays() : 1.0;
             ps.setString(1, lr.getLeaveCode());
             ps.setInt(2, lr.getEmployeeId());
             ps.setString(3, lr.getLeaveType());
             ps.setDate(4, java.sql.Date.valueOf(lr.getStartDate()));
             ps.setDate(5, java.sql.Date.valueOf(lr.getEndDate()));
-            ps.setInt(6, (int) Math.max(1, Math.round(lr.getDays())));
-            ps.setString(7, lr.getReason());
+            ps.setDouble(6, numDays);
+            ps.setDouble(7, numDays);
+            ps.setString(8, lr.getReason());
+            ps.setString(9, lr.getHandoverPerson());
+            ps.setString(10, lr.getAttachmentUrl());
+            ps.setString(11, lr.getTimeNote());
 
             int affected = ps.executeUpdate();
             if (affected > 0) {
@@ -255,6 +304,36 @@ public class LeaveDAO {
             }
         } catch (SQLException e) {
             System.err.println("LeaveDAO.insert lỗi: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /** Cấp 1: Trưởng phòng phê duyệt vận hành & bàn giao công việc */
+    public boolean managerApprove(int id, int managerId, String note) {
+        String sql = "UPDATE leave_requests SET status = 'MANAGER_APPROVED', manager_id = ?, manager_approved_at = NOW(), manager_note = ?, updated_at = NOW() WHERE id = ? AND status = 'PENDING'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, managerId);
+            ps.setString(2, note != null ? note : "Trưởng phòng đã xác nhận bàn giao công việc");
+            ps.setInt(3, id);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.managerApprove lỗi: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /** Cấp 2: HR phê duyệt chính sách & chốt nghỉ phép chính thức */
+    public boolean hrApprove(int id, int hrId) {
+        String sql = "UPDATE leave_requests SET status = 'APPROVED', hr_id = ?, hr_approved_at = NOW(), approved_by_id = ?, approved_at = NOW(), updated_at = NOW() WHERE id = ? AND status IN ('PENDING', 'MANAGER_APPROVED')";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, hrId);
+            ps.setInt(2, hrId);
+            ps.setInt(3, id);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.hrApprove lỗi: " + e.getMessage());
         }
         return false;
     }
@@ -403,9 +482,9 @@ public class LeaveDAO {
         java.sql.Date ed = rs.getDate("end_date");
         if (ed != null) lr.setEndDate(ed.toLocalDate());
 
-        int td = rs.getInt("total_days");
-        lr.setTotalDays(td);
-        lr.setDays(td > 0 ? (double) td : 1.0);
+        double td = rs.getDouble("total_days");
+        lr.setDays(td > 0 ? td : 1.0);
+        lr.setTotalDays((int) Math.round(lr.getDays()));
 
         lr.setReason(rs.getString("reason"));
         lr.setStatus(rs.getString("status"));
@@ -423,10 +502,50 @@ public class LeaveDAO {
         Timestamp uat = rs.getTimestamp("updated_at");
         if (uat != null) lr.setUpdatedAt(uat.toLocalDateTime());
 
-        // Ghi chu thoi gian hien thi UI
-        lr.setTimeNote(lr.getDays() + " ngay lam viec");
-        lr.setManagerStatus(lr.getStatus());
-        lr.setHrStatus(lr.getStatus());
+        try {
+            int mid = rs.getInt("manager_id");
+            if (!rs.wasNull()) lr.setManagerId(mid);
+            lr.setManagerName(rs.getString("manager_name"));
+            Timestamp mt = rs.getTimestamp("manager_approved_at");
+            if (mt != null) lr.setManagerApprovedAt(mt.toLocalDateTime());
+            lr.setManagerNote(rs.getString("manager_note"));
+
+            int hid = rs.getInt("hr_id");
+            if (!rs.wasNull()) lr.setHrId(hid);
+            lr.setHrName(rs.getString("hr_name"));
+            Timestamp ht = rs.getTimestamp("hr_approved_at");
+            if (ht != null) lr.setHrApprovedAt(ht.toLocalDateTime());
+
+            lr.setAttachmentUrl(rs.getString("attachment_url"));
+            lr.setHandoverPerson(rs.getString("handover_person"));
+            String tn = rs.getString("time_note");
+            if (tn != null && !tn.trim().isEmpty()) {
+                lr.setTimeNote(tn);
+            }
+        } catch (SQLException ignored) {}
+
+        // Ghi chú thời gian hiển thị UI nếu chưa có
+        if (lr.getTimeNote() == null || lr.getTimeNote().trim().isEmpty()) {
+            if (lr.getDays() == 0.5) {
+                lr.setTimeNote("0.5 ngày (Nửa ngày)");
+            } else {
+                lr.setTimeNote(lr.getDaysDisplay() + " làm việc");
+            }
+        }
+
+        if ("APPROVED".equalsIgnoreCase(lr.getStatus())) {
+            lr.setManagerStatus("APPROVED");
+            lr.setHrStatus("APPROVED");
+        } else if ("MANAGER_APPROVED".equalsIgnoreCase(lr.getStatus())) {
+            lr.setManagerStatus("APPROVED");
+            lr.setHrStatus("PENDING");
+        } else if ("REJECTED".equalsIgnoreCase(lr.getStatus())) {
+            lr.setManagerStatus(lr.getManagerId() != null && lr.getHrId() == null ? "REJECTED" : "APPROVED");
+            lr.setHrStatus(lr.getHrId() != null ? "REJECTED" : "PENDING");
+        } else {
+            lr.setManagerStatus("PENDING");
+            lr.setHrStatus("PENDING");
+        }
         return lr;
     }
 
@@ -462,12 +581,12 @@ public class LeaveDAO {
                     int days = rs.getInt("total");
                     if (type == null) continue;
                     switch (type.toUpperCase()) {
-                        case "ANNUAL":    annual    += days; break;
-                        case "SICK":      sick      += days; break;
-                        case "PERSONAL":
-                        case "WEDDING":   personal  += days; break;
-                        case "MATERNITY": maternity += days; break;
-                        case "UNPAID":    unpaid    += days; break;
+                        case "ANNUAL" -> annual += days;
+                        case "SICK" -> sick += days;
+                        case "PERSONAL", "WEDDING" -> personal += days;
+                        case "MATERNITY" -> maternity += days;
+                        case "UNPAID" -> unpaid += days;
+                        default -> {}
                     }
                 }
             }
@@ -576,19 +695,76 @@ public class LeaveDAO {
         return null;
     }
 
-    /** Huy don nghi phep (chi khi trang thai PENDING va chu don dung). */
+    /** Hủy đơn nghỉ phép (hỗ trợ PENDING, MANAGER_APPROVED hoặc APPROVED). */
     public boolean cancelLeave(int leaveId, int employeeId) {
-        String sql = "UPDATE leave_requests SET status = 'CANCELLED', updated_at = NOW() " +
-                     "WHERE id = ? AND employee_id = ? AND status = 'PENDING'";
+        String sql = (employeeId > 0)
+                ? "UPDATE leave_requests SET status = 'CANCELLED', updated_at = NOW() WHERE id = ? AND employee_id = ? AND status IN ('PENDING', 'MANAGER_APPROVED', 'APPROVED')"
+                : "UPDATE leave_requests SET status = 'CANCELLED', updated_at = NOW() WHERE id = ? AND status IN ('PENDING', 'MANAGER_APPROVED', 'APPROVED')";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, leaveId);
-            ps.setInt(2, employeeId);
+            if (employeeId > 0) {
+                ps.setInt(2, employeeId);
+            }
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("LeaveDAO.cancelLeave loi: " + e.getMessage());
         }
         return false;
+    }
+
+    /** Kiểm tra xem nhân viên có đơn nghỉ phép nào trùng khoảng thời gian (PENDING hoặc APPROVED) không. */
+    public boolean hasOverlappingLeave(int employeeId, LocalDate startDate, LocalDate endDate, Integer excludeId) {
+        if (startDate == null || endDate == null) return false;
+        StringBuilder sql = new StringBuilder(
+                "SELECT COUNT(*) FROM leave_requests " +
+                "WHERE employee_id = ? " +
+                "  AND status IN ('PENDING', 'MANAGER_APPROVED', 'APPROVED') " +
+                "  AND start_date <= ? AND end_date >= ? ");
+        if (excludeId != null && excludeId > 0) {
+            sql.append("AND id != ? ");
+        }
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            ps.setInt(1, employeeId);
+            ps.setDate(2, java.sql.Date.valueOf(endDate));
+            ps.setDate(3, java.sql.Date.valueOf(startDate));
+            if (excludeId != null && excludeId > 0) {
+                ps.setInt(4, excludeId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) return true;
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.hasOverlappingLeave lỗi: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /** Tự động sinh mã đơn nghỉ phép kế tiếp theo thứ tự tuần tự (dạng LP-YYYY-XXX). */
+    public String generateNextLeaveCode(LocalDate date) {
+        int year = (date != null) ? date.getYear() : LocalDate.now().getYear();
+        String prefix = "LP-" + year + "-";
+        String sql = "SELECT leave_code FROM leave_requests WHERE leave_code LIKE ? ORDER BY leave_code DESC LIMIT 1";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, prefix + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String lastCode = rs.getString(1);
+                    if (lastCode != null && lastCode.length() > prefix.length()) {
+                        String numPart = lastCode.substring(prefix.length());
+                        try {
+                            int num = Integer.parseInt(numPart.replaceAll("\\D+", ""));
+                            return String.format("%s%03d", prefix, num + 1);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("LeaveDAO.generateNextLeaveCode lỗi: " + e.getMessage());
+        }
+        return prefix + "001";
     }
 
     /** Tong so ngay cong ty da su dung phep trong nam (cho Admin/HR KPI). */
@@ -630,12 +806,12 @@ public class LeaveDAO {
                     int days = rs.getInt("total");
                     if (type == null) continue;
                     switch (type.toUpperCase()) {
-                        case "ANNUAL":    stats.merge("ANNUAL",    days, Integer::sum); break;
-                        case "SICK":      stats.merge("SICK",      days, Integer::sum); break;
-                        case "PERSONAL":
-                        case "WEDDING":   stats.merge("PERSONAL",  days, Integer::sum); break;
-                        case "MATERNITY": stats.merge("MATERNITY", days, Integer::sum); break;
-                        case "UNPAID":    stats.merge("UNPAID",    days, Integer::sum); break;
+                        case "ANNUAL" -> stats.merge("ANNUAL", days, Integer::sum);
+                        case "SICK" -> stats.merge("SICK", days, Integer::sum);
+                        case "PERSONAL", "WEDDING" -> stats.merge("PERSONAL", days, Integer::sum);
+                        case "MATERNITY" -> stats.merge("MATERNITY", days, Integer::sum);
+                        case "UNPAID" -> stats.merge("UNPAID", days, Integer::sum);
+                        default -> {}
                     }
                 }
             }
@@ -687,21 +863,122 @@ public class LeaveDAO {
     }
 
     /**
-     * Tính số dư phép khả dụng của một nhân viên (theo Điều 113-114 BLLĐ 2019).
-     * Công thức: 12 (chuẩn) + thâm niên (5 năm/1 ngày) + tồn năm trước (max 5 ngày) - đã dùng năm nay
-     * @param employeeId ID nhân viên
-     * @param year       Năm tính
-     * @param startYear  Năm bắt đầu làm (để tính tồn phép)
-     * @return số ngày phép khả dụng (>=0)
+     * Tính số dư phép khả dụng của một nhân viên (theo Điều 113-114 BLLĐ 2019):
+     * - Tích lũy phép lũy tiến từng tháng đối với nhân viên năm đầu: 1 tháng = 1 ngày (không cấp bừa 12 ngày).
+     * - Hạn chót phép tồn năm cũ: Sau ngày 31/03, số ngày carry-over tự động hết hiệu lực (= 0.0).
      */
-    public double calculateLeaveBalance(int employeeId, int year, int startYear) {
-        double standard   = 12.0;
-        long yearsOfSvc   = Math.max(0, year - startYear);
-        double seniority  = Math.floor((double) yearsOfSvc / 5);
-        double carryOver  = yearsOfSvc > 0 ? Math.min(3.0, 5.0) : 0.0;
-        double used       = countUsedDaysByEmployee(employeeId, year);
-        double available  = standard + seniority + carryOver - used;
+    public double calculateLeaveBalance(int employeeId, int year, LocalDate requestDate, LocalDate empStartDate) {
+        double standard = 12.0;
+        int startYear = (empStartDate != null) ? empStartDate.getYear() : year;
+        long yearsOfSvc = Math.max(0, year - startYear);
+
+        // Quy tắc 1: Nhân viên mới vào làm trong năm (thâm niên < 1 năm): tích lũy theo tháng làm việc
+        if (empStartDate != null && empStartDate.getYear() == year) {
+            int currentMonth = (requestDate != null) ? requestDate.getMonthValue() : LocalDate.now().getMonthValue();
+            int startMonth = empStartDate.getMonthValue();
+            standard = Math.min(12.0, Math.max(1.0, (double) (currentMonth - startMonth + 1)));
+        }
+
+        // Quy tắc 2: Thâm niên 5 năm cộng 1 ngày phép
+        double seniority = Math.floor((double) yearsOfSvc / 5);
+
+        // Quy tắc 3: Phép tồn năm cũ chỉ được dùng đến hết 31/03 của năm sau
+        LocalDate checkDate = (requestDate != null) ? requestDate : LocalDate.now();
+        double carryOver = 0.0;
+        if (yearsOfSvc > 0 && !checkDate.isAfter(LocalDate.of(year, 3, 31))) {
+            carryOver = Math.min(3.0, 5.0);
+        }
+
+        double used = countUsedDaysByEmployee(employeeId, year);
+        double available = standard + seniority + carryOver - used;
         return Math.max(0, available);
+    }
+
+    public double calculateLeaveBalance(int employeeId, int year, int startYear) {
+        return calculateLeaveBalance(employeeId, year, LocalDate.now(), LocalDate.of(startYear, 1, 1));
+    }
+
+    /** Lấy danh sách ngày nghỉ lễ quốc gia trong năm */
+    public List<Holiday> getHolidaysByYear(int year) {
+        List<Holiday> list = new ArrayList<>();
+        String sql = "SELECT id, holiday_date, name, year, coefficient FROM holidays WHERE year = ? ORDER BY holiday_date";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Holiday h = new Holiday();
+                    h.setId(rs.getInt("id"));
+                    java.sql.Date hd = rs.getDate("holiday_date");
+                    if (hd != null) h.setHolidayDate(hd.toLocalDate());
+                    h.setName(rs.getString("name"));
+                    h.setYear(rs.getInt("year"));
+                    h.setCoefficient(rs.getDouble("coefficient"));
+                    list.add(h);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.getHolidaysByYear loi: " + e.getMessage());
+        }
+        return list;
+    }
+
+    /** Lấy tập hợp các ngày nghỉ lễ để đối soát ngày công */
+    public Set<LocalDate> getHolidayDates(int year) {
+        Set<LocalDate> dates = new HashSet<>();
+        String sql = "SELECT holiday_date FROM holidays WHERE year = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    java.sql.Date hd = rs.getDate("holiday_date");
+                    if (hd != null) dates.add(hd.toLocalDate());
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.getHolidayDates loi: " + e.getMessage());
+        }
+        return dates;
+    }
+
+    /**
+     * Tính tỷ lệ vắng mặt (%) của phòng ban trong một ngày cụ thể (đơn PENDING hoặc APPROVED).
+     */
+    public double getDepartmentAbsenceRateOnDate(int departmentId, LocalDate date, Integer excludeRequestId) {
+        if (departmentId <= 0 || date == null) return 0.0;
+        String countEmpSql = "SELECT COUNT(*) FROM employees WHERE department_id = ? AND status NOT IN ('INACTIVE', 'TERMINATED')";
+        String countLeaveSql = "SELECT COUNT(DISTINCT lr.employee_id) FROM leave_requests lr " +
+                               "JOIN employees e ON lr.employee_id = e.id " +
+                               "WHERE e.department_id = ? AND lr.status IN ('PENDING', 'MANAGER_APPROVED', 'APPROVED') " +
+                               "AND ? BETWEEN lr.start_date AND lr.end_date " +
+                               (excludeRequestId != null && excludeRequestId > 0 ? "AND lr.id != ? " : "");
+        try (Connection conn = DBConnection.getConnection()) {
+            int totalEmp = 0;
+            try (PreparedStatement ps = conn.prepareStatement(countEmpSql)) {
+                ps.setInt(1, departmentId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) totalEmp = rs.getInt(1);
+                }
+            }
+            if (totalEmp <= 0) return 0.0;
+
+            int leaveCount = 0;
+            try (PreparedStatement ps = conn.prepareStatement(countLeaveSql)) {
+                ps.setInt(1, departmentId);
+                ps.setDate(2, java.sql.Date.valueOf(date));
+                if (excludeRequestId != null && excludeRequestId > 0) {
+                    ps.setInt(3, excludeRequestId);
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) leaveCount = rs.getInt(1);
+                }
+            }
+            return (double) Math.round((double) leaveCount * 100.0 / (double) totalEmp * 10.0) / 10.0;
+        } catch (SQLException e) {
+            System.err.println("LeaveDAO.getDepartmentAbsenceRateOnDate loi: " + e.getMessage());
+        }
+        return 0.0;
     }
 
     /**
@@ -735,7 +1012,6 @@ public class LeaveDAO {
                     bal.setPositionName(rs.getString("pos_name"));
 
                     java.sql.Date sd = rs.getDate("start_date");
-                    int startYear = (sd != null) ? sd.toLocalDate().getYear() : year;
                     if (sd != null) bal.setStartDate(sd.toLocalDate());
 
                     long yearsOfSvc = (sd != null)
@@ -744,8 +1020,11 @@ public class LeaveDAO {
                     bal.setYearsOfService((int) yearsOfSvc);
 
                     double standard  = 12.0;
+                    if (sd != null && sd.toLocalDate().getYear() == year) {
+                        standard = Math.min(12.0, Math.max(1.0, (double) (LocalDate.now().getMonthValue() - sd.toLocalDate().getMonthValue() + 1)));
+                    }
                     double seniority = Math.floor((double) yearsOfSvc / 5);
-                    double carryOver = yearsOfSvc > 0 ? Math.min(3.0, 5.0) : 0.0;
+                    double carryOver = (yearsOfSvc > 0 && !LocalDate.now().isAfter(LocalDate.of(year, 3, 31))) ? Math.min(3.0, 5.0) : 0.0;
                     double used      = rs.getDouble("used_days");
                     double available = Math.max(0, standard + seniority + carryOver - used);
 

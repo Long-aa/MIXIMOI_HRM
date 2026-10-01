@@ -242,14 +242,19 @@
             border-radius: 6px; padding: 2px 7px;
         }
 
+        .leave-row {
+            transition: background-color 0.4s ease, opacity 0.3s ease;
+        }
+
         /* Action Buttons */
         .laction-btn-group { display: flex; align-items: center; gap: 3px; }
         .laction-btn {
             width: 28px; height: 28px; border-radius: 6px; border: 1px solid #e2e8f0;
             background: #fff; color: #64748b; display: inline-flex; align-items: center; justify-content: center;
-            font-size: 0.8rem; cursor: pointer; transition: all 0.15s; text-decoration: none;
+            font-size: 0.8rem; cursor: pointer; transition: all 0.15s ease; text-decoration: none;
         }
-        .laction-btn:hover { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+        .laction-btn:hover { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; transform: translateY(-1px); }
+        .laction-btn:active { transform: translateY(1px); }
         .laction-btn.ok:hover { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
         .laction-btn.no:hover { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
 
@@ -299,3 +304,27 @@
         @media (max-width: 768px) {
             .leave-kpi-grid { grid-template-columns: 1fr; }
         }
+
+        /* ===== PRINT STYLES FOR OFFICIAL LEAVE VOUCHER ===== */
+        @media print {
+            body { background: #fff !important; font-size: 11pt !important; color: #000 !important; }
+            .app-sidebar, .app-topbar, .btn-action-light, .leave-actions-group, .btn, .breadcrumb, nav, footer, .modal, .ltable-footer, .pagination-row {
+                display: none !important;
+            }
+            .app-container, .app-main, .app-content {
+                padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; background: #fff !important;
+            }
+            .app-card {
+                border: 1px solid #94a3b8 !important; box-shadow: none !important; padding: 25px !important; margin: 0 !important; border-radius: 0 !important;
+            }
+            .print-only-header {
+                display: block !important; text-align: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 12px;
+            }
+            .print-signatures-row {
+                display: flex !important; justify-content: space-between; margin-top: 50px; text-align: center; page-break-inside: avoid;
+            }
+            .print-sig-col { width: 23%; }
+            .print-sig-title { font-weight: 700; margin-bottom: 60px; font-size: 10pt; }
+            .print-sig-name { font-weight: 700; border-top: 1px dotted #666; padding-top: 5px; font-size: 9.5pt; }
+        }
+        .print-only-header, .print-signatures-row { display: none; }

@@ -1,6 +1,5 @@
 package com.miximoi.hrm.controller;
 
-import com.miximoi.hrm.dao.AttendanceDAO;
 import com.miximoi.hrm.dao.DepartmentDAO;
 import com.miximoi.hrm.dao.EmployeeDAO;
 import com.miximoi.hrm.model.Department;
@@ -31,7 +30,6 @@ public class LeaveServlet extends HttpServlet {
     private final LeaveService leaveService = new LeaveService();
     private final EmployeeDAO employeeDAO = new EmployeeDAO();
     private final DepartmentDAO departmentDAO = new DepartmentDAO();
-    private final AttendanceDAO attendanceDAO = new AttendanceDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -45,29 +43,33 @@ public class LeaveServlet extends HttpServlet {
         if (action == null) action = "list";
 
         switch (action) {
-            case "new":
+            case "new" -> {
                 request.setAttribute("employees", employeeDAO.findAll());
+                if (currentUser != null && currentUser.getEmployeeId() > 0) {
+                    int empId = currentUser.getEmployeeId();
+                    Employee emp = employeeDAO.findById(empId);
+                    int year = LocalDate.now().getYear();
+                    int startYear = (emp != null && emp.getStartDate() != null) ? emp.getStartDate().getYear() : year;
+                    double avail = new com.miximoi.hrm.dao.LeaveDAO().calculateLeaveBalance(empId, year, startYear);
+                    request.setAttribute("availableLeaveDays", avail);
+                }
                 request.getRequestDispatcher("/WEB-INF/views/leave/leave-form.jsp")
                        .forward(request, response);
-                break;
-            case "detail": {
+            }
+            case "detail" -> {
                 int id = Integer.parseInt(request.getParameter("id"));
                 request.setAttribute("leaveRequest", leaveService.getById(id));
                 request.getRequestDispatcher("/WEB-INF/views/leave/leave-detail.jsp")
                        .forward(request, response);
-                break;
             }
-            case "export": {
-                exportLeaveRequestsCSV(request, response, currentUser);
-                break;
-            }
-            default: {
+            case "export" -> exportLeaveRequestsCSV(request, response, currentUser);
+            default -> {
                 String tab = request.getParameter("tab");
                 if (tab == null) tab = "requests";
 
                 String status = request.getParameter("status");
                 String deptParam = request.getParameter("departmentId");
-                Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.parseInt(deptParam) : null;
+                Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.valueOf(deptParam) : null;
                 String leaveType = request.getParameter("leaveType");
                 String keyword = request.getParameter("keyword");
 
@@ -237,7 +239,8 @@ public class LeaveServlet extends HttpServlet {
                     dayMap.put("dayNum", curDate.getDayOfMonth());
                     dayMap.put("dateStr", curDate.format(df));
                     dayMap.put("isToday", curDate.equals(todayDate));
-                    int count = (weeklyAbsences != null) ? weeklyAbsences.getOrDefault(curDate, 0) : 0;
+                    Integer curCount = (weeklyAbsences != null) ? weeklyAbsences.get(curDate) : null;
+                    int count = (curCount != null) ? curCount : 0;
                     dayMap.put("absenceCount", count);
                     weeklySchedule.add(dayMap);
                 }
@@ -249,6 +252,9 @@ public class LeaveServlet extends HttpServlet {
                             leaveDAO.getAllLeaveBalances(currentYear);
                     request.setAttribute("leaveBalances", leaveBalances);
                 }
+
+                // Danh sách ngày lễ cho tab=policy
+                request.setAttribute("holidays", leaveService.getHolidays(currentYear));
 
                 request.getRequestDispatcher("/WEB-INF/views/leave/leave-list.jsp")
                        .forward(request, response);
@@ -268,7 +274,7 @@ public class LeaveServlet extends HttpServlet {
         if (action == null) action = "";
 
         switch (action) {
-            case "submit": {
+            case "submit" -> {
                 LeaveRequest lr = new LeaveRequest();
                 int empId = currentUser.getEmployeeId() > 0 ? currentUser.getEmployeeId() : 1;
                 if (currentUser.isAdmin() || currentUser.isHr() || currentUser.isManager()) {
@@ -291,13 +297,34 @@ public class LeaveServlet extends HttpServlet {
                 if (sd != null && !sd.isEmpty()) lr.setStartDate(LocalDate.parse(sd));
                 if (ed != null && !ed.isEmpty()) lr.setEndDate(LocalDate.parse(ed));
 
-                String daysStr = request.getParameter("days");
-                if (daysStr != null && !daysStr.isEmpty()) {
-                    lr.setDays(Double.parseDouble(daysStr));
+                String duration = request.getParameter("leaveDuration");
+                String session = request.getParameter("leaveSession");
+                if ("HALF_DAY".equalsIgnoreCase(duration)) {
+                    lr.setDays(0.5);
+                    lr.setLeaveSession(session != null && !session.isEmpty() ? session : "MORNING");
+                    lr.setEndDate(lr.getStartDate());
+                } else {
+                    lr.setLeaveSession("ALL_DAY");
+                    String daysStr = request.getParameter("days");
+                    if (daysStr != null && !daysStr.isEmpty()) {
+                        try {
+                            lr.setDays(Double.parseDouble(daysStr));
+                        } catch (NumberFormatException ignored) {}
+                    }
                 }
 
                 lr.setReason(request.getParameter("reason"));
                 lr.setHandoverPerson(request.getParameter("handoverPerson"));
+                lr.setAttachmentUrl(request.getParameter("attachmentUrl"));
+
+                // Kiểm tra tỷ lệ vắng mặt phòng ban (Capacity Guard)
+                if (emp != null && emp.getDepartmentId() > 0 && lr.getStartDate() != null && lr.getEndDate() != null) {
+                    double absenceRate = leaveService.getMaxDepartmentAbsenceRate(emp.getDepartmentId(), lr.getStartDate(), lr.getEndDate(), null);
+                    if (absenceRate >= 30.0) {
+                        String currentReason = lr.getReason() != null ? lr.getReason() : "";
+                        lr.setReason(currentReason + " [Cảnh báo: Tỷ lệ vắng mặt phòng ban " + String.format("%.1f", absenceRate) + "%]");
+                    }
+                }
 
                 String error = leaveService.createLeaveRequest(lr);
                 if (error != null) {
@@ -305,141 +332,169 @@ public class LeaveServlet extends HttpServlet {
                 } else {
                     response.sendRedirect(request.getContextPath() + "/leave?success=submitted");
                 }
-                break;
             }
-            case "approve": {
-                if (currentUser.isManager() || currentUser.isHr() || currentUser.isAdmin()) {
+            case "managerApprove" -> {
+                if (currentUser.isManager() || currentUser.isAdmin()) {
                     int id = Integer.parseInt(request.getParameter("id"));
-                    leaveService.approve(id, currentUser.getEmployeeId());
-
-                    // Đồng bộ sang bảng chấm công: Ghi nhận ngày nghỉ phép ON_LEAVE
-                    LeaveRequest lr = leaveService.getById(id);
-                    if (lr != null && lr.getStartDate() != null && lr.getEndDate() != null) {
-                        LocalDate d = lr.getStartDate();
-                        while (!d.isAfter(lr.getEndDate())) {
-                            attendanceDAO.upsertManual(lr.getEmployeeId(), d, null, null, "ON_LEAVE", "Nghỉ phép theo đơn " + lr.getLeaveCode());
-                            d = d.plusDays(1);
-                        }
+                    String note = request.getParameter("managerNote");
+                    leaveService.managerApprove(id, currentUser.getEmployeeId(), note);
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Trưởng phòng đã phê duyệt Cấp 1 thành công!", "MANAGER_APPROVED", "TP đã duyệt");
+                        return;
                     }
-
-                    response.sendRedirect(request.getContextPath() + "/leave?success=approved");
-                    return;
+                    response.sendRedirect(request.getContextPath() + "/leave?success=manager_approved");
                 }
-                break;
             }
-            case "reject": {
+            case "hrApprove" -> {
+                if (currentUser.isHr() || currentUser.isAdmin()) {
+                    int id = Integer.parseInt(request.getParameter("id"));
+                    leaveService.hrApprove(id, currentUser.getEmployeeId());
+                    if (isAjax(request)) {
+                        writeJson(response, true, "HR đã phê duyệt Cấp 2 và đồng bộ chấm công thành công!", "APPROVED", "Đã duyệt");
+                        return;
+                    }
+                    response.sendRedirect(request.getContextPath() + "/leave?success=approved");
+                }
+            }
+            case "approve" -> {
+                int id = Integer.parseInt(request.getParameter("id"));
+                if (currentUser.isManager() && !currentUser.isHr() && !currentUser.isAdmin()) {
+                    String note = request.getParameter("managerNote");
+                    leaveService.managerApprove(id, currentUser.getEmployeeId(), note != null ? note : "Trưởng phòng duyệt");
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Trưởng phòng đã phê duyệt Cấp 1 thành công!", "MANAGER_APPROVED", "TP đã duyệt");
+                        return;
+                    }
+                    response.sendRedirect(request.getContextPath() + "/leave?success=manager_approved");
+                } else if (currentUser.isHr() || currentUser.isAdmin()) {
+                    leaveService.hrApprove(id, currentUser.getEmployeeId());
+                    if (isAjax(request)) {
+                        writeJson(response, true, "HR đã phê duyệt Cấp 2 và đồng bộ chấm công thành công!", "APPROVED", "Đã duyệt");
+                        return;
+                    }
+                    response.sendRedirect(request.getContextPath() + "/leave?success=approved");
+                }
+            }
+            case "reject" -> {
                 if (currentUser.isManager() || currentUser.isHr() || currentUser.isAdmin()) {
                     int id = Integer.parseInt(request.getParameter("id"));
                     String reason = request.getParameter("rejectReason");
                     leaveService.reject(id, currentUser.getEmployeeId(), reason);
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đã từ chối đơn xin nghỉ phép thành công!", "REJECTED", "Từ chối");
+                        return;
+                    }
                     response.sendRedirect(request.getContextPath() + "/leave?success=rejected");
-                    return;
                 }
-                break;
             }
-            case "bulkApprove": {
+            case "bulkApprove" -> {
                 if (currentUser.isManager() || currentUser.isHr() || currentUser.isAdmin()) {
                     String[] idsArr = request.getParameterValues("ids");
+                    int count = 0;
                     if (idsArr != null && idsArr.length > 0) {
                         List<Integer> ids = new java.util.ArrayList<>();
                         for (String sid : idsArr) {
-                            try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                            try { ids.add(Integer.valueOf(sid.trim())); } catch (NumberFormatException ignored) {}
                         }
+                        // LeaveService.bulkApprove tự động đồng bộ attendance cho từng đơn
                         leaveService.bulkApprove(ids, currentUser.getEmployeeId());
-                        // Đồng bộ sang chấm công
-                        for (int id : ids) {
-                            LeaveRequest lr = leaveService.getById(id);
-                            if (lr != null && lr.getStartDate() != null && lr.getEndDate() != null) {
-                                LocalDate d = lr.getStartDate();
-                                while (!d.isAfter(lr.getEndDate())) {
-                                    attendanceDAO.upsertManual(lr.getEmployeeId(), d, null, null, "ON_LEAVE", "Nghỉ phép theo đơn " + lr.getLeaveCode());
-                                    d = d.plusDays(1);
-                                }
-                            }
-                        }
+                        count = ids.size();
+                    }
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đã phê duyệt thành công " + count + " đơn nghỉ phép!");
+                        return;
                     }
                     response.sendRedirect(request.getContextPath() + "/leave?success=approved");
-                    return;
                 }
-                break;
             }
-            case "bulkReject": {
+            case "bulkReject" -> {
                 if (currentUser.isManager() || currentUser.isHr() || currentUser.isAdmin()) {
                     String[] idsArr = request.getParameterValues("ids");
+                    int count = 0;
                     if (idsArr != null && idsArr.length > 0) {
                         List<Integer> ids = new java.util.ArrayList<>();
                         for (String sid : idsArr) {
-                            try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                            try { ids.add(Integer.valueOf(sid.trim())); } catch (NumberFormatException ignored) {}
                         }
                         String reason = request.getParameter("rejectReason");
                         leaveService.bulkReject(ids, currentUser.getEmployeeId(), reason);
+                        count = ids.size();
+                    }
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đã từ chối " + count + " đơn nghỉ phép thành công!");
+                        return;
                     }
                     response.sendRedirect(request.getContextPath() + "/leave?success=rejected");
-                    return;
                 }
-                break;
             }
-            case "bulkDelete": {
+            case "bulkDelete" -> {
                 if (currentUser.isAdmin() || currentUser.isHr()) {
                     String[] idsArr = request.getParameterValues("ids");
+                    int count = 0;
                     if (idsArr != null && idsArr.length > 0) {
                         List<Integer> ids = new java.util.ArrayList<>();
                         for (String sid : idsArr) {
-                            try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                            try { ids.add(Integer.valueOf(sid.trim())); } catch (NumberFormatException ignored) {}
                         }
                         leaveService.bulkDelete(ids);
+                        count = ids.size();
+                    }
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đã xóa thành công " + count + " đơn nghỉ phép!");
+                        return;
                     }
                     response.sendRedirect(request.getContextPath() + "/leave?success=deleted");
-                    return;
                 }
-                break;
             }
-            case "bulkExport": {
+            case "bulkExport" -> {
                 String[] idsArr = request.getParameterValues("ids");
                 List<LeaveRequest> list;
                 if (idsArr != null && idsArr.length > 0) {
                     List<Integer> ids = new java.util.ArrayList<>();
                     for (String sid : idsArr) {
-                        try { ids.add(Integer.parseInt(sid.trim())); } catch (NumberFormatException ignored) {}
+                        try { ids.add(Integer.valueOf(sid.trim())); } catch (NumberFormatException ignored) {}
                     }
                     list = leaveService.findByIds(ids);
                 } else {
                     String status = request.getParameter("status");
                     String deptParam = request.getParameter("departmentId");
-                    Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.parseInt(deptParam) : null;
+                    Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.valueOf(deptParam) : null;
                     String leaveType = request.getParameter("leaveType");
                     String keyword = request.getParameter("keyword");
                     list = leaveService.getByFilters(currentUser, status, departmentId, leaveType, keyword);
                 }
                 writeLeaveCsv(response, list);
-                return;
             }
-            case "export": {
-                exportLeaveRequestsCSV(request, response, currentUser);
-                return;
-            }
-            case "cancel": {
-                // Nhân viên hủy đơn của mình (chỉ khi còn PENDING)
+            case "export" -> exportLeaveRequestsCSV(request, response, currentUser);
+            case "cancel" -> {
+                // Nhân viên hủy đơn của mình hoặc HR/Admin hủy đơn (kèm hoàn tác dữ liệu chấm công nếu đơn đã duyệt trước đó)
                 String idStr = request.getParameter("id");
                 if (idStr != null && !idStr.isEmpty()) {
                     int leaveId = Integer.parseInt(idStr);
-                    int cancelEmpId = currentUser.getEmployeeId();
-                    if (cancelEmpId > 0) {
-                        com.miximoi.hrm.dao.LeaveDAO leaveDAO2 = new com.miximoi.hrm.dao.LeaveDAO();
-                        boolean cancelled = leaveDAO2.cancelLeave(leaveId, cancelEmpId);
-                        if (cancelled) {
-                            response.sendRedirect(request.getContextPath() + "/leave?success=cancelled");
-                        } else {
-                            response.sendRedirect(request.getContextPath() + "/leave?error=Không thể hủy đơn. Đơn đã được xử lý hoặc không thuộc về bạn.");
+                    int cancelEmpId = (currentUser.isAdmin() || currentUser.isHr()) ? 0 : currentUser.getEmployeeId();
+                    boolean cancelled = leaveService.cancelLeave(leaveId, cancelEmpId);
+                    if (cancelled) {
+                        if (isAjax(request)) {
+                            writeJson(response, true, "Đã hủy đơn nghỉ phép thành công!", "CANCELLED", "Đã hủy");
+                            return;
                         }
-                        return;
+                        response.sendRedirect(request.getContextPath() + "/leave?success=cancelled");
+                    } else {
+                        if (isAjax(request)) {
+                            writeJson(response, false, "Không thể hủy đơn. Đơn đã hoàn tất hoặc không thuộc thẩm quyền của bạn.");
+                            return;
+                        }
+                        response.sendRedirect(request.getContextPath() + "/leave?error=" + java.net.URLEncoder.encode("Không thể hủy đơn. Đơn đã hoàn tất hoặc không thuộc thẩm quyền của bạn.", "UTF-8"));
                     }
+                    return;
+                }
+                if (isAjax(request)) {
+                    writeJson(response, false, "Yêu cầu hủy không hợp lệ.");
+                    return;
                 }
                 response.sendRedirect(request.getContextPath() + "/leave?error=Yêu cầu hủy không hợp lệ.");
-                return;
             }
-            default:
-                response.sendRedirect(request.getContextPath() + "/leave");
+            default -> response.sendRedirect(request.getContextPath() + "/leave");
         }
     }
 
@@ -448,7 +503,7 @@ public class LeaveServlet extends HttpServlet {
             throws IOException {
         String status = request.getParameter("status");
         String deptParam = request.getParameter("departmentId");
-        Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.parseInt(deptParam) : null;
+        Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.valueOf(deptParam) : null;
         String leaveType = request.getParameter("leaveType");
         String keyword = request.getParameter("keyword");
 
@@ -494,25 +549,26 @@ public class LeaveServlet extends HttpServlet {
 
     private String getLeaveTypeName(String type) {
         if (type == null) return "Nghỉ phép";
-        switch (type.toUpperCase()) {
-            case "ANNUAL": return "Phép năm (AL)";
-            case "SICK": return "Nghỉ ốm (SL)";
-            case "PERSONAL": return "Việc riêng hưởng lương";
-            case "WEDDING": return "Kết hôn";
-            case "MATERNITY": return "Thai sản";
-            case "UNPAID": return "Nghỉ không lương (UL)";
-            default: return type;
-        }
+        return switch (type.toUpperCase()) {
+            case "ANNUAL" -> "Phép năm (AL)";
+            case "SICK" -> "Nghỉ ốm (SL)";
+            case "PERSONAL" -> "Việc riêng hưởng lương";
+            case "WEDDING" -> "Kết hôn";
+            case "MATERNITY" -> "Thai sản";
+            case "UNPAID" -> "Nghỉ không lương (UL)";
+            default -> type;
+        };
     }
 
     private String getStatusName(String status) {
         if (status == null) return "Chờ duyệt";
-        switch (status.toUpperCase()) {
-            case "APPROVED": return "Đã phê duyệt";
-            case "REJECTED": return "Từ chối";
-            case "CANCELLED": return "Đã hủy";
-            default: return "Chờ duyệt";
-        }
+        return switch (status.toUpperCase()) {
+            case "MANAGER_APPROVED" -> "TP đã duyệt (Chờ HR)";
+            case "APPROVED" -> "Đã phê duyệt";
+            case "REJECTED" -> "Từ chối";
+            case "CANCELLED" -> "Đã hủy";
+            default -> "Chờ duyệt";
+        };
     }
 
     private boolean checkAuth(HttpServletRequest request, HttpServletResponse response)
@@ -523,6 +579,26 @@ public class LeaveServlet extends HttpServlet {
             return false;
         }
         return true;
+    }
+
+    private boolean isAjax(HttpServletRequest request) {
+        return "XMLHttpRequest".equalsIgnoreCase(request.getHeader("X-Requested-With"))
+                || "true".equalsIgnoreCase(request.getParameter("ajax"))
+                || (request.getHeader("Accept") != null && request.getHeader("Accept").contains("application/json"));
+    }
+
+    private void writeJson(HttpServletResponse response, boolean success, String message) throws IOException {
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"success\":" + success + ",\"message\":\"" + (message != null ? message.replace("\"", "\\\"") : "") + "\"}");
+    }
+
+    private void writeJson(HttpServletResponse response, boolean success, String message, String newStatus, String statusText) throws IOException {
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"success\":" + success
+                + ",\"message\":\"" + (message != null ? message.replace("\"", "\\\"") : "") + "\""
+                + (newStatus != null ? ",\"newStatus\":\"" + newStatus + "\"" : "")
+                + (statusText != null ? ",\"statusText\":\"" + statusText + "\"" : "")
+                + "}");
     }
 
     private User getCurrentUser(HttpServletRequest request) {

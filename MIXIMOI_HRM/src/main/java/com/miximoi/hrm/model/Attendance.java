@@ -22,6 +22,10 @@ public class Attendance {
     private String status;        // ON_TIME | LATE | EARLY_LEAVE | ABSENT | OVERTIME | WFH | COMPLETE
     private String notes;
     private String method = "FaceID";
+    private Integer shiftId;
+    private String shiftName;
+    private LocalTime shiftStartTime;
+    private LocalTime shiftEndTime;
     private LocalDateTime createdAt;
 
     public Attendance() {}
@@ -35,8 +39,30 @@ public class Attendance {
     public String getMethod() { return method; }
     public void setMethod(String method) { this.method = method; }
 
-    public String getShiftTime() { return "08:30 - 17:30"; }
-    public String getShiftName() { return "Ca Hành chính"; }
+    public Integer getShiftId() { return shiftId; }
+    public void setShiftId(Integer shiftId) { this.shiftId = shiftId; }
+
+    public String getShiftName() {
+        return (shiftName != null && !shiftName.isBlank()) ? shiftName : "Ca Hành chính";
+    }
+    public void setShiftName(String shiftName) { this.shiftName = shiftName; }
+
+    public LocalTime getShiftStartTime() { return shiftStartTime; }
+    public void setShiftStartTime(LocalTime shiftStartTime) { this.shiftStartTime = shiftStartTime; }
+
+    public LocalTime getShiftEndTime() { return shiftEndTime; }
+    public void setShiftEndTime(LocalTime shiftEndTime) { this.shiftEndTime = shiftEndTime; }
+
+    public String getShiftTime() {
+        if (shiftStartTime != null && shiftEndTime != null) {
+            String s = shiftStartTime.toString();
+            String e = shiftEndTime.toString();
+            if (s.length() > 5) s = s.substring(0, 5);
+            if (e.length() > 5) e = e.substring(0, 5);
+            return s + " - " + e;
+        }
+        return "08:30 - 17:30";
+    }
 
     public int getMinutesLate() {
         if (checkIn == null) return 0;
@@ -66,8 +92,20 @@ public class Attendance {
         return "LATE".equalsIgnoreCase(status) || "EARLY_LEAVE".equalsIgnoreCase(status) || "ABSENT".equalsIgnoreCase(status);
     }
 
+    /**
+     * [F3.3 FIX] Chỉ true nếu notes do NHÂN VIÊN nhập (giải trình thực sự).
+     * Loại trừ các notes hệ thống tự động ghi.
+     */
     public boolean isHasExplain() {
-        return notes != null && !notes.trim().isEmpty();
+        if (notes == null || notes.trim().isEmpty()) return false;
+        String n = notes.trim();
+        // Loại trừ các ghi chú tự động của hệ thống
+        return !n.startsWith("Xác thực bằng")
+                && !n.startsWith("Check-in bằng")
+                && !n.startsWith("Check-out")
+                && !n.startsWith("WFH —")
+                && !n.startsWith("Nghỉ phép")
+                && !n.startsWith("Vắng mặt");
     }
 
     // ===== Getters & Setters =====

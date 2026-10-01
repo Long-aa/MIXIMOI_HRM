@@ -21,18 +21,30 @@ public class LeaveRequest {
     private String leaveType;          // ANNUAL | SICK | PERSONAL | WEDDING | MATERNITY | UNPAID
     private LocalDate startDate;
     private LocalDate endDate;
-    private double days;               // Số ngày nghỉ (vd: 2.5, 2.0, 5.0, 3.0)
+    private double days;               // Số ngày nghỉ (vd: 2.5, 2.0, 5.0, 3.0, 0.5)
     private int totalDays;             // Giữ tương thích với DB integer
     private String timeNote;           // Ghi chú thời gian (vd: "Bắt đầu lúc 08:30", "Kèm giấy ra viện")
+    private String leaveSession = "ALL_DAY"; // ALL_DAY | MORNING | AFTERNOON
 
     private String reason;             // Lý do nghỉ
     private String handoverPerson;     // Bàn giao công việc (Tên & SĐT/email)
 
-    // Quy trình phê duyệt (TP -> HR)
+    // Quy trình phê duyệt 2 cấp (TP -> HR)
+    private Integer managerId;
+    private String managerName;
+    private LocalDateTime managerApprovedAt;
+    private String managerNote;
+
+    private Integer hrId;
+    private String hrName;
+    private LocalDateTime hrApprovedAt;
+
+    private String attachmentUrl;      // Chứng từ y tế, đơn xác nhận, ảnh giấy tờ...
+
     private String managerStatus;      // PENDING | APPROVED | REJECTED
     private String hrStatus;           // PENDING | APPROVED | REJECTED
 
-    private String status;             // PENDING | APPROVED | REJECTED | CANCELLED
+    private String status;             // PENDING | MANAGER_APPROVED | APPROVED | REJECTED | CANCELLED
     private int approvedById;
     private String approvedByName;
     private LocalDateTime approvedAt;
@@ -102,6 +114,19 @@ public class LeaveRequest {
     public String getTimeNote() { return timeNote; }
     public void setTimeNote(String timeNote) { this.timeNote = timeNote; }
 
+    public String getLeaveSession() { return leaveSession; }
+    public void setLeaveSession(String leaveSession) { this.leaveSession = leaveSession; }
+
+    public boolean isHalfDay() {
+        return days == 0.5 || "MORNING".equalsIgnoreCase(leaveSession) || "AFTERNOON".equalsIgnoreCase(leaveSession);
+    }
+
+    public String getDaysDisplay() {
+        if (days == 0.5) return "0.5 ngày";
+        if (days == (long) days) return String.format("%d ngày", (long) days);
+        return String.format("%.1f ngày", days);
+    }
+
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
 
@@ -139,40 +164,66 @@ public class LeaveRequest {
 
     public String getLeaveTypeDisplay() {
         if (leaveType == null) return "Phép năm thường niên";
-        switch (leaveType.toUpperCase()) {
-            case "ANNUAL": return "Phép năm thường niên";
-            case "SICK": return "Nghỉ ốm đau / BHYT";
-            case "UNPAID": return "Nghỉ không hưởng lương";
-            case "WEDDING":
-            case "PERSONAL": return "Nghỉ cưới hỏi (Có lương)";
-            case "MATERNITY": return "Chế độ Thai sản";
-            default: return leaveType;
-        }
+        return switch (leaveType.toUpperCase()) {
+            case "ANNUAL" -> "Phép năm thường niên";
+            case "SICK" -> "Nghỉ ốm đau / BHYT";
+            case "UNPAID" -> "Nghỉ không hưởng lương";
+            case "WEDDING", "PERSONAL" -> "Nghỉ cưới hỏi (Có lương)";
+            case "MATERNITY" -> "Chế độ Thai sản";
+            default -> leaveType;
+        };
     }
 
     public String getLeaveTypeBadgeClass() {
         if (leaveType == null) return "badge-leave-annual";
-        switch (leaveType.toUpperCase()) {
-            case "ANNUAL": return "badge-leave-annual";      // blue
-            case "SICK": return "badge-leave-sick";          // purple
-            case "UNPAID": return "badge-leave-unpaid";      // gray
-            case "WEDDING":
-            case "PERSONAL": return "badge-leave-wedding";   // cyan
-            case "MATERNITY": return "badge-leave-maternity";// teal
-            default: return "badge-leave-default";
-        }
+        return switch (leaveType.toUpperCase()) {
+            case "ANNUAL" -> "badge-leave-annual";      // blue
+            case "SICK" -> "badge-leave-sick";          // purple
+            case "UNPAID" -> "badge-leave-unpaid";      // gray
+            case "WEDDING", "PERSONAL" -> "badge-leave-wedding";   // cyan
+            case "MATERNITY" -> "badge-leave-maternity";// teal
+            default -> "badge-leave-default";
+        };
     }
+
+    public Integer getManagerId() { return managerId; }
+    public void setManagerId(Integer managerId) { this.managerId = managerId; }
+
+    public String getManagerName() { return managerName; }
+    public void setManagerName(String managerName) { this.managerName = managerName; }
+
+    public LocalDateTime getManagerApprovedAt() { return managerApprovedAt; }
+    public void setManagerApprovedAt(LocalDateTime managerApprovedAt) { this.managerApprovedAt = managerApprovedAt; }
+
+    public String getManagerNote() { return managerNote; }
+    public void setManagerNote(String managerNote) { this.managerNote = managerNote; }
+
+    public Integer getHrId() { return hrId; }
+    public void setHrId(Integer hrId) { this.hrId = hrId; }
+
+    public String getHrName() { return hrName; }
+    public void setHrName(String hrName) { this.hrName = hrName; }
+
+    public LocalDateTime getHrApprovedAt() { return hrApprovedAt; }
+    public void setHrApprovedAt(LocalDateTime hrApprovedAt) { this.hrApprovedAt = hrApprovedAt; }
+
+    public String getAttachmentUrl() { return attachmentUrl; }
+    public void setAttachmentUrl(String attachmentUrl) { this.attachmentUrl = attachmentUrl; }
 
     public String getStatusBadgeClass() {
         if ("APPROVED".equalsIgnoreCase(status)) return "status-pill approved";
+        if ("MANAGER_APPROVED".equalsIgnoreCase(status)) return "status-pill manager-approved";
         if ("REJECTED".equalsIgnoreCase(status)) return "status-pill rejected";
+        if ("CANCELLED".equalsIgnoreCase(status)) return "status-pill cancelled";
         return "status-pill pending";
     }
 
     public String getStatusDisplay() {
         if ("APPROVED".equalsIgnoreCase(status)) return "Đã duyệt";
+        if ("MANAGER_APPROVED".equalsIgnoreCase(status)) return "Chờ HR duyệt";
         if ("REJECTED".equalsIgnoreCase(status)) return "Từ chối";
-        return "Chờ duyệt";
+        if ("CANCELLED".equalsIgnoreCase(status)) return "Đã hủy";
+        return "Chờ TP duyệt";
     }
 
     @Override

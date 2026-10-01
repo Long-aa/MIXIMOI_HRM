@@ -57,3 +57,81 @@ body {
     gap: 10px;
     border: 1px solid #cbd5e1;
 }
+
+/* Digital Corporate Seal (Dấu mộc tròn đỏ) */
+.seal-wrapper {
+    position: relative;
+    display: inline-block;
+}
+.digital-seal {
+    position: absolute;
+    top: -75px;
+    left: 50%;
+    transform: translateX(-35%) rotate(-12deg);
+    width: 140px;
+    height: 140px;
+    border: 3px double #dc2626;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #dc2626;
+    background: rgba(254, 242, 242, 0.45);
+    box-shadow: 0 0 4px rgba(220, 38, 38, 0.2);
+    pointer-events: none;
+    user-select: none;
+}
+.digital-seal .seal-star {
+    font-size: 1.1rem;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+.digital-seal .seal-corp {
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1.1;
+    padding: 0 8px;
+}
+.digital-seal .seal-inner {
+    border-top: 1px solid #dc2626;
+    border-bottom: 1px solid #dc2626;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 4px;
+    margin: 3px 0;
+    text-transform: uppercase;
+}
+.digital-seal .seal-date {
+    font-size: 0.58rem;
+    font-weight: bold;
+}
+
+/* QR Code & Security Verification Header */
+.contract-verification-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 0.8rem;
+    color: #475569;
+}
+.contract-qr-img {
+    width: 72px;
+    height: 72px;
+    border-radius: 4px;
+    background: #fff;
+    padding: 2px;
+    border: 1px solid #e2e8f0;
+}
+.contract-security-id {
+    font-family: monospace;
+    font-weight: 700;
+    color: #0f172a;
+}

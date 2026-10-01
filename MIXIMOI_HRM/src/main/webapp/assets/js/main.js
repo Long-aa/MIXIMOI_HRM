@@ -213,12 +213,17 @@ function initSidebar() {
    ============================================================ */
 function initSearchShortcut() {
   const searchInput = document.querySelector('.topbar-search-input');
-  if (!searchInput) return;
   window.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
-      searchInput.focus();
-      searchInput.select();
+      const modalEl = document.getElementById('quickSearchModal');
+      if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+      } else if (searchInput) {
+        searchInput.focus();
+        searchInput.select();
+      }
     }
   });
 }
@@ -322,13 +327,134 @@ initPageLoadAnimation();
 initNavigationInterceptor();
 
 // Khởi động sau khi DOM sẵn sàng
+/* ============================================================
+   12. ENTERPRISE TOAST SYSTEM
+   ============================================================ */
+window.MixiToast = (() => {
+  let container = null;
+  function ensureContainer() {
+    if (!container) {
+      container = document.getElementById('mixi-toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'mixi-toast-container';
+        container.style.cssText = 'position:fixed;top:24px;right:24px;z-index:1099;display:flex;flex-direction:column;gap:12px;pointer-events:none;max-width:380px;width:calc(100% - 48px);';
+        document.body.appendChild(container);
+      }
+    }
+    return container;
+  }
+
+  function show(type, title, message, duration = 4500) {
+    const c = ensureContainer();
+    const toast = document.createElement('div');
+    toast.className = `mixi-toast mixi-toast-${type}`;
+    toast.style.cssText = 'pointer-events:auto;background:rgba(255,255,255,0.96);backdrop-filter:blur(10px);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,0.12);padding:14px 18px;display:flex;align-items:flex-start;gap:12px;border-left:4px solid #3b82f6;animation:toastIn 0.35s cubic-bezier(0.16,1,0.3,1);transition:all 0.3s ease;';
+    
+    let iconClass = 'bi-info-circle-fill text-primary';
+    let borderColor = '#3b82f6';
+    if (type === 'success') { iconClass = 'bi-check-circle-fill text-success'; borderColor = '#10b981'; }
+    else if (type === 'error') { iconClass = 'bi-exclamation-octagon-fill text-danger'; borderColor = '#ef4444'; }
+    else if (type === 'warning') { iconClass = 'bi-exclamation-triangle-fill text-warning'; borderColor = '#f59e0b'; }
+    
+    toast.style.borderLeftColor = borderColor;
+    toast.innerHTML = 
+      '<i class="bi ' + iconClass + ' fs-5" style="margin-top:1px;"></i>' +
+      '<div style="flex:1;">' +
+        '<div style="font-weight:700;font-size:0.875rem;color:#0f172a;margin-bottom:2px;">' + title + '</div>' +
+        '<div style="font-size:0.8rem;color:#475569;line-height:1.4;">' + message + '</div>' +
+      '</div>' +
+      '<button type="button" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.1rem;padding:0;line-height:1;" onclick="this.parentElement.remove();">&times;</button>';
+    c.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(50px)';
+      setTimeout(() => toast.remove(), 350);
+    }, duration);
+  }
+
+  return {
+    show: show,
+    success: (t, m) => show('success', t, m),
+    error: (t, m) => show('error', t, m),
+    warning: (t, m) => show('warning', t, m),
+    info: (t, m) => show('info', t, m)
+  };
+})();
+
+// Global convenience helper
+window.showToast = function(msg, type = 'success', title = '') {
+  if (!title) {
+    title = type === 'success' ? 'Thành công' : type === 'error' ? 'Lỗi' : type === 'warning' ? 'Cảnh báo' : 'Thông báo';
+  }
+  if (window.MixiToast) {
+    window.MixiToast[type] ? window.MixiToast[type](title, msg) : window.MixiToast.info(title, msg);
+  }
+};
+
+/* Tự động bắt thông điệp từ URL params (success, error, info) để hiển thị Toast đẹp và dọn dẹp URL */
+function initUrlToastDetector() {
+  const params = new URLSearchParams(window.location.search);
+  const success = params.get('success');
+  const error = params.get('error');
+  const info = params.get('info');
+
+  const messages = {
+    // Attendance messages
+    'checkin': 'Điểm danh vào ca thành công! Chúc bạn ngày làm việc hiệu quả 🎉',
+    'checkout': 'Ghi nhận Check-out thành công! Ca làm việc đã được lưu an toàn.',
+    'approved': 'Phê duyệt thành công!',
+    'manager_approved': 'Trưởng phòng đã phê duyệt Cấp 1 thành công!',
+    'marked_ontime': 'Đã xác nhận đúng giờ cho các bản ghi được chọn!',
+    'deleted': 'Đã xóa bản ghi thành công!',
+    'submitted': 'Đã gửi yêu cầu thành công!',
+    'updated': 'Đã cập nhật dữ liệu thành công!',
+    'explained': 'Đã gửi giải trình công thành công!',
+    'cancelled': 'Đã hủy thành công!',
+    'exported': 'Đã xuất dữ liệu thành công!',
+    'locked': 'Đã khóa bảng công thành công!',
+    'unlocked': 'Đã mở khóa bảng công thành công!'
+  };
+
+  const errorMessages = {
+    'timesheet_locked': 'Bảng công kỳ này đã được khóa. Dữ liệu đã đóng băng, không thể chỉnh sửa!',
+    'on_leave': 'Hôm nay bạn đang trong thời gian nghỉ phép đã được phê duyệt.',
+    'not_checked_in': 'Bạn chưa thực hiện Check-in nên không thể ghi nhận Check-out!',
+    'already_checked_in': 'Bạn đã hoàn thành Check-in trước đó trong ngày!',
+    'already_checked_out': 'Bạn đã hoàn thành Check-out hôm nay!',
+    'checkin_failed': 'Thao tác chấm công không thành công, vui lòng thử lại!'
+  };
+
+  if (success && window.MixiToast) {
+    const text = messages[success] || decodeURIComponent(success);
+    window.MixiToast.success('Thao tác thành công', text);
+  } else if (error && window.MixiToast) {
+    const text = errorMessages[error] || decodeURIComponent(error);
+    window.MixiToast.error('Không thể thực hiện', text);
+  } else if (info && window.MixiToast) {
+    const text = errorMessages[info] || decodeURIComponent(info);
+    window.MixiToast.info('Thông báo', text);
+  }
+
+  // Dọn dẹp params khỏi thanh địa chỉ browser để F5 không lặp lại toast
+  if (success || error || info) {
+    params.delete('success');
+    params.delete('error');
+    params.delete('info');
+    params.delete('method');
+    const newSearch = params.toString();
+    const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+    window.history.replaceState({}, document.title, newUrl);
+  }
+}
+
+// Khởi động sau khi DOM sẵn sàng
 document.addEventListener('DOMContentLoaded', () => {
   initSidebar();
   initSearchShortcut();
   initDateDisplay();
   initAutoDismissAlerts();
   initLinkPrefetch();
+  initUrlToastDetector();
 });
-
-
-

@@ -58,16 +58,25 @@
 
                     <!-- Action Buttons -->
                     <c:if test="${sessionScope.currentUser.role eq 'ADMIN' or sessionScope.currentUser.role eq 'ACCOUNTANT'}">
-                        <form method="post" action="${pageContext.request.contextPath}/payroll" class="d-inline"
-                              onsubmit="return confirm('Hệ thống sẽ tự động tính toán lương tháng ${selectedMonth}/${selectedYear} cho toàn bộ nhân viên. Tiếp tục?');">
-                            <input type="hidden" name="action" value="calculate">
-                            <input type="hidden" name="month" value="${selectedMonth}">
-                            <input type="hidden" name="year" value="${selectedYear}">
-                            <button type="submit" class="btn-action-primary border-0">
-                                <i class="bi bi-lightning-charge-fill"></i>
-                                <span>Tính lương tự động</span>
-                            </button>
-                        </form>
+                        <c:choose>
+                            <c:when test="${isTimesheetLocked}">
+                                <form method="post" action="${pageContext.request.contextPath}/payroll" class="d-inline">
+                                    <input type="hidden" name="action" value="calculate">
+                                    <input type="hidden" name="month" value="${selectedMonth}">
+                                    <input type="hidden" name="year" value="${selectedYear}">
+                                    <button type="button" id="btnRunPayrollCalc" class="btn-action-primary border-0" title="Tính toán bảng lương tự động">
+                                        <i class="bi bi-lightning-charge-fill"></i>
+                                        <span>Tính lương tự động</span>
+                                    </button>
+                                </form>
+                            </c:when>
+                            <c:otherwise>
+                                <button type="button" class="btn-action-primary border-0" data-bs-toggle="modal" data-bs-target="#timesheetLockGuardModal" title="Bảng công chưa khóa - Cần khóa chốt trước khi tính lương">
+                                    <i class="bi bi-lightning-charge-fill"></i>
+                                    <span>Tính lương tự động</span>
+                                </button>
+                            </c:otherwise>
+                        </c:choose>
                         <form method="post" action="${pageContext.request.contextPath}/payroll" class="d-inline"
                               onsubmit="return confirm('Xác nhận phê duyệt toàn bộ bảng lương tháng ${selectedMonth}/${selectedYear}?');">
                             <input type="hidden" name="action" value="approve_all">
@@ -84,6 +93,12 @@
                        class="btn-action-light text-decoration-none" title="Tải xuống bảng lương định dạng CSV/Excel">
                         <i class="bi bi-file-earmark-excel text-success"></i>
                         <span>Xuất Excel</span>
+                    </a>
+
+                    <a href="${pageContext.request.contextPath}/payroll?action=export_bank&month=${selectedMonth}&year=${selectedYear}&deptId=${selectedDeptId}&status=${selectedStatus}&keyword=${keyword}" 
+                       class="btn-action-light text-decoration-none" title="Xuất file Lệnh chi Lương Ngân hàng (Vietcombank / BIDV / Techcombank)">
+                        <i class="bi bi-bank text-primary"></i>
+                        <span>Lệnh chi Ngân hàng</span>
                     </a>
 
                     <button type="button" class="btn-action-light" onclick="window.print();">
@@ -126,6 +141,23 @@
                         <c:when test="${param.success eq 'approved'}">Phê duyệt bảng lương thành công!</c:when>
                         <c:when test="${param.success eq 'approved_all'}">Đã phê duyệt toàn bộ bảng lương tháng ${selectedMonth}/${selectedYear}!</c:when>
                         <c:when test="${param.success eq 'paid'}">Ghi nhận hoàn tất chi trả thanh toán lương!</c:when>
+                        <c:when test="${param.success eq 'locked'}">Đã khóa chốt dữ liệu kỳ bảng lương và bảng công tháng ${selectedMonth}/${selectedYear}!</c:when>
+                        <c:when test="${param.success eq 'unlocked'}">Đã mở khóa kỳ bảng lương tháng ${selectedMonth}/${selectedYear} để hiệu chỉnh bổ sung!</c:when>
+                    </c:choose>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </c:if>
+
+            <c:if test="${not empty param.error}">
+                <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+                    <i class="bi bi-shield-x me-2 text-danger fs-5"></i>
+                    <c:choose>
+                        <c:when test="${param.error eq 'timesheet_not_locked'}">
+                            <strong>Ràng buộc kiểm soát nội bộ (Timesheet Lock Guard):</strong> Bảng công Tháng ${selectedMonth < 10 ? '0' : ''}${selectedMonth}/${selectedYear} chưa được khóa chốt! Vui lòng đối soát và khóa bảng công trước, hoặc bấm <strong>"Tính lương tự động"</strong> để dùng tùy chọn <em>"Khóa bảng công &amp; Tính lương ngay"</em>.
+                        </c:when>
+                        <c:otherwise>
+                            Đã xảy ra lỗi trong quá trình xử lý: <strong>${param.error}</strong>
+                        </c:otherwise>
                     </c:choose>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
@@ -137,7 +169,7 @@
                     <div class="alert alert-info border-0 shadow-sm mb-4 d-flex align-items-center justify-content-between py-2 px-3" style="border-radius:10px; background:#eff6ff; color:#1e40af; font-size:0.85rem;">
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-shield-check text-primary fs-5"></i>
-                            <span><strong>Bảng công Tháng ${selectedMonth}/${selectedYear} đã được Khóa chốt:</strong> Dữ liệu chấm công thực tế đã sẵn sàng và được đồng bộ chuẩn xác vào bảng lương.</span>
+                            <span><strong>Bảng công Tháng ${selectedMonth}/${selectedYear} đã được Khóa chốt:</strong> Dữ liệu chấm công thực tế đã sẵn sàng và được bảo vệ để tính toán bảng lương khép kín 100%.</span>
                         </div>
                         <a href="${pageContext.request.contextPath}/timesheet?month=${selectedMonth}&year=${selectedYear}" class="btn btn-sm btn-outline-primary px-3 py-1" style="font-size:0.78rem; font-weight:600; border-radius:8px;">
                             <i class="bi bi-calendar3 me-1"></i>Xem bảng công
@@ -147,12 +179,17 @@
                 <c:otherwise>
                     <div class="alert alert-warning border-0 shadow-sm mb-4 d-flex align-items-center justify-content-between py-2 px-3" style="border-radius:10px; background:#fffbeb; color:#92400e; font-size:0.85rem;">
                         <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
-                            <span><strong>Lưu ý đối soát công:</strong> Bảng công Tháng ${selectedMonth}/${selectedYear} <u>chưa được khóa</u>. Để đảm bảo công và lương chuẩn 100%, nên đối soát và chốt bảng công trước khi thanh toán.</span>
+                            <i class="bi bi-shield-exclamation text-warning fs-5"></i>
+                            <span><strong>Kiểm soát chuỗi Chấm công &rarr; Lương:</strong> Bảng công Tháng ${selectedMonth}/${selectedYear} <u>chưa được khóa</u>. Vui lòng đối soát và khóa bảng công trước khi tính lương để đảm bảo số liệu chính xác 100%.</span>
                         </div>
-                        <a href="${pageContext.request.contextPath}/timesheet?month=${selectedMonth}&year=${selectedYear}" class="btn btn-sm btn-warning text-dark px-3 py-1 fw-bold" style="font-size:0.78rem; border-radius:8px;">
-                            <i class="bi bi-lock me-1"></i>Đối soát &amp; Chốt công
-                        </a>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-primary px-3 py-1 fw-bold" data-bs-toggle="modal" data-bs-target="#timesheetLockGuardModal" style="font-size:0.78rem; border-radius:8px;">
+                                <i class="bi bi-shield-lock me-1"></i>Khóa &amp; Tính lương
+                            </button>
+                            <a href="${pageContext.request.contextPath}/timesheet?month=${selectedMonth}&year=${selectedYear}" class="btn btn-sm btn-outline-warning text-dark px-3 py-1 fw-semibold" style="font-size:0.78rem; border-radius:8px;">
+                                <i class="bi bi-eye me-1"></i>Đối soát công
+                            </a>
+                        </div>
                     </div>
                 </c:otherwise>
             </c:choose>
@@ -594,6 +631,112 @@
         </div>
     </main>
 </div>
+
+<!-- Timesheet Lock Guard Modal -->
+<div class="modal fade" id="timesheetLockGuardModal" tabindex="-1" aria-labelledby="timesheetLockGuardModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header bg-warning bg-opacity-10 border-0 p-4 pb-2">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-warning text-white p-2 d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                        <i class="bi bi-shield-exclamation fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0" id="timesheetLockGuardModalLabel">Kiểm soát nội bộ: Khóa Bảng công</h5>
+                        <small class="text-muted">Ràng buộc chuỗi quy trình Chấm công &rarr; Lương</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 pt-3">
+                <div class="alert alert-warning border-0 p-3 mb-3" style="border-radius: 10px; font-size: 0.9rem;">
+                    <strong>Bảng công Tháng ${selectedMonth < 10 ? '0' : ''}${selectedMonth}/${selectedYear} hiện chưa được Khóa chốt!</strong>
+                    <div class="mt-1 text-muted" style="font-size: 0.82rem;">
+                        Theo quy chuẩn kiểm soát tài chính - nhân sự, dữ liệu chấm công cần được đóng băng trước khi tính lương để đảm bảo tính bất biến, minh bạch và không phát sinh sai lệch khi giải trình.
+                    </div>
+                </div>
+                
+                <p class="mb-3 text-secondary" style="font-size: 0.9rem;">
+                    Hệ thống cung cấp 2 phương án xử lý chuẩn doanh nghiệp:
+                </p>
+
+                <div class="d-flex flex-column gap-2">
+                    <!-- Option 1: 1-Click Lock & Calculate -->
+                    <form method="post" action="${pageContext.request.contextPath}/payroll" class="w-100">
+                        <input type="hidden" name="action" value="calculate">
+                        <input type="hidden" name="month" value="${selectedMonth}">
+                        <input type="hidden" name="year" value="${selectedYear}">
+                        <input type="hidden" name="confirmLock" value="true">
+                        <button type="button" id="btnGuardRunPayrollCalc" class="btn btn-primary w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm" style="border-radius: 10px; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border: none;">
+                            <i class="bi bi-shield-lock-fill"></i>
+                            <span>Khóa bảng công &amp; Tính lương ngay (1-Click)</span>
+                        </button>
+                    </form>
+
+                    <!-- Option 2: Go to Timesheet to inspect & lock manually -->
+                    <a href="${pageContext.request.contextPath}/timesheet?month=${selectedMonth}&year=${selectedYear}" class="btn btn-outline-secondary w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2" style="border-radius: 10px;">
+                        <i class="bi bi-table"></i>
+                        <span>Xem &amp; Đối soát bảng công chi tiết trước</span>
+                    </a>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 pt-0 justify-content-center">
+                <button type="button" class="btn btn-link text-muted text-decoration-none btn-sm" data-bs-dismiss="modal">Đóng / Hủy bỏ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payroll Calculation Progress Overlay Modal -->
+<div class="modal fade" id="payrollCalculationModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden;">
+            <div class="modal-header border-0 bg-primary text-white py-3 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="spinner-border spinner-border-sm text-light" role="status"></div>
+                    <h6 class="modal-title fw-bold mb-0">Hệ thống Động cơ Tính Lương (Payroll Engine)</h6>
+                </div>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-3">
+                    <div class="fw-bold text-dark fs-6" id="payrollCalcStatusTitle">Đang khởi chạy động cơ tính lương kỳ ${selectedMonth}/${selectedYear}...</div>
+                    <div class="text-muted small mt-1">Vui lòng không tắt hoặc tải lại trang trong khi hệ thống đang xử lý dữ liệu.</div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="progress mb-4" style="height: 10px; border-radius: 999px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" id="payrollCalcProgressBar" role="progressbar" style="width: 15%;"></div>
+                </div>
+
+                <!-- Step Checklist -->
+                <div class="d-flex flex-column gap-2" id="payrollCalcStepsList" style="font-size: 0.85rem;">
+                    <div class="d-flex align-items-center gap-2 text-primary fw-semibold" id="pstep1">
+                        <i class="bi bi-arrow-repeat spin"></i>
+                        <span>1. Kiểm tra trạng thái khóa chốt bảng chấm công tháng ${selectedMonth}/${selectedYear}</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 text-muted" id="pstep2">
+                        <i class="bi bi-circle"></i>
+                        <span>2. Tổng hợp ngày công thực tế, nghỉ phép hưởng lương &amp; giờ làm thêm (OT)</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 text-muted" id="pstep3">
+                        <i class="bi bi-circle"></i>
+                        <span>3. Áp dụng bảng phụ cấp chức vụ, ăn trưa &amp; tiền thưởng hiệu suất</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 text-muted" id="pstep4">
+                        <i class="bi bi-circle"></i>
+                        <span>4. Trích nộp bảo hiểm bắt buộc (BHXH, BHYT, BHTN 10.5%) &amp; Thuế TNCN lũy tiến 7 bậc</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 text-muted" id="pstep5">
+                        <i class="bi bi-circle"></i>
+                        <span>5. Tạo snapshot chi tiết phiếu lương và lưu trữ bất biến</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="${pageContext.request.contextPath}/assets/js/payroll.js"></script>
 
 <!-- Shared JavaScript dependencies -->
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

@@ -23,9 +23,9 @@
                 padding: 0 !important;
                 margin: 0 !important;
             }
-            .payslip-a4-sheet {
+            .payslip-a4-sheet, .payslip-paper-card {
                 box-shadow: none !important;
-                border: none !important;
+                border: 1px solid #cbd5e1 !important;
                 margin: 0 auto !important;
                 width: 100% !important;
                 max-width: 100% !important;
@@ -86,12 +86,17 @@
                                             <i class="bi bi-patch-check-fill"></i> Đã chi trả thành công
                                         </span>
                                     </c:when>
+                                    <c:when test="${payroll.status eq 'PROCESSING_PAYMENT'}">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle d-inline-flex align-items-center gap-1">
+                                            <i class="bi bi-arrow-repeat"></i> Đang chi trả Ngân hàng
+                                        </span>
+                                    </c:when>
                                     <c:when test="${payroll.status eq 'APPROVED'}">
                                         <span class="badge bg-info-subtle text-info border border-info-subtle d-inline-flex align-items-center gap-1">
                                             <i class="bi bi-check-circle-fill"></i> Đã phê duyệt — Chờ chi trả
                                         </span>
                                     </c:when>
-                                    <c:when test="${payroll.status eq 'PENDING'}">
+                                    <c:when test="${payroll.status eq 'PENDING' or payroll.status eq 'PENDING_APPROVAL'}">
                                         <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle d-inline-flex align-items-center gap-1">
                                             <i class="bi bi-hourglass-split"></i> Chờ phê duyệt
                                         </span>
@@ -155,6 +160,11 @@
                                         <c:when test="${payroll.status eq 'PAID'}">
                                             <span class="badge bg-success-subtle text-success border border-success-subtle mt-1" style="font-size:0.7rem;">
                                                 <i class="bi bi-check-circle-fill"></i> ĐÃ THANH TOÁN
+                                            </span>
+                                        </c:when>
+                                        <c:when test="${payroll.status eq 'PROCESSING_PAYMENT'}">
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle mt-1" style="font-size:0.7rem;">
+                                                <i class="bi bi-arrow-repeat"></i> ĐANG CHI TRẢ
                                             </span>
                                         </c:when>
                                         <c:when test="${payroll.status eq 'APPROVED'}">

@@ -85,6 +85,10 @@ public class EmployeeDAO {
             } else {
                 sql.append("AND e.status = ? ");
             }
+        } else {
+            // Mặc định: ẩn nhân viên đã nghỉ việc/lưu trữ trong tab "Tất cả"
+            // Nhất quán với findAll() — INACTIVE/TERMINATED chỉ hiện khi lọc tường minh
+            sql.append("AND e.status NOT IN ('INACTIVE', 'TERMINATED') ");
         }
         if ("NEW".equalsIgnoreCase(status != null ? status.trim() : "")) {
             sql.append("ORDER BY e.start_date DESC, e.employee_code");

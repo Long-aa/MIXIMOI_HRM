@@ -58,8 +58,11 @@ public class DatabaseInitializer {
             // 9. Nạp khấu trừ & tạm ứng mẫu nếu trống
             seedSalaryDeductionsIfEmpty(conn);
 
-            // 9.5 Đồng bộ Hợp đồng lao động cho tất cả nhân sự
-            syncContractsIfEmpty(conn);
+            // 9.5 Dọn dẹp mock data hợp đồng tự sinh trùng lặp (chỉ giữ hợp đồng chuẩn thực tế trong CSDL)
+            cleanupMockContracts(conn);
+
+            // 9.6 Dọn dẹp các bản ghi chấm công tương lai bất hợp lý (> ngày hiện tại)
+            cleanupMockAttendance(conn);
 
             // 10. Nạp bảng lương & lệnh chi mẫu nếu trống
             seedPayrollAndPaymentsIfEmpty(conn);
@@ -330,7 +333,39 @@ public class DatabaseInitializer {
 
             // Đồng bộ trừ giờ nghỉ trưa cho các bản ghi về sớm bị lưu nhầm 8.0h
             "UPDATE attendance SET total_hours = ROUND(GREATEST(0.1, (EXTRACT(EPOCH FROM (check_out - check_in))/60 - CASE WHEN EXTRACT(EPOCH FROM (check_out - check_in))/60 >= 300 THEN 60 ELSE 0 END)/60.0)::numeric, 1) "
-            + "WHERE check_in IS NOT NULL AND check_out IS NOT NULL AND status = 'EARLY_LEAVE' AND total_hours = 8.0"
+            + "WHERE check_in IS NOT NULL AND check_out IS NOT NULL AND status = 'EARLY_LEAVE' AND total_hours = 8.0",
+
+            // [F1.3] Liên kết nhân viên và chấm công với ca làm việc (work_shifts)
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS default_shift_id INT REFERENCES work_shifts(id)",
+            "ALTER TABLE attendance ADD COLUMN IF NOT EXISTS shift_id INT REFERENCES work_shifts(id)",
+
+            // [F2.2] Bảng attendance_explain_requests phục vụ giải trình O(1)
+            "CREATE TABLE IF NOT EXISTS attendance_explain_requests ("
+            + "id SERIAL PRIMARY KEY, "
+            + "attendance_id INTEGER NOT NULL REFERENCES attendance(id) ON DELETE CASCADE, "
+            + "employee_id INTEGER NOT NULL REFERENCES employees(id), "
+            + "reason TEXT NOT NULL, "
+            + "status VARCHAR(20) NOT NULL DEFAULT 'PENDING', "
+            + "reviewed_by INTEGER REFERENCES users(id), "
+            + "reviewed_at TIMESTAMP, "
+            + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, "
+            + "UNIQUE (attendance_id))",
+            "CREATE INDEX IF NOT EXISTS idx_explain_status ON attendance_explain_requests(status)",
+            "CREATE INDEX IF NOT EXISTS idx_explain_emp ON attendance_explain_requests(employee_id)",
+
+            // ===== Enterprise Composite Indexes (Tối ưu hóa hiệu năng truy vấn lớn) =====
+            "CREATE INDEX IF NOT EXISTS idx_attendance_emp_date ON attendance(employee_id, work_date DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_payroll_period_status ON payroll(pay_month, pay_year, status)",
+            "CREATE INDEX IF NOT EXISTS idx_leave_emp_dates ON leave_requests(employee_id, start_date, end_date)",
+            "CREATE INDEX IF NOT EXISTS idx_overtime_emp_date ON overtime(employee_id, overtime_date DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_contracts_emp_status ON contracts(employee_id, status)",
+
+            // Seed mặc định work_shifts nếu chưa có
+            "INSERT INTO work_shifts (name, start_time, end_time, standard_hours, description) VALUES "
+            + "('Ca hành chính', '08:30', '17:30', 8.0, 'Ca làm việc tiêu chuẩn 8h'), "
+            + "('Ca sáng', '07:00', '11:30', 4.5, 'Ca làm việc buổi sáng'), "
+            + "('Ca chiều', '13:00', '17:30', 4.5, 'Ca làm việc buổi chiều') "
+            + "ON CONFLICT (name) DO NOTHING"
         };
 
         for (String sql : alterSqls) {
@@ -846,88 +881,31 @@ public class DatabaseInitializer {
         }
     }
 
-    private static void syncContractsIfEmpty(Connection conn) throws SQLException {
-        // Kiểm tra xem đã có hợp đồng chưa
-        String countSql = "SELECT COUNT(*) FROM contracts";
-        int count = 0;
-        try (Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery(countSql)) {
-            if (rs.next()) count = rs.getInt(1);
-        }
-
-        // Lấy danh sách nhân viên chưa có hợp đồng
-        String missingSql = "SELECT e.id, e.employee_code, e.full_name, e.start_date, e.base_salary "
-                          + "FROM employees e "
-                          + "LEFT JOIN contracts c ON e.id = c.employee_id "
-                          + "WHERE c.id IS NULL AND (e.status IS NULL OR e.status != 'INACTIVE') "
-                          + "ORDER BY e.id";
-
-        List<Object[]> missingList = new ArrayList<>();
-        try (Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery(missingSql)) {
-            while (rs.next()) {
-                missingList.add(new Object[]{
-                    rs.getInt("id"),
-                    rs.getString("employee_code"),
-                    rs.getString("full_name"),
-                    rs.getDate("start_date"),
-                    rs.getBigDecimal("base_salary")
-                });
-            }
-        }
-
-        if (missingList.isEmpty()) return;
-
-        String insertContractSql = "INSERT INTO contracts (contract_code, employee_id, contract_type, start_date, end_date, "
-                                 + "base_salary, status, notes, signer_name, signer_title, work_location, "
-                                 + "allowance_amount, signed_date, contract_file_url) "
-                                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-        int contractNum = count + 1;
-        try (PreparedStatement ps = conn.prepareStatement(insertContractSql)) {
-            for (int i = 0; i < missingList.size(); i++) {
-                Object[] row = missingList.get(i);
-                int empId = (Integer) row[0];
-                Date startDate = (Date) row[3];
-                BigDecimal salary = (BigDecimal) row[4];
-                if (salary == null || salary.compareTo(BigDecimal.ZERO) <= 0) {
-                    salary = new BigDecimal("22500000");
-                }
-
-                String code = String.format("HD%03d", contractNum++);
-                String cType = (i % 3 == 0) ? "INDEFINITE" : "FIXED_TERM";
-                LocalDate sDate = (startDate != null) ? startDate.toLocalDate() : LocalDate.of(2024, 1, 15);
-                LocalDate eDate = "INDEFINITE".equals(cType) ? null : sDate.plusYears(2);
-                String status = "ACTIVE";
-                // Tạo 1-2 hợp đồng sắp hết hạn để test cảnh báo
-                if (i == 1 && !"INDEFINITE".equals(cType)) {
-                    status = "EXPIRING_SOON";
-                    eDate = LocalDate.now().plusDays(20);
-                }
-
-                ps.setString(1, code);
-                ps.setInt(2, empId);
-                ps.setString(3, cType);
-                ps.setDate(4, Date.valueOf(sDate));
-                ps.setDate(5, eDate != null ? Date.valueOf(eDate) : null);
-                ps.setBigDecimal(6, salary);
-                ps.setString(7, status);
-                ps.setString(8, "Hợp đồng lao động tiêu chuẩn Tập đoàn MIXIMOI");
-                ps.setString(9, "Nguyễn Văn An");
-                ps.setString(10, "Tổng Giám Đốc");
-                ps.setString(11, "Trụ sở chính Landmark 81, TP. HCM");
-                ps.setBigDecimal(12, new BigDecimal("2500000"));
-                ps.setDate(13, Date.valueOf(sDate));
-                ps.setString(14, "/assets/docs/hop_dong_lao_dong_miximoi.pdf");
-                ps.addBatch();
-            }
-            ps.executeBatch();
-            System.out.println("[DatabaseInitializer] Đã đồng bộ " + missingList.size() + " hợp đồng lao động mẫu cho nhân sự!");
-        }
-
-        // Đảm bảo nhân viên mới nhất có ngày tạo gần đây để kiểm tra tag NEW
+    private static void cleanupMockContracts(Connection conn) {
         try (Statement st = conn.createStatement()) {
+            int deleted = st.executeUpdate("DELETE FROM contracts WHERE notes = 'Hợp đồng lao động tiêu chuẩn Tập đoàn MIXIMOI'");
+            if (deleted > 0) {
+                System.out.println("[DatabaseInitializer] Đã loại bỏ " + deleted + " bản ghi hợp đồng mockdata trùng lặp!");
+            }
+            // Dọn dẹp các hợp đồng trùng lặp sinh ra do test của nhân viên 1 (Nguyễn Văn An), chỉ giữ lại duy nhất HĐ chính thức HD001
+            int deletedTestContracts = st.executeUpdate(
+                "DELETE FROM contracts WHERE employee_id = 1 AND contract_code != 'HD001'"
+            );
+            if (deletedTestContracts > 0) {
+                System.out.println("[DatabaseInitializer] Đã dọn dẹp " + deletedTestContracts + " hợp đồng trùng lặp của Nguyễn Văn An!");
+            }
+            // Đảm bảo nhân viên mới nhất có ngày tạo gần đây để kiểm tra tag NEW
             st.executeUpdate("UPDATE employees SET created_at = CURRENT_TIMESTAMP, start_date = CURRENT_DATE WHERE employee_code = 'NV015'");
+        } catch (SQLException ignored) {}
+    }
+
+    private static void cleanupMockAttendance(Connection conn) {
+        try (Statement st = conn.createStatement()) {
+            // Loại bỏ các bản ghi chấm công có ngày làm việc trong tương lai (> ngày hiện tại)
+            int deletedFuture = st.executeUpdate("DELETE FROM attendance WHERE work_date > CURRENT_DATE");
+            if (deletedFuture > 0) {
+                System.out.println("[DatabaseInitializer] Đã dọn dẹp " + deletedFuture + " bản ghi chấm công tương lai bất hợp lý!");
+            }
         } catch (SQLException ignored) {}
     }
 

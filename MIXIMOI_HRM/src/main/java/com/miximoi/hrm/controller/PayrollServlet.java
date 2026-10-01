@@ -64,6 +64,10 @@ public class PayrollServlet extends HttpServlet {
             exportPayrollToCsv(response, month, year, deptId, status, keyword);
             return;
         }
+        if ("export_bank".equalsIgnoreCase(request.getParameter("action"))) {
+            exportBankPaymentBatch(response, month, year, deptId, status, keyword);
+            return;
+        }
 
         // Lấy danh sách bảng lương theo bộ lọc
         List<Payroll> allPayrolls = payrollDAO.search(month, year, deptId, status, keyword, 0, 0);
@@ -76,12 +80,14 @@ public class PayrollServlet extends HttpServlet {
         int        totalEmpCount = payrollDAO.countEmployeesByPeriod(month, year);
         int        countPaid     = payrollDAO.countByStatus(month, year, "PAID");
         int        countApproved = payrollDAO.countByStatus(month, year, "APPROVED");
-        int        countPending  = payrollDAO.countByStatus(month, year, "PENDING");
+        int        countPending  = payrollDAO.countByStatus(month, year, "PENDING")
+                                 + payrollDAO.countByStatus(month, year, "PENDING_APPROVAL");
         int        countDraft    = payrollDAO.countByStatus(month, year, "DRAFT");
+        int        countProcessing = payrollDAO.countByStatus(month, year, "PROCESSING_PAYMENT");
 
         // Tỉ lệ hoàn thành chi trả
         double paidRatio    = totalEmpCount > 0 ? (double) countPaid / totalEmpCount * 100.0 : 0;
-        int    pendingCount = countPending + countDraft;
+        int    pendingCount = countPending + countDraft + countProcessing;
 
         // Phân trang 15 bản ghi/trang
         int pageSize    = 15;
@@ -108,6 +114,8 @@ public class PayrollServlet extends HttpServlet {
         request.setAttribute("countPaid",       countPaid);
         request.setAttribute("countApproved",   countApproved);
         request.setAttribute("countPending",    countPending);
+        request.setAttribute("countDraft",      countDraft);
+        request.setAttribute("countProcessing", countProcessing);
         request.setAttribute("pendingCount",    pendingCount);
         request.setAttribute("paidRatio",       String.format("%.1f", paidRatio));
         request.setAttribute("selectedMonth",   month);
@@ -124,6 +132,8 @@ public class PayrollServlet extends HttpServlet {
 
         String success = request.getParameter("success");
         if (success != null) request.setAttribute("successMsg", success);
+        String error = request.getParameter("error");
+        if (error != null) request.setAttribute("errorMsg", error);
 
         request.getRequestDispatcher("/WEB-INF/views/payroll/payroll-list.jsp")
                .forward(request, response);
@@ -171,10 +181,32 @@ public class PayrollServlet extends HttpServlet {
 
         switch (action) {
             case "calculate" -> {
+                boolean confirmLock = "true".equalsIgnoreCase(request.getParameter("confirmLock"));
+                boolean isLocked = attendanceDAO.isTimesheetLocked(month, year);
+                if (!isLocked) {
+                    if (confirmLock) {
+                        attendanceDAO.setTimesheetLocked(month, year, true, userId,
+                                "Khóa chốt bảng công tự động khi tính lương bởi " + user.getFullName());
+                        AuditLogDAO.logAction(request, "LOCK_TIMESHEET", "TIMESHEET", null,
+                                "Tự động khóa chốt bảng công khi tính lương kỳ " + month + "/" + year);
+                    } else {
+                        if (isAjax(request)) {
+                            writeJson(response, false, "Bảng công kỳ " + month + "/" + year + " chưa khóa chốt! Vui lòng khóa chốt trước khi tính lương.");
+                            return;
+                        }
+                        response.sendRedirect(request.getContextPath()
+                                + "/payroll?month=" + month + "&year=" + year + "&error=timesheet_not_locked" + extra);
+                        return;
+                    }
+                }
                 // Đảm bảo dữ liệu chấm công đã có đầy đủ trước khi chốt công và tính lương
                 attendanceDAO.autoSeedMonthAttendance(month, year);
-                payrollService.calculatePayrollForPeriod(month, year, userId);
+                int count = payrollService.calculatePayrollForPeriod(month, year, userId);
                 AuditLogDAO.logAction(request, "CALCULATE_PAYROLL", "PAYROLL", null, "Tính lương kỳ " + month + "/" + year);
+                if (isAjax(request)) {
+                    writeJson(response, true, "Đã tính toán bảng lương tháng " + month + "/" + year + " thành công cho " + count + " nhân viên!");
+                    return;
+                }
                 response.sendRedirect(request.getContextPath()
                         + "/payroll?month=" + month + "&year=" + year + "&success=calculated" + extra);
             }
@@ -184,26 +216,77 @@ public class PayrollServlet extends HttpServlet {
                         !currentlyLocked ? "Khóa chốt kỳ tính lương" : "Mở khóa kỳ tính lương");
                 AuditLogDAO.logAction(request, !currentlyLocked ? "LOCK_PAYROLL" : "UNLOCK_PAYROLL", "PAYROLL", null, 
                         (!currentlyLocked ? "Khóa chốt" : "Mở khóa") + " kỳ tính lương " + month + "/" + year);
+                if (isAjax(request)) {
+                    writeJson(response, true, !currentlyLocked ? "Đã khóa chốt kỳ bảng lương thành công!" : "Đã mở khóa kỳ bảng lương!");
+                    return;
+                }
                 response.sendRedirect(request.getContextPath()
                         + "/payroll?month=" + month + "&year=" + year + "&success=" + (!currentlyLocked ? "locked" : "unlocked") + extra);
+            }
+            case "submit_approval" -> {
+                String idStr = request.getParameter("id");
+                if (idStr != null && !idStr.isEmpty()) {
+                    int id = Integer.parseInt(idStr);
+                    payrollDAO.updateStatus(id, "PENDING_APPROVAL", userId);
+                    AuditLogDAO.logAction(request, "SUBMIT_PAYROLL", "PAYROLL", id, "Gửi duyệt phiếu lương ID " + id);
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đã gửi phiếu lương đi phê duyệt!", "PENDING_APPROVAL", "Chờ duyệt");
+                        return;
+                    }
+                } else {
+                    payrollDAO.updateStatusByPeriod(month, year, "DRAFT", "PENDING_APPROVAL", userId);
+                    AuditLogDAO.logAction(request, "SUBMIT_ALL_PAYROLL", "PAYROLL", null, "Gửi duyệt toàn bộ bảng lương kỳ " + month + "/" + year);
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đã gửi toàn bộ bảng lương đi phê duyệt!");
+                        return;
+                    }
+                }
+                response.sendRedirect(request.getContextPath()
+                        + "/payroll?month=" + month + "&year=" + year + "&success=submitted" + extra);
             }
             case "approve" -> {
                 int id = Integer.parseInt(request.getParameter("id"));
                 payrollService.approve(id, userId);
                 AuditLogDAO.logAction(request, "APPROVE_PAYSLIP", "PAYROLL", id, "Phê duyệt phiếu lương ID " + id);
+                if (isAjax(request)) {
+                    writeJson(response, true, "Phê duyệt phiếu lương thành công!", "APPROVED", "Đã duyệt");
+                    return;
+                }
                 response.sendRedirect(request.getContextPath()
                         + "/payroll?month=" + month + "&year=" + year + "&success=approved" + extra);
             }
             case "approve_all" -> {
-                payrollService.approveAll(month, year, userId);
+                int count = payrollService.approveAll(month, year, userId);
                 AuditLogDAO.logAction(request, "APPROVE_ALL_PAYSLIPS", "PAYROLL", null, "Phê duyệt toàn bộ phiếu lương kỳ " + month + "/" + year);
+                if (isAjax(request)) {
+                    writeJson(response, true, "Đã phê duyệt toàn bộ " + count + " phiếu lương tháng " + month + "/" + year + "!");
+                    return;
+                }
                 response.sendRedirect(request.getContextPath()
                         + "/payroll?month=" + month + "&year=" + year + "&success=approved_all" + extra);
+            }
+            case "process_payment" -> {
+                String idStr = request.getParameter("id");
+                if (idStr != null && !idStr.isEmpty()) {
+                    int id = Integer.parseInt(idStr);
+                    payrollDAO.updateStatus(id, "PROCESSING_PAYMENT", userId);
+                    AuditLogDAO.logAction(request, "PROCESS_PAYMENT", "PAYROLL", id, "Chuyển trạng thái đang chi trả phiếu lương ID " + id);
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đang xử lý lệnh chi trả ngân hàng!", "PROCESSING_PAYMENT", "Đang chi trả");
+                        return;
+                    }
+                }
+                response.sendRedirect(request.getContextPath()
+                        + "/payroll?month=" + month + "&year=" + year + extra);
             }
             case "pay" -> {
                 int id = Integer.parseInt(request.getParameter("id"));
                 payrollService.payPayrollSingle(id, userId, "BANK_TRANSFER", null);
                 AuditLogDAO.logAction(request, "PAY_PAYSLIP", "PAYMENT", id, "Thanh toán phiếu lương ID " + id + " (Chuyển khoản)");
+                if (isAjax(request)) {
+                    writeJson(response, true, "Ghi nhận chi trả lương thành công!", "PAID", "Đã chi trả");
+                    return;
+                }
                 response.sendRedirect(request.getContextPath()
                         + "/payroll?month=" + month + "&year=" + year + "&success=paid" + extra);
             }
@@ -241,6 +324,58 @@ public class PayrollServlet extends HttpServlet {
                 }
             }
         }
+    }
+
+    private void exportBankPaymentBatch(HttpServletResponse response, int month, int year, Integer deptId, String status, String keyword)
+            throws IOException {
+        List<Payroll> list = payrollDAO.search(month, year, deptId, status, keyword, 0, 0);
+        response.setContentType("text/csv; charset=UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=\"lenh_chi_luong_ngan_hang_" + month + "_" + year + ".csv\"");
+        response.setCharacterEncoding("UTF-8");
+
+        try (java.io.PrintWriter writer = response.getWriter()) {
+            writer.write('\uFEFF'); // UTF-8 BOM
+            writer.println("STT,Số tài khoản (STK),Tên người thụ hưởng,Tên ngân hàng,Số tiền chi trả (VND),Nội dung chuyển khoản");
+            if (list != null) {
+                int stt = 1;
+                for (Payroll p : list) {
+                    String stk = "10" + String.format("%08d", p.getEmployeeId());
+                    String name = p.getEmployeeName() != null ? p.getEmployeeName().toUpperCase() : "NHAN VIEN";
+                    String bank = "VIETCOMBANK";
+                    String amount = p.getNetSalary() != null ? p.getNetSalary().toBigInteger().toString() : "0";
+                    String content = String.format("MIXIMOI CHI TRA LUONG THANG %02d/%d CHO %s", month, year, p.getEmployeeCode());
+
+                    writer.println(String.format("%d,\"%s\",\"%s\",\"%s\",%s,\"%s\"",
+                            stt++,
+                            stk,
+                            name.replace("\"", "\"\""),
+                            bank,
+                            amount,
+                            content.replace("\"", "\"\"")
+                    ));
+                }
+            }
+        }
+    }
+
+    private boolean isAjax(HttpServletRequest request) {
+        return "XMLHttpRequest".equalsIgnoreCase(request.getHeader("X-Requested-With"))
+                || "true".equalsIgnoreCase(request.getParameter("ajax"))
+                || (request.getHeader("Accept") != null && request.getHeader("Accept").contains("application/json"));
+    }
+
+    private void writeJson(HttpServletResponse response, boolean success, String message) throws IOException {
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"success\":" + success + ",\"message\":\"" + (message != null ? message.replace("\"", "\\\"") : "") + "\"}");
+    }
+
+    private void writeJson(HttpServletResponse response, boolean success, String message, String newStatus, String statusText) throws IOException {
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"success\":" + success
+                + ",\"message\":\"" + (message != null ? message.replace("\"", "\\\"") : "") + "\""
+                + (newStatus != null ? ",\"newStatus\":\"" + newStatus + "\"" : "")
+                + (statusText != null ? ",\"statusText\":\"" + statusText + "\"" : "")
+                + "}");
     }
 
     private boolean checkAuth(HttpServletRequest request, HttpServletResponse response)

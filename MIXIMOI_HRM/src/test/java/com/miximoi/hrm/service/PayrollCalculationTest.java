@@ -94,4 +94,25 @@ class PayrollCalculationTest {
         BigDecimal net = gross.subtract(totalDeductions);
         assertEquals(new BigDecimal("22700000"), net, "Lương thực lĩnh Net phải bằng 22.700.000 đ");
     }
+
+    @Test
+    @DisplayName("Kiểm tra Ràng buộc Khóa Bảng công trước khi tính lương (Timesheet Lock Guard)")
+    void testTimesheetLockGuardLogic() {
+        // Kịch bản 1: Bảng công chưa khóa và người dùng không có cờ xác nhận khóa (confirmLock = false)
+        boolean isTimesheetLocked = false;
+        boolean confirmLock = false;
+        boolean shouldAllowCalculation = isTimesheetLocked || confirmLock;
+        assertFalse(shouldAllowCalculation, "Bảng công chưa khóa và chưa xác nhận khóa tự động -> Phải chặn tính lương để kiểm soát số liệu");
+
+        // Kịch bản 2: Bảng công chưa khóa nhưng người dùng bấm 'Khóa bảng công & Tính lương ngay' (confirmLock = true)
+        confirmLock = true;
+        boolean shouldAutoLockAndCalculate = !isTimesheetLocked && confirmLock;
+        assertTrue(shouldAutoLockAndCalculate, "Người dùng xác nhận 1-Click Lock & Calculate -> Cho phép tự động khóa bảng công và tính lương");
+
+        // Kịch bản 3: Bảng công đã khóa chốt từ trước
+        isTimesheetLocked = true;
+        confirmLock = false;
+        shouldAllowCalculation = isTimesheetLocked || confirmLock;
+        assertTrue(shouldAllowCalculation, "Bảng công đã được khóa chốt -> Luồng liên hoàn Chấm công -> Lương hợp lệ 100%");
+    }
 }

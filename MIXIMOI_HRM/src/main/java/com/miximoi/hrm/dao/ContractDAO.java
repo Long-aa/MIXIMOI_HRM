@@ -5,7 +5,9 @@ import com.miximoi.hrm.util.DBConnection;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * DAO xử lý các thao tác DB liên quan đến Contract (Hợp đồng lao động).
@@ -428,6 +430,51 @@ public class ContractDAO {
             System.err.println("ContractDAO.countExpiringSoon lỗi: " + e.getMessage());
         }
         return 0;
+    }
+
+    /**
+     * Đếm số lần nhân viên đã ký HĐ xác định thời hạn (FIXED_TERM).
+     * Phục vụ kiểm soát tuân thủ Điều 20 Bộ Luật Lao Động 2019 (tối đa 2 lần).
+     */
+    public int countFixedTermContracts(int employeeId) {
+        String sql = "SELECT COUNT(*) FROM contracts WHERE employee_id = ? AND contract_type = 'FIXED_TERM'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.countFixedTermContracts lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /**
+     * Kiểm tra xem nhân viên có đủ điều kiện ký tiếp HĐ xác định thời hạn (FIXED_TERM) hay không.
+     * @return true nếu số lần đã ký < 2, false nếu đã đạt tối đa 2 lần (phải chuyển sang Không xác định thời hạn)
+     */
+    public boolean canSignFixedTerm(int employeeId) {
+        return countFixedTermContracts(employeeId) < 2;
+    }
+
+    /**
+     * Lấy bảng thống kê số lần ký HĐ xác định thời hạn cho toàn bộ nhân viên
+     * Trả về Map<employee_id, fixed_term_count>
+     */
+    public Map<Integer, Integer> countFixedTermMap() {
+        Map<Integer, Integer> map = new HashMap<>();
+        String sql = "SELECT employee_id, COUNT(*) FROM contracts WHERE contract_type = 'FIXED_TERM' GROUP BY employee_id";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                map.put(rs.getInt(1), rs.getInt(2));
+            }
+        } catch (SQLException e) {
+            System.err.println("ContractDAO.countFixedTermMap lỗi: " + e.getMessage());
+        }
+        return map;
     }
 
     private Contract mapRow(ResultSet rs) throws SQLException {

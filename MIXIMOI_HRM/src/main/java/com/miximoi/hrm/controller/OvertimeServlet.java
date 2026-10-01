@@ -191,6 +191,10 @@ public class OvertimeServlet extends HttpServlet {
                 if (currentUser.isManager() || currentUser.isAdmin() || currentUser.isHr()) {
                     int id = Integer.parseInt(request.getParameter("id"));
                     overtimeDAO.approveLead(id, currentUser.getEmployeeId(), currentUser.getFullName());
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đã duyệt Cấp 1 (Lead) thành công", "PENDING_HR", "Chờ duyệt cấp 2", currentUser.getFullName());
+                        return;
+                    }
                     response.sendRedirect(request.getContextPath() + "/overtime?success=lead_approved");
                     return;
                 }
@@ -201,6 +205,10 @@ public class OvertimeServlet extends HttpServlet {
                 if (currentUser.isHr() || currentUser.isAdmin()) {
                     int id = Integer.parseInt(request.getParameter("id"));
                     overtimeDAO.approveHr(id, currentUser.getEmployeeId(), currentUser.getFullName());
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đã phê duyệt Cấp 2 (HR Lead) hoàn tất", "APPROVED", "Đã phê duyệt", currentUser.getFullName());
+                        return;
+                    }
                     response.sendRedirect(request.getContextPath() + "/overtime?success=hr_approved");
                     return;
                 }
@@ -212,11 +220,20 @@ public class OvertimeServlet extends HttpServlet {
                     int id = Integer.parseInt(request.getParameter("id"));
                     String rejectReason = request.getParameter("rejectReason");
                     overtimeDAO.reject(id, currentUser.getEmployeeId(), currentUser.getFullName(), rejectReason);
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đã từ chối đơn tăng ca thành công", "REJECTED", "Từ chối", currentUser.getFullName());
+                        return;
+                    }
                     response.sendRedirect(request.getContextPath() + "/overtime?success=rejected");
                     return;
                 }
                 break;
             }
+        }
+
+        if (isAjax(request)) {
+            writeJson(response, false, "Thao tác không hợp lệ hoặc không có quyền.");
+            return;
         }
 
         response.sendRedirect(request.getContextPath() + "/overtime");
@@ -230,5 +247,26 @@ public class OvertimeServlet extends HttpServlet {
             return false;
         }
         return true;
+    }
+
+    private boolean isAjax(HttpServletRequest request) {
+        return "XMLHttpRequest".equalsIgnoreCase(request.getHeader("X-Requested-With"))
+                || "true".equalsIgnoreCase(request.getParameter("ajax"))
+                || (request.getHeader("Accept") != null && request.getHeader("Accept").contains("application/json"));
+    }
+
+    private void writeJson(HttpServletResponse response, boolean success, String message) throws IOException {
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"success\":" + success + ",\"message\":\"" + (message != null ? message.replace("\"", "\\\"") : "") + "\"}");
+    }
+
+    private void writeJson(HttpServletResponse response, boolean success, String message, String newStatus, String statusText, String approverName) throws IOException {
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"success\":" + success
+                + ",\"message\":\"" + (message != null ? message.replace("\"", "\\\"") : "") + "\""
+                + (newStatus != null ? ",\"newStatus\":\"" + newStatus + "\"" : "")
+                + (statusText != null ? ",\"statusText\":\"" + statusText + "\"" : "")
+                + (approverName != null ? ",\"approverName\":\"" + approverName.replace("\"", "\\\"") + "\"" : "")
+                + "}");
     }
 }

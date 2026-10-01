@@ -27,6 +27,19 @@
 
 <div class="print-container">
 
+    <!-- Thẻ xác thực văn bản pháp lý điện tử & Mã QR -->
+    <div class="contract-verification-card">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-shield-fill-check text-success fs-5"></i>
+                <strong style="color:#0f172a; font-size:0.85rem; letter-spacing:0.3px;">VĂN BẢN HỢP ĐỒNG LAO ĐỘNG ĐIỆN TỬ HỢP PHÁP</strong>
+            </div>
+            <div style="font-size:0.78rem;">Mã xác thực bảo mật: <span class="contract-security-id">MIXIMOI-SEC-${contract.contractCode}-${contract.id}982A</span></div>
+            <div style="font-size:0.73rem; color:#64748b;">Đã ký số và niêm phong mật mã bởi Ban Pháp chế Tập đoàn MIXIMOI (MDSA)</div>
+        </div>
+        <img class="contract-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&amp;data=MIXIMOI-LEGAL-CONTRACT-${contract.contractCode}" alt="Mã QR Xác thực">
+    </div>
+
     <!-- Header Quốc Hiệu -->
     <div class="contract-header-top">
         <div class="contract-country-title">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
@@ -217,6 +230,14 @@
         <div>
             <div class="sig-role">ĐẠI DIỆN NGƯỜI SỬ DỤNG LAO ĐỘNG</div>
             <div class="sig-sub">(Ký tên, đóng dấu)</div>
+            <div class="seal-wrapper">
+                <div class="digital-seal">
+                    <div class="seal-star">★</div>
+                    <div class="seal-corp">CÔNG TY CỔ PHẦN<br>TẬP ĐOÀN MIXIMOI</div>
+                    <div class="seal-inner">ĐÃ KÝ SỐ</div>
+                    <div class="seal-date">${not empty contract.signedDate ? contract.signedDate : contract.startDate}</div>
+                </div>
+            </div>
             <div class="sig-name">${not empty contract.signerTitle ? contract.signerTitle.toUpperCase() : 'TỔNG GIÁM ĐỐC'} — ${not empty contract.signerName ? contract.signerName.toUpperCase() : 'NGUYỄN VĂN AN'}</div>
         </div>
     </div>

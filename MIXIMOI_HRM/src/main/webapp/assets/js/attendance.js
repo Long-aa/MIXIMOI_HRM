@@ -61,26 +61,48 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!confirm('Xác nhận đúng giờ cho ' + checkedBoxes.length + ' bản ghi chấm công đã chọn?')) {
             return;
         }
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = window.location.pathname;
 
-        const actInput = document.createElement('input');
-        actInput.type = 'hidden';
-        actInput.name = 'action';
-        actInput.value = 'bulkMarkOnTime';
-        form.appendChild(actInput);
+        const formData = new URLSearchParams();
+        formData.append('action', 'bulkMarkOnTime');
+        formData.append('ajax', 'true');
+        checkedBoxes.forEach(cb => formData.append('ids', cb.value));
 
-        checkedBoxes.forEach(cb => {
-            const inp = document.createElement('input');
-            inp.type = 'hidden';
-            inp.name = 'ids';
-            inp.value = cb.value;
-            form.appendChild(inp);
+        fetch(window.location.pathname, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData.toString()
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (window.showToast) {
+                    window.showToast(data.message, 'success', 'Cập nhật hàng loạt');
+                }
+                checkedBoxes.forEach(cb => {
+                    const row = cb.closest('tr');
+                    if (row) {
+                        row.classList.remove('row-late', 'row-absent', 'row-wfh');
+                        const statusCell = row.querySelector('td.text-center');
+                        if (statusCell) {
+                            statusCell.innerHTML = '<span class="status-pill ontime"><i class="bi bi-check-circle-fill"></i> Đúng giờ</span>';
+                        }
+                        row.style.transition = 'background-color 0.5s ease';
+                        row.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
+                        setTimeout(() => row.style.backgroundColor = '', 1500);
+                    }
+                });
+                clearAttSelection();
+            } else {
+                alert(data.message || 'Thao tác không thành công.');
+            }
+        })
+        .catch(err => {
+            console.error('bulkMarkOnTime error:', err);
+            alert('Lỗi kết nối khi gửi yêu cầu.');
         });
-
-        document.body.appendChild(form);
-        form.submit();
     };
 
     window.bulkDeleteAtt = function() {
@@ -309,28 +331,88 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // 5. Approve explain
-    window.approveExplain = function(id) {
-        if (confirm('Phê duyệt giải trình công cho nhân viên này?')) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = window.location.pathname;
-            
-            const actionInput = document.createElement('input');
-            actionInput.type = 'hidden';
-            actionInput.name = 'action';
-            actionInput.value = 'approveExplain';
-            form.appendChild(actionInput);
-
-            const idInput = document.createElement('input');
-            idInput.type = 'hidden';
-            idInput.name = 'id';
-            idInput.value = id;
-            form.appendChild(idInput);
-
-            document.body.appendChild(form);
-            form.submit();
+    // 5. Approve explain (AJAX No-Reload)
+    window.approveExplain = function(id, btn) {
+        if (!confirm('Phê duyệt giải trình công cho nhân viên này? Dữ liệu sẽ tự động chuyển thành Đúng giờ (ON_TIME).')) {
+            return;
         }
+
+        const btnEl = (btn && btn.nodeType) ? btn : (event && event.currentTarget ? event.currentTarget : null);
+        if (btnEl) {
+            btnEl.disabled = true;
+            btnEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        }
+
+        const formData = new URLSearchParams();
+        formData.append('action', 'approveExplain');
+        formData.append('id', id);
+        formData.append('ajax', 'true');
+
+        fetch(window.location.pathname, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData.toString()
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (window.showToast) {
+                    window.showToast(data.message || 'Đã duyệt giải trình thành công!', 'success', 'Phê duyệt thành công');
+                }
+
+                // Cập nhật DOM dòng đó mượt mà không reload
+                let row = null;
+                if (btnEl) row = btnEl.closest('tr');
+                if (!row) row = document.querySelector(`tr[data-id="${id}"]`);
+
+                if (row) {
+                    row.classList.remove('row-late', 'row-absent', 'row-wfh');
+                    row.classList.add('row-ontime');
+
+                    // Cập nhật ô Trạng thái
+                    const statusCell = row.querySelector('td.text-center');
+                    if (statusCell) {
+                        statusCell.innerHTML = '<span class="status-pill ontime"><i class="bi bi-check-circle-fill"></i> Đúng giờ</span>';
+                    }
+
+                    // Ẩn/xóa nút approve
+                    if (btnEl) {
+                        btnEl.remove();
+                    }
+
+                    // Hiệu ứng highlight màu xanh ngọc nhẹ
+                    row.style.transition = 'background-color 0.6s ease';
+                    row.style.backgroundColor = 'rgba(16, 185, 129, 0.18)';
+                    setTimeout(() => {
+                        row.style.backgroundColor = '';
+                    }, 1600);
+                }
+
+                // Giảm badge pending nếu có
+                const pendingCard = document.querySelector('.astat-icon.violet')?.closest('.att-stat-card')?.querySelector('.astat-value');
+                if (pendingCard) {
+                    let cur = parseInt(pendingCard.textContent.trim(), 10);
+                    if (!isNaN(cur) && cur > 0) pendingCard.textContent = cur - 1;
+                }
+            } else {
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = '<i class="bi bi-check-square"></i>';
+                }
+                alert(data.message || 'Có lỗi xảy ra khi phê duyệt giải trình.');
+            }
+        })
+        .catch(err => {
+            console.error('approveExplain error:', err);
+            if (btnEl) {
+                btnEl.disabled = false;
+                btnEl.innerHTML = '<i class="bi bi-check-square"></i>';
+            }
+            alert('Lỗi kết nối khi gửi yêu cầu phê duyệt.');
+        });
     };
 
     // 6. Sync ZKTeco machine button
