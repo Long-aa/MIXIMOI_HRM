@@ -145,9 +145,10 @@ public class ContractExpiryListener implements ServletContextListener {
             + "  AND c.end_date <= ?                       "
             + "  AND NOT EXISTS (                          "
             + "      SELECT 1 FROM notifications n         "
-            + "      WHERE n.reference_id = c.id          "
-            + "        AND n.reference_type = 'CONTRACT_EXPIRY' "
-            + "        AND n.created_at::date = CURRENT_DATE    "
+            + "      JOIN users u ON u.id = n.user_id      "
+            + "      WHERE u.employee_id = c.employee_id   "
+            + "        AND n.title LIKE '%Hop dong sap het han%' "
+            + "        AND n.created_at::date = CURRENT_DATE "
             + "  )";
 
         // Dung try-with-resources: Connection, PreparedStatement, ResultSet
@@ -161,7 +162,6 @@ public class ContractExpiryListener implements ServletContextListener {
                 int notifiedCount = 0;
 
                 while (rs.next()) {
-                    int    contractId     = rs.getInt("contract_id");
                     int    employeeId     = rs.getInt("employee_id");
                     String employeeName   = rs.getString("employee_name");
                     String employeeCode   = rs.getString("employee_code");
@@ -176,11 +176,11 @@ public class ContractExpiryListener implements ServletContextListener {
                     );
 
                     // Insert notification cho nhan vien
-                    insertNotification(conn, employeeId, "CONTRACT_EXPIRY",
-                                       "Hop dong sap het han", message, contractId);
+                    insertNotification(conn, employeeId,
+                                       "Hop dong sap het han", message);
 
                     // Insert notification cho tat ca HR (role_id = 2)
-                    notifyHrUsers(conn, contractId, employeeId,
+                    notifyHrUsers(conn, employeeId,
                                   "Hop dong sap het han - " + employeeName, message);
 
                     notifiedCount++;
@@ -197,11 +197,9 @@ public class ContractExpiryListener implements ServletContextListener {
             // Log loi nhung KHONG nem exception ra ngoai.
             // Neu nem ra ngoai, ScheduledExecutorService se HUY task cho lan sau!
             System.err.println("[ContractExpiryListener] Loi quet hop dong het han: " + e.getMessage());
-            e.printStackTrace();
         } catch (Exception e) {
             // Bat moi Exception khac (NullPointer, v.v.) de bao ve scheduler
             System.err.println("[ContractExpiryListener] Loi khong mong doi: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -214,49 +212,61 @@ public class ContractExpiryListener implements ServletContextListener {
      * Su dung Connection trong cung session - khong tao Connection moi.
      *
      * @param conn          Connection dang dung trong task
-     * @param recipientId   ID nguoi nhan thong bao (employee_id)
-     * @param referenceType Loai doi tuong tham chieu (e.g. "CONTRACT_EXPIRY")
+     * @param employeeId    ID nhan vien nhan thong bao
      * @param title         Tieu de thong bao
      * @param message       Noi dung day du
-     * @param referenceId   ID doi tuong tham chieu (contract_id)
      */
-    private void insertNotification(Connection conn, int recipientId,
-                                    String referenceType, String title,
-                                    String message, int referenceId) throws SQLException {
+    private void insertNotification(Connection conn, int employeeId,
+                                    String title, String message) throws SQLException {
+        Integer userId = null;
+        String findUserSql = "SELECT id FROM users WHERE employee_id = ? LIMIT 1";
+        try (PreparedStatement psUser = conn.prepareStatement(findUserSql)) {
+            psUser.setInt(1, employeeId);
+            try (ResultSet rsUser = psUser.executeQuery()) {
+                if (rsUser.next()) {
+                    userId = rsUser.getInt("id");
+                }
+            }
+        }
+        if (userId == null) return;
+
         String sql = "INSERT INTO notifications "
-                   + "(recipient_id, title, message, reference_type, reference_id, is_read, created_at) "
-                   + "VALUES (?, ?, ?, ?, ?, false, CURRENT_TIMESTAMP)";
+                   + "(user_id, title, message, type, is_read, created_at) "
+                   + "VALUES (?, ?, ?, 'WARNING', false, CURRENT_TIMESTAMP)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, recipientId);
+            ps.setInt(1, userId);
             ps.setString(2, title);
             ps.setString(3, message);
-            ps.setString(4, referenceType);
-            ps.setInt(5, referenceId);
             ps.executeUpdate();
         }
     }
 
     /**
-     * Tao thong bao cho tat ca nhan vien co vai tro HR (role_id = 2).
+     * Tao thong bao cho tat ca nhan vien co vai tro HR.
      * Giup HR biet truoc de chuan bi tai lieu gia han hop dong.
      */
-    private void notifyHrUsers(Connection conn, int contractId, int employeeId,
+    private void notifyHrUsers(Connection conn, int employeeId,
                                 String title, String message) throws SQLException {
-        // Lay tat ca HR user de gui thong bao
         String hrUsersSql =
-                "SELECT u.employee_id FROM users u "
+                "SELECT u.id FROM users u "
               + "JOIN roles r ON u.role_id = r.id "
               + "WHERE r.name = 'HR' AND u.status = 'ACTIVE' "
-              + "  AND u.employee_id IS NOT NULL "
-              + "  AND u.employee_id != ?";  // Khong gui cho chinh nhan vien do
+              + "  AND (u.employee_id IS NULL OR u.employee_id != ?)";
 
         try (PreparedStatement ps = conn.prepareStatement(hrUsersSql)) {
             ps.setInt(1, employeeId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    int hrEmployeeId = rs.getInt("employee_id");
-                    insertNotification(conn, hrEmployeeId, "CONTRACT_EXPIRY",
-                                       title, message, contractId);
+                    int hrUserId = rs.getInt("id");
+                    String sql = "INSERT INTO notifications "
+                               + "(user_id, title, message, type, is_read, created_at) "
+                               + "VALUES (?, ?, ?, 'WARNING', false, CURRENT_TIMESTAMP)";
+                    try (PreparedStatement psIns = conn.prepareStatement(sql)) {
+                        psIns.setInt(1, hrUserId);
+                        psIns.setString(2, title);
+                        psIns.setString(3, message);
+                        psIns.executeUpdate();
+                    }
                 }
             }
         }

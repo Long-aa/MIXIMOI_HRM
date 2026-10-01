@@ -319,7 +319,7 @@ public class PayrollServiceImpl {
     private int insertPayrollRecord(Connection conn, Payroll pr) throws SQLException {
         String sql = "INSERT INTO payroll "
                    + "(employee_id, pay_month, pay_year, base_salary, working_days, standard_days, "
-                   + " overtime_amount, allowance, bonus, deduction, net_salary, status, created_by) "
+                   + " overtime_amount, allowance, bonus, deduction, net_salary, status, created_by_id) "
                    + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         try (PreparedStatement ps = conn.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
@@ -335,7 +335,11 @@ public class PayrollServiceImpl {
             ps.setBigDecimal(10, pr.getDeduction());
             ps.setBigDecimal(11, pr.getNetSalary());
             ps.setString(12, pr.getStatus() != null ? pr.getStatus() : "DRAFT");
-            ps.setInt(13, pr.getCreatedById());
+            if (pr.getCreatedById() > 0) {
+                ps.setInt(13, pr.getCreatedById());
+            } else {
+                ps.setNull(13, java.sql.Types.INTEGER);
+            }
 
             int affected = ps.executeUpdate();
             if (affected == 0) {

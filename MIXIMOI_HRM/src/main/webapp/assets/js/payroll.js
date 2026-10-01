@@ -89,12 +89,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (confirmLock) formData.append('confirmLock', 'true');
         formData.append('ajax', 'true');
 
-        fetch(window.location.pathname, {
+        fetch(window.location.href, {
             method: 'POST',
             body: formData,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
-        .then(res => res.json())
+        .then(async res => {
+            const data = await res.json().catch(() => null);
+            if (!data) {
+                throw new Error('Máy chủ phản hồi mã lỗi HTTP: ' + res.status);
+            }
+            return data;
+        })
         .then(data => {
             clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4);
             [step1, step2, step3, step4, step5].forEach(st => {
@@ -111,12 +117,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (calcModal) calcModal.hide();
                 if (data.success) {
                     if (window.MixiToast) {
-                        MixiToast.success(data.message || 'Tính toán bảng lương thành công!');
+                        MixiToast.success('Thành công', data.message || 'Tính toán bảng lương thành công!');
                     }
                     setTimeout(() => window.location.reload(), 800);
                 } else {
                     if (window.MixiToast) {
-                        MixiToast.error(data.message || 'Có lỗi trong quá trình tính lương!');
+                        MixiToast.error('Không thể tính lương', data.message || 'Có lỗi trong quá trình tính lương!');
                     } else {
                         alert(data.message || 'Có lỗi trong quá trình tính lương!');
                     }
@@ -128,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Payroll engine error:', err);
             if (calcModal) calcModal.hide();
             if (window.MixiToast) {
-                MixiToast.error('Lỗi kết nối máy chủ khi tính lương!');
+                MixiToast.error('Lỗi kết nối máy chủ khi tính lương', err.message || 'Vui lòng kiểm tra lại đường truyền mạng hoặc nhật ký máy chủ.');
             }
         });
     };

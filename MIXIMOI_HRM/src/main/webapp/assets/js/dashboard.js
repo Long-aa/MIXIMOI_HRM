@@ -4,12 +4,46 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 0. Auto parse chart data from JSON container if present
+    const rawEl = document.getElementById('dashboardChartDataRaw');
+    if (rawEl && (!window.dashboardChartData || !window.dashboardChartData.growthTrend)) {
+        try {
+            window.dashboardChartData = JSON.parse(rawEl.textContent);
+        } catch (e) {
+            console.error('Failed to parse dashboardChartDataRaw:', e);
+        }
+    }
+
+    // 0.1 Apply data-progress and data-bg
+    initDynamicDataAttributes();
+
     initPersonnelChart();
     initDepartmentDonutChart();
     initRefreshButtons();
     initActionButtons();
     initPersonnelStructureTabs();
 });
+
+function initDynamicDataAttributes() {
+    document.querySelectorAll('[data-progress]').forEach(el => {
+        const val = el.getAttribute('data-progress');
+        if (val !== null && val !== '') {
+            el.style.width = val + '%';
+        }
+    });
+    document.querySelectorAll('[data-bg]').forEach(el => {
+        const val = el.getAttribute('data-bg');
+        if (val) {
+            el.style.backgroundColor = val;
+        }
+    });
+    document.querySelectorAll('[data-color]').forEach(el => {
+        const val = el.getAttribute('data-color');
+        if (val) {
+            el.style.color = val;
+        }
+    });
+}
 
 let personnelChartInstance = null;
 let departmentChartInstance = null;

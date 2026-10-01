@@ -301,7 +301,7 @@ public class AttendanceDAO {
         int maxDaysInMonth = java.time.YearMonth.of(year, month).lengthOfMonth();
         int lastDayToSeed = maxDaysInMonth;
         if (year == today.getYear() && month == today.getMonthValue()) {
-            lastDayToSeed = today.getDayOfMonth() - 1; // Chá»‰ seed Ä‘áº¿n ngÃ y hÃ´m qua, Ä‘á»ƒ hÃ´m nay ngÆ°á»i dÃ¹ng tá»± cháº¥m cÃ´ng thá»±c táº¿
+            lastDayToSeed = today.getDayOfMonth(); // Chá»‰ seed Ä‘áº¿n ngÃ y hÃ´m qua, Ä‘á»ƒ hÃ´m nay ngÆ°á»i dÃ¹ng tá»± cháº¥m cÃ´ng thá»±c táº¿
         } else if (year > today.getYear() || (year == today.getYear() && month > today.getMonthValue())) {
             return; // ThÃ¡ng tÆ°Æ¡ng lai chÆ°a tá»›i
         }

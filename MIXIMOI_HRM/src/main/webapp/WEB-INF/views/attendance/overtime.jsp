@@ -345,7 +345,7 @@
                     <div class="month-selector-wrap" style="background:#fff; border:1.5px solid #e2e8f0; border-radius:10px; padding:3px 6px;">
                         <a href="${pageContext.request.contextPath}/overtime?month=${selectedMonth > 1 ? selectedMonth - 1 : 12}&year=${selectedMonth > 1 ? selectedYear : selectedYear - 1}" class="month-btn-nav"><i class="bi bi-chevron-left"></i></a>
                         <span class="month-display-text" style="font-size:0.86rem; font-weight:700; color:#0f172a; padding:0 8px;">
-                            <i class="bi bi-calendar3 text-primary"></i> Tháng 0${selectedMonth}/${selectedYear}
+                            <i class="bi bi-calendar3 text-primary"></i> Tháng ${selectedMonth < 10 ? '0' : ''}${selectedMonth}/${selectedYear}
                         </span>
                         <a href="${pageContext.request.contextPath}/overtime?month=${selectedMonth < 12 ? selectedMonth + 1 : 1}&year=${selectedMonth < 12 ? selectedYear : selectedYear + 1}" class="month-btn-nav"><i class="bi bi-chevron-right"></i></a>
                     </div>

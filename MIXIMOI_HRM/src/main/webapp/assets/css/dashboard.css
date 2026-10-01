@@ -1,0 +1,410 @@
+/* ==========================================================================
+   MIXIMOI HRM & PAYROLL — DASHBOARD MODULE STYLES (dashboard.css)
+   Clean, Modern Enterprise Executive Dashboard Layout
+   ========================================================================== */
+
+/* 1. Filter Bar Controls */
+.filter-date-item {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.filter-date-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #475569;
+    white-space: nowrap;
+    margin-bottom: 0;
+}
+.filter-input-date {
+    height: 38px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1e293b;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    outline: none;
+    transition: all 0.15s ease;
+}
+.filter-input-date:hover {
+    border-color: #94a3b8;
+}
+.filter-input-date:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+.filter-select {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.75rem center !important;
+    background-size: 12px 10px !important;
+    padding-right: 2.2rem !important;
+}
+.filter-select::-ms-expand {
+    display: none !important;
+}
+.btn-filter-submit {
+    height: 38px;
+    padding: 0.35rem 1.15rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #ffffff;
+    background: #2563eb;
+    border: none;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.btn-filter-submit:hover {
+    background: #1d4ed8;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+/* 2. KPI Cards */
+.kpi-card-link {
+    text-decoration: none !important;
+    color: inherit !important;
+    display: block;
+    height: 100%;
+}
+.kpi-card {
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    user-select: none;
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #f1f5f9;
+    padding: 1.25rem;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 28px -6px rgba(37, 99, 235, 0.16), 0 8px 16px -8px rgba(0, 0, 0, 0.08);
+    border-color: #93c5fd !important;
+}
+.kpi-card:hover .kpi-label {
+    color: #2563eb;
+}
+.kpi-card:hover .kpi-icon-box {
+    transform: scale(1.12);
+}
+.kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+.kpi-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 0.35rem;
+    transition: color 0.15s ease;
+}
+.kpi-value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+}
+.kpi-value {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+}
+.kpi-unit {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #94a3b8;
+}
+.kpi-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+.kpi-icon-box.blue   { background: #eff6ff; color: #2563eb; }
+.kpi-icon-box.green  { background: #ecfdf5; color: #059669; }
+.kpi-icon-box.amber  { background: #fffbeb; color: #d97706; }
+.kpi-icon-box.purple { background: #f5f3ff; color: #7c3aed; }
+.kpi-icon-box.cyan   { background: #ecfeff; color: #0891b2; }
+.kpi-icon-box.indigo { background: #eef2ff; color: #4f46e5; }
+.kpi-icon-box.rose   { background: #fff1f2; color: #e11d48; }
+
+.kpi-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    color: #64748b;
+    border-top: 1px solid #f8fafc;
+    padding-top: 0.65rem;
+}
+
+/* 3. Progress Bars & Segmented Visualizations */
+.attendance-stacked-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background-color: #f1f5f9;
+    margin-top: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+.attendance-stacked-segment {
+    height: 100%;
+    transition: width 0.4s ease;
+}
+.attendance-breakdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.attendance-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.83rem;
+}
+.attendance-item-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #475569;
+    font-weight: 500;
+}
+.attendance-item-val {
+    font-weight: 700;
+}
+.badge-dot-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* 4. Leave Dual Bar & Callout */
+.leave-dual-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background-color: #f1f5f9;
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.leave-bar-used {
+    background: #3b82f6;
+    height: 100%;
+    transition: width 0.4s ease;
+}
+.leave-bar-remain {
+    background: #e2e8f0;
+    height: 100%;
+    transition: width 0.4s ease;
+}
+.leave-dual-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 1rem;
+}
+.leave-callout-card {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    border: 1px solid #e2e8f0;
+}
+
+/* 5. Funnel Recruitment Bars */
+.funnel-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+.funnel-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.funnel-stage-name {
+    width: 110px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+    flex-shrink: 0;
+}
+.funnel-bar-container {
+    flex-grow: 1;
+    background: #f1f5f9;
+    border-radius: 8px;
+    height: 24px;
+    overflow: hidden;
+}
+.funnel-bar-fill {
+    height: 100%;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    padding-left: 0.65rem;
+    white-space: nowrap;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 6. Age Distribution Bars */
+.age-dist-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+.age-dist-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+.age-dist-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: #475569;
+    font-weight: 600;
+}
+.age-dist-bar-bg {
+    height: 8px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    overflow: hidden;
+}
+.age-dist-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #64748b;
+    transition: width 0.4s ease;
+}
+.age-dist-bar-fill.highlight {
+    background: #2563eb;
+}
+
+/* 7. Donut Center & Legend */
+.donut-chart-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.donut-center-info {
+    position: absolute;
+    text-align: center;
+    pointer-events: none;
+}
+.donut-center-val {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1;
+}
+.donut-center-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-top: 2px;
+}
+.donut-legend-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem 1rem;
+    margin-top: 0.85rem;
+}
+.donut-legend-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+}
+.legend-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #475569;
+    font-weight: 500;
+}
+.color-square {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+    flex-shrink: 0;
+}
+.legend-val {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+/* 8. Department Salary Progress */
+.dept-progress {
+    height: 6px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    overflow: hidden;
+    margin-top: 0.35rem;
+}
+.dept-progress-bar {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+
+/* 9. Contract Breakdown Bars */
+.contract-breakdown-bar {
+    height: 100%;
+    transition: width 0.4s ease;
+}
+
+/* 10. KPI Performance Progress */
+.kpi-progress-bar-bg {
+    height: 6px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    overflow: hidden;
+    margin-top: 0.35rem;
+}
+.kpi-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+.kpi-progress-fill.green  { background: #10b981; }
+.kpi-progress-fill.blue   { background: #2563eb; }
+.kpi-progress-fill.amber  { background: #f59e0b; }
+.kpi-progress-fill.red    { background: #ef4444; }
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+    .donut-legend-row {
+        grid-template-columns: 1fr;
+    }
+}

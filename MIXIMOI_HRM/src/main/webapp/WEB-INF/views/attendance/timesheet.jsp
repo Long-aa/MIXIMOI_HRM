@@ -428,7 +428,7 @@
                     <p class="ts-subtitle">
                         <c:choose>
                             <c:when test="${sessionScope.currentUser.accountant}">
-                                Đối soát tổng công thực tế và ngày công chuẩn để hạch toán chi phí lương Tháng 0${selectedMonth}/${selectedYear}.
+                                Đối soát tổng công thực tế và ngày công chuẩn để hạch toán chi phí lương Tháng ${selectedMonth < 10 ? '0' : ''}${selectedMonth}/${selectedYear}.
                             </c:when>
                             <c:when test="${sessionScope.currentUser.employee and not sessionScope.currentUser.admin and not sessionScope.currentUser.hr and not sessionScope.currentUser.manager and not sessionScope.currentUser.accountant}">
                                 Xem chi tiết ma trận 31 ngày chấm công, số giờ làm việc thực tế, đi muộn và gửi giải trình nếu có sai lệch.
@@ -445,7 +445,7 @@
                     <div class="month-selector-wrap">
                         <a href="${pageContext.request.contextPath}/timesheet?month=${selectedMonth > 1 ? selectedMonth - 1 : 12}&year=${selectedMonth > 1 ? selectedYear : selectedYear - 1}" class="month-btn-nav" title="Tháng trước"><i class="bi bi-chevron-left"></i></a>
                         <span class="month-display-text">
-                            <i class="bi bi-calendar3 text-primary"></i> Tháng 0${selectedMonth} / ${selectedYear}
+                            <i class="bi bi-calendar3 text-primary"></i> Tháng ${selectedMonth < 10 ? '0' : ''}${selectedMonth} / ${selectedYear}
                         </span>
                         <a href="${pageContext.request.contextPath}/timesheet?month=${selectedMonth < 12 ? selectedMonth + 1 : 1}&year=${selectedMonth < 12 ? selectedYear : selectedYear + 1}" class="month-btn-nav" title="Tháng sau"><i class="bi bi-chevron-right"></i></a>
                     </div>
@@ -503,7 +503,7 @@
                 </div>
             </div>
 
-            <!-- 4 Thẻ KPI Chỉ số (Matches Screenshot 1) -->
+            <!-- 4 Thẻ KPI Chỉ số Đồng bộ Thời gian thực theo Kỳ công & Bộ lọc -->
             <div class="ts-kpi-grid">
                 <!-- Card 1: Tổng công chuẩn kỳ -->
                 <div class="ts-kpi-card">
@@ -513,14 +513,14 @@
                             <div class="kpi-icon-wrap kpi-icon-blue"><i class="bi bi-calendar-event"></i></div>
                         </div>
                         <div class="kpi-val-row">
-                            <span class="kpi-main-val">22</span>
-                            <span class="kpi-sub-val">ngày / 176 giờ chuẩn</span>
+                            <span class="kpi-main-val">${kpiStats.standardWorkDays}</span>
+                            <span class="kpi-sub-val">ngày / ${kpiStats.standardWorkHours} giờ chuẩn</span>
                         </div>
                     </div>
                     <div class="kpi-bottom-text">
-                        <span class="text-primary fw-bold"><i class="bi bi-graph-up-arrow"></i> 96.8%</span>
+                        <span class="text-primary fw-bold"><i class="bi bi-graph-up-arrow"></i> ${kpiStats.attendanceRate}%</span>
                         <span>tỷ lệ đi làm đủ</span>
-                        <div class="kpi-progress-bar ms-auto"><div class="kpi-progress-fill" style="width:96.8%;"></div></div>
+                        <div class="kpi-progress-bar ms-auto"><div class="kpi-progress-fill" style="width:${kpiStats.attendanceRate}%;"></div></div>
                     </div>
                 </div>
 
@@ -532,13 +532,13 @@
                             <div class="kpi-icon-wrap kpi-icon-blue"><i class="bi bi-clock-history"></i></div>
                         </div>
                         <div class="kpi-val-row">
-                            <span class="kpi-main-val">43,120</span>
+                            <span class="kpi-main-val">${kpiStats.totalActualHoursFormatted}</span>
                             <span class="kpi-sub-val">giờ</span>
                         </div>
                     </div>
                     <div class="kpi-bottom-text">
-                        <span class="text-primary fw-bold"><i class="bi bi-arrow-up-short"></i> +3.4% vs T08</span>
-                        <span>· TB 7.9h / ngày / người</span>
+                        <span class="text-primary fw-bold"><i class="bi bi-arrow-up-short"></i> ${kpiStats.prevMonthCompare}</span>
+                        <span>· TB ${kpiStats.avgDailyHoursPerEmp}h / ngày / người</span>
                     </div>
                 </div>
 
@@ -550,13 +550,13 @@
                             <div class="kpi-icon-wrap kpi-icon-rose"><i class="bi bi-bell-slash"></i></div>
                         </div>
                         <div class="kpi-val-row">
-                            <span class="kpi-main-val text-danger">38</span>
-                            <span class="kpi-sub-val">lượt (24 nhân sự)</span>
+                            <span class="kpi-main-val text-danger">${kpiStats.lateEarlyCount}</span>
+                            <span class="kpi-sub-val">lượt (${kpiStats.lateEmployeesCount} nhân sự)</span>
                         </div>
                     </div>
                     <div class="kpi-bottom-text">
                         <span class="text-primary fw-bold"><i class="bi bi-arrow-down-short"></i> Giảm 12%</span>
-                        <span>so với tháng trước</span>
+                        <span>${kpiStats.lateCompareText}</span>
                     </div>
                 </div>
 
@@ -568,13 +568,13 @@
                             <div class="kpi-icon-wrap kpi-icon-violet"><i class="bi bi-umbrella"></i></div>
                         </div>
                         <div class="kpi-val-row">
-                            <span class="kpi-main-val">84</span>
+                            <span class="kpi-main-val">${kpiStats.totalLeaveAndAbsentDays}</span>
                             <span class="kpi-sub-val">ngày</span>
                         </div>
                     </div>
                     <div class="kpi-bottom-text">
-                        <span style="color:#2563eb; font-weight:600;">• 62 phép năm</span>
-                        <span class="ms-1" style="color:#94a3b8;">• 22 ốm/không lương</span>
+                        <span style="color:#2563eb; font-weight:600;">• ${kpiStats.paidLeaveDays} phép năm</span>
+                        <span class="ms-1" style="color:#94a3b8;">• ${kpiStats.unpaidAbsentDays} ốm/không lương</span>
                     </div>
                 </div>
             </div>

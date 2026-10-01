@@ -44,8 +44,9 @@ public class OvertimeServlet extends HttpServlet {
         HttpSession session = request.getSession(false);
         User currentUser = (User) session.getAttribute("currentUser");
 
-        int month = 9;
-        int year = 2026;
+        LocalDate now = LocalDate.now();
+        int month = now.getMonthValue();
+        int year = now.getYear();
         try {
             if (request.getParameter("month") != null) month = Integer.parseInt(request.getParameter("month"));
             if (request.getParameter("year") != null) year = Integer.parseInt(request.getParameter("year"));

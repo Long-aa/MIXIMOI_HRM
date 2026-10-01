@@ -6,6 +6,7 @@ import com.miximoi.hrm.dao.DepartmentDAO;
 import com.miximoi.hrm.model.Department;
 import com.miximoi.hrm.model.TimesheetDayColumn;
 import com.miximoi.hrm.model.TimesheetItem;
+import com.miximoi.hrm.model.TimesheetKpiStats;
 import com.miximoi.hrm.model.User;
 import com.miximoi.hrm.service.TimesheetService;
 import jakarta.servlet.ServletException;
@@ -42,12 +43,12 @@ public class TimesheetServlet extends HttpServlet {
         HttpSession session = request.getSession(false);
         User currentUser = (User) session.getAttribute("currentUser");
 
-        // Lấy tháng và năm (Mặc định là Tháng 09/2026 hoặc tháng hiện tại)
+        // Lấy tháng và năm (Mặc định là tháng hiện tại)
         LocalDate now = LocalDate.now();
         String mParam = request.getParameter("month");
         String yParam = request.getParameter("year");
-        int month = (mParam != null && !mParam.isEmpty()) ? Integer.parseInt(mParam) : 9;
-        int year = (yParam != null && !yParam.isEmpty()) ? Integer.parseInt(yParam) : 2026;
+        int month = (mParam != null && !mParam.isEmpty()) ? Integer.parseInt(mParam) : now.getMonthValue();
+        int year = (yParam != null && !yParam.isEmpty()) ? Integer.parseInt(yParam) : now.getYear();
 
         // Các bộ lọc
         String deptParam = request.getParameter("departmentId");
@@ -109,6 +110,10 @@ public class TimesheetServlet extends HttpServlet {
         // Các cảnh báo giải trình và thiết bị
         request.setAttribute("anomalies", timesheetService.getAnomalyReminders());
 
+        // 4 Thẻ KPI Chỉ số tổng hợp động
+        TimesheetKpiStats kpiStats = timesheetService.calculateKpiStats(matrix, month, year);
+        request.setAttribute("kpiStats", kpiStats);
+
         request.getRequestDispatcher("/WEB-INF/views/attendance/timesheet.jsp")
                .forward(request, response);
     }
@@ -124,8 +129,9 @@ public class TimesheetServlet extends HttpServlet {
         String action = request.getParameter("action");
         if (action == null) action = "";
 
-        int month = 9;
-        int year = 2026;
+        LocalDate postNow = LocalDate.now();
+        int month = postNow.getMonthValue();
+        int year = postNow.getYear();
         try {
             if (request.getParameter("month") != null) month = Integer.parseInt(request.getParameter("month"));
             if (request.getParameter("year") != null) year = Integer.parseInt(request.getParameter("year"));

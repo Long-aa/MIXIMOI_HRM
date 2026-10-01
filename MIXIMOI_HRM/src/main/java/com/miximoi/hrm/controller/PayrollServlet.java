@@ -183,9 +183,10 @@ public class PayrollServlet extends HttpServlet {
             case "calculate" -> {
                 boolean confirmLock = "true".equalsIgnoreCase(request.getParameter("confirmLock"));
                 boolean isLocked = attendanceDAO.isTimesheetLocked(month, year);
+                Integer empLockId = user.getEmployeeId() > 0 ? user.getEmployeeId() : null;
                 if (!isLocked) {
                     if (confirmLock) {
-                        attendanceDAO.setTimesheetLocked(month, year, true, userId,
+                        attendanceDAO.setTimesheetLocked(month, year, true, empLockId,
                                 "Khóa chốt bảng công tự động khi tính lương bởi " + user.getFullName());
                         AuditLogDAO.logAction(request, "LOCK_TIMESHEET", "TIMESHEET", null,
                                 "Tự động khóa chốt bảng công khi tính lương kỳ " + month + "/" + year);
@@ -212,7 +213,8 @@ public class PayrollServlet extends HttpServlet {
             }
             case "toggle_lock" -> {
                 boolean currentlyLocked = attendanceDAO.isTimesheetLocked(month, year);
-                attendanceDAO.setTimesheetLocked(month, year, !currentlyLocked, userId, 
+                Integer empLockId = user.getEmployeeId() > 0 ? user.getEmployeeId() : null;
+                attendanceDAO.setTimesheetLocked(month, year, !currentlyLocked, empLockId, 
                         !currentlyLocked ? "Khóa chốt kỳ tính lương" : "Mở khóa kỳ tính lương");
                 AuditLogDAO.logAction(request, !currentlyLocked ? "LOCK_PAYROLL" : "UNLOCK_PAYROLL", "PAYROLL", null, 
                         (!currentlyLocked ? "Khóa chốt" : "Mở khóa") + " kỳ tính lương " + month + "/" + year);
