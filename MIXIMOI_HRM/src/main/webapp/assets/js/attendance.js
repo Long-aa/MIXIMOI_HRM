@@ -55,7 +55,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.bulkMarkOnTime = function() {
         const checkedBoxes = document.querySelectorAll('.row-check:checked');
         if (checkedBoxes.length === 0) {
-            alert('Vui lòng chọn ít nhất một bản ghi chấm công.');
+            if (window.MixiToast) MixiToast.warning('Vui lòng chọn ít nhất một bản ghi chấm công.');
+            else alert('Vui lòng chọn ít nhất một bản ghi chấm công.');
             return;
         }
         if (!confirm('Xác nhận đúng giờ cho ' + checkedBoxes.length + ' bản ghi chấm công đã chọn?')) {
@@ -78,7 +79,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                if (window.showToast) {
+                if (window.MixiToast) {
+                    MixiToast.success(data.message || 'Đã cập nhật đúng giờ thành công!');
+                } else if (window.showToast) {
                     window.showToast(data.message, 'success', 'Cập nhật hàng loạt');
                 }
                 checkedBoxes.forEach(cb => {
@@ -96,19 +99,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 clearAttSelection();
             } else {
-                alert(data.message || 'Thao tác không thành công.');
+                if (window.MixiToast) MixiToast.error(data.message || 'Thao tác không thành công.');
+                else alert(data.message || 'Thao tác không thành công.');
             }
         })
         .catch(err => {
             console.error('bulkMarkOnTime error:', err);
-            alert('Lỗi kết nối khi gửi yêu cầu.');
+            if (window.MixiToast) MixiToast.error('Lỗi kết nối khi gửi yêu cầu.');
+            else alert('Lỗi kết nối khi gửi yêu cầu.');
         });
     };
 
     window.bulkDeleteAtt = function() {
         const checkedBoxes = document.querySelectorAll('.row-check:checked');
         if (checkedBoxes.length === 0) {
-            alert('Vui lòng chọn ít nhất một bản ghi chấm công.');
+            if (window.MixiToast) MixiToast.warning('Vui lòng chọn ít nhất một bản ghi chấm công.');
+            else alert('Vui lòng chọn ít nhất một bản ghi chấm công.');
             return;
         }
         if (!confirm('Bạn có chắc chắn muốn xóa ' + checkedBoxes.length + ' bản ghi chấm công đã chọn không? Thao tác này không thể hoàn tác.')) {
@@ -139,9 +145,11 @@ document.addEventListener('DOMContentLoaded', function() {
     window.bulkExportAtt = function() {
         const checkedBoxes = document.querySelectorAll('.row-check:checked');
         if (checkedBoxes.length === 0) {
-            alert('Vui lòng chọn ít nhất một bản ghi chấm công.');
+            if (window.MixiToast) MixiToast.warning('Vui lòng chọn ít nhất một bản ghi chấm công.');
+            else alert('Vui lòng chọn ít nhất một bản ghi chấm công.');
             return;
         }
+        if (window.MixiToast) MixiToast.info('Đang xuất ' + checkedBoxes.length + ' bản ghi chấm công...');
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = window.location.pathname;
@@ -402,7 +410,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     btnEl.disabled = false;
                     btnEl.innerHTML = '<i class="bi bi-check-square"></i>';
                 }
-                alert(data.message || 'Có lỗi xảy ra khi phê duyệt giải trình.');
+                if (window.MixiToast) MixiToast.error(data.message || 'Có lỗi xảy ra khi phê duyệt giải trình.');
+                else alert(data.message || 'Có lỗi xảy ra khi phê duyệt giải trình.');
             }
         })
         .catch(err => {
@@ -411,7 +420,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 btnEl.disabled = false;
                 btnEl.innerHTML = '<i class="bi bi-check-square"></i>';
             }
-            alert('Lỗi kết nối khi gửi yêu cầu phê duyệt.');
+            if (window.MixiToast) MixiToast.error('Lỗi kết nối khi gửi yêu cầu phê duyệt.');
+            else alert('Lỗi kết nối khi gửi yêu cầu phê duyệt.');
         });
     };
 

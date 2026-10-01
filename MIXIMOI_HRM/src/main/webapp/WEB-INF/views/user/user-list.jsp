@@ -45,7 +45,7 @@
                     </p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2" onclick="alert('Đang xuất danh sách tài khoản & ma trận phân quyền...')">
+                    <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2" onclick="if (window.MixiToast) MixiToast.info('Đang xuất danh sách tài khoản &amp; ma trận phân quyền...'); else alert('Đang xuất danh sách tài khoản &amp; ma trận phân quyền...');">
                         <i class="bi bi-file-earmark-arrow-down"></i>
                         <span>Xuất danh sách</span>
                     </button>
@@ -268,7 +268,8 @@
                                     </td>
                                     <td class="text-center pe-3">
                                         <div class="btn-group btn-group-sm">
-                                            <form method="post" action="${pageContext.request.contextPath}/users" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn ${u.active ? 'khóa' : 'mở khóa'} tài khoản @${u.username}?');">
+                                            <c:set var="userActionText" value="${u.active ? 'khóa' : 'mở khóa'}"/>
+                                            <form method="post" action="${pageContext.request.contextPath}/users" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn ${userActionText} tài khoản @${u.username}?');">
                                                 <input type="hidden" name="action" value="toggle_status">
                                                 <input type="hidden" name="userId" value="${u.id}">
                                                 <button type="submit" class="btn btn-outline-${u.active ? 'danger' : 'success'} py-1 px-2" title="${u.active ? 'Khóa tài khoản' : 'Mở khóa'}">

@@ -39,6 +39,25 @@ public class SettingServlet extends HttpServlet {
         Map<String, String> settings = settingDAO.getAllSettings();
         request.setAttribute("settings", settings);
 
+        Map<String, Object> healthMetrics = com.miximoi.hrm.util.DBConnection.getHealthMetrics();
+        request.setAttribute("healthMetrics", healthMetrics);
+
+        String action = request.getParameter("action");
+        if ("health_stats".equalsIgnoreCase(action)) {
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write(String.format(
+                "{\"status\":\"%s\",\"activeConnections\":%s,\"idleConnections\":%s,\"totalConnections\":%s,\"heapUsedMb\":%s,\"heapMaxMb\":%s,\"threadsAwaitingConnection\":%s}",
+                healthMetrics.get("status"),
+                healthMetrics.get("activeConnections"),
+                healthMetrics.get("idleConnections"),
+                healthMetrics.get("totalConnections"),
+                healthMetrics.get("heapUsedMb"),
+                healthMetrics.get("heapMaxMb"),
+                healthMetrics.get("threadsAwaitingConnection")
+            ));
+            return;
+        }
+
         if ("profile".equalsIgnoreCase(view) || "account".equalsIgnoreCase(view)) {
             request.setAttribute("activeSubMenu", "profile");
             request.getRequestDispatcher("/WEB-INF/views/settings/settings-account.jsp")

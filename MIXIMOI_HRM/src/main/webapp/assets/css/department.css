@@ -1,4 +1,4 @@
-﻿/* ================================================================
+/* ================================================================
    MIXIMOI HRM -- department.css
    Giao dien quan ly Phong ban: List + Form
    Dong bo thiet ke voi employee-list.css, contract.css
@@ -78,6 +78,10 @@
 .dept-code-green  { background:#dcfce7; color:#15803d }
 .dept-code-purple { background:#ede9fe; color:#6d28d9 }
 .dept-code-amber  { background:#fef3c7; color:#92400e }
+.dept-circle-blue   { background:#eff6ff; color:#2563eb }
+.dept-circle-green  { background:#f0fdf4; color:#16a34a }
+.dept-circle-purple { background:#f5f3ff; color:#7c3aed }
+.dept-circle-amber  { background:#fffbeb; color:#d97706 }
 .dept-code-pink   { background:#fce7f3; color:#9d174d }
 .dept-code-teal   { background:#ccfbf1; color:#0f766e }
 .dept-code-red    { background:#fee2e2; color:#b91c1c }
@@ -195,3 +199,70 @@
 .req-note       { font-size:0.75rem; color:#6b7280; margin-bottom:20px }
 .req-note span  { color:#ef4444 }
 .dept-invalid-feedback { display:none; font-size:0.75rem; color:#ef4444; margin-top:4px }
+
+/* ===== ENTERPRISE ORG CHART MODAL & CARDS ===== */
+.org-chart-wrapper {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 24px;
+    overflow-x: auto;
+    text-align: center;
+}
+.org-chart-root {
+    display: inline-block;
+    background: linear-gradient(135deg, #1e1b4b, #2563eb);
+    color: #fff;
+    border-radius: 14px;
+    padding: 18px 28px;
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
+    margin-bottom: 24px;
+    position: relative;
+    max-width: 380px;
+}
+.org-chart-root::after {
+    content: '';
+    position: absolute;
+    bottom: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 24px;
+    background: #cbd5e1;
+}
+.org-chart-branch-line {
+    height: 2px;
+    background: #cbd5e1;
+    margin: 0 auto 20px;
+    width: 85%;
+}
+.org-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    text-align: left;
+}
+.org-dept-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    transition: all 0.2s ease;
+    position: relative;
+    border-top: 3.5px solid #2563eb;
+}
+.org-dept-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+.org-quota-bar {
+    height: 6px;
+    border-radius: 4px;
+    background: #e2e8f0;
+    overflow: hidden;
+    margin: 8px 0;
+}
+.org-quota-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+}

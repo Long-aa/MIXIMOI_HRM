@@ -404,24 +404,27 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user   ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, is_read);
 
 -- =============================================================
--- 17. NHẬT KÝ HOẠT ĐỘNG (Audit Log)
+-- 17. NHẬT KÝ HOẠT ĐỘNG VÀ KIỂM TOÁN (Audit Logs)
 -- =============================================================
 
 CREATE TABLE IF NOT EXISTS audit_logs (
     id          SERIAL PRIMARY KEY,
     user_id     INTEGER      REFERENCES users(id),
-    username    VARCHAR(100),
-    action      VARCHAR(50)  NOT NULL,  -- CREATE | UPDATE | DELETE | APPROVE | REJECT | LOGIN | LOGOUT
-    module      VARCHAR(100),           -- EMPLOYEE | PAYROLL | LEAVE...
-    object_id   INTEGER,
-    description TEXT,
+    username    VARCHAR(100) NOT NULL,
+    user_role   VARCHAR(50)  NOT NULL DEFAULT 'ANONYMOUS',
+    action      VARCHAR(100) NOT NULL,  -- CREATE | UPDATE | DELETE | APPROVE | REJECT | LOGIN | LOGOUT...
+    module      VARCHAR(50)  NOT NULL,  -- EMPLOYEE | PAYROLL | LEAVE | ATTENDANCE...
+    record_id   INTEGER,
+    details     TEXT,
     ip_address  VARCHAR(50),
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_audit_user   ON audit_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_audit_module ON audit_logs(module);
-CREATE INDEX IF NOT EXISTS idx_audit_time   ON audit_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_user    ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_module  ON audit_logs(module);
+CREATE INDEX IF NOT EXISTS idx_audit_action  ON audit_logs(action);
+
 
 -- =============================================================
 -- 18. THIẾT BỊ CHẤM CÔNG SINH TRẮC HỌC
@@ -713,24 +716,5 @@ CREATE TABLE IF NOT EXISTS system_settings (
     updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- =============================================================
--- 30. NHẬT KÝ KIỂM TOÁN HỆ THỐNG (Audit Logs)
--- =============================================================
 
-CREATE TABLE IF NOT EXISTS audit_logs (
-    id          SERIAL PRIMARY KEY,
-    user_id     INTEGER,
-    username    VARCHAR(100) NOT NULL,
-    user_role   VARCHAR(50)  NOT NULL,
-    action      VARCHAR(100) NOT NULL,
-    module      VARCHAR(50)  NOT NULL,
-    record_id   INTEGER,
-    details     TEXT,
-    ip_address  VARCHAR(50),
-    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_module ON audit_logs(module);
-CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
 

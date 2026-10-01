@@ -368,9 +368,11 @@ document.addEventListener('DOMContentLoaded', function() {
     window.bulkExportLeave = function() {
         const checkedBoxes = document.querySelectorAll('.row-check-leave:checked');
         if (checkedBoxes.length === 0) {
-            alert('Vui lòng chọn ít nhất một đơn nghỉ phép để xuất.');
+            if (window.MixiToast) MixiToast.warning('Vui lòng chọn ít nhất một đơn nghỉ phép để xuất.');
+            else alert('Vui lòng chọn ít nhất một đơn nghỉ phép để xuất.');
             return;
         }
+        if (window.MixiToast) MixiToast.info('Đang xuất danh sách đơn nghỉ phép...');
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = window.location.pathname;

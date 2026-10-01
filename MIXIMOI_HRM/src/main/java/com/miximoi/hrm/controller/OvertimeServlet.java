@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -54,7 +55,7 @@ public class OvertimeServlet extends HttpServlet {
         if (tab == null || tab.trim().isEmpty()) tab = "all";
 
         String deptParam = request.getParameter("departmentId");
-        Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.parseInt(deptParam) : null;
+        Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.valueOf(deptParam) : null;
         String otType = request.getParameter("otType");
         String project = request.getParameter("project");
         String keyword = request.getParameter("keyword");
@@ -75,7 +76,7 @@ public class OvertimeServlet extends HttpServlet {
         int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
 
         int page = 1;
-        try { page = Integer.parseInt(request.getParameter("page")); } catch (Exception ignored) {}
+        try { page = Integer.parseInt(request.getParameter("page")); } catch (NumberFormatException ignored) {}
         if (page < 1) page = 1;
         if (page > totalPages && totalPages > 0) page = totalPages;
 
@@ -116,7 +117,7 @@ public class OvertimeServlet extends HttpServlet {
         if (action == null) action = "";
 
         switch (action) {
-            case "create": {
+            case "create" -> {
                 // Tạo đơn đăng ký tăng ca mới
                 try {
                     int empId = currentUser.getEmployeeId() > 0 ? currentUser.getEmployeeId() : 1;
@@ -180,13 +181,13 @@ public class OvertimeServlet extends HttpServlet {
                     overtimeDAO.insert(ot);
                     response.sendRedirect(request.getContextPath() + "/overtime?success=created");
                     return;
-                } catch (Exception e) {
+                } catch (DateTimeParseException | NumberFormatException | NullPointerException e) {
                     System.err.println("OvertimeServlet.create error: " + e.getMessage());
                     response.sendRedirect(request.getContextPath() + "/overtime?error=create_failed");
                     return;
                 }
             }
-            case "approve_lead": {
+            case "approve_lead" -> {
                 // Quản lý / Lead phê duyệt Cấp 1
                 if (currentUser.isManager() || currentUser.isAdmin() || currentUser.isHr()) {
                     int id = Integer.parseInt(request.getParameter("id"));
@@ -198,9 +199,8 @@ public class OvertimeServlet extends HttpServlet {
                     response.sendRedirect(request.getContextPath() + "/overtime?success=lead_approved");
                     return;
                 }
-                break;
             }
-            case "approve_hr": {
+            case "approve_hr" -> {
                 // HR Lead phê duyệt Cấp 2 (Hoàn tất)
                 if (currentUser.isHr() || currentUser.isAdmin()) {
                     int id = Integer.parseInt(request.getParameter("id"));
@@ -212,9 +212,8 @@ public class OvertimeServlet extends HttpServlet {
                     response.sendRedirect(request.getContextPath() + "/overtime?success=hr_approved");
                     return;
                 }
-                break;
             }
-            case "reject": {
+            case "reject" -> {
                 // Từ chối đơn
                 if (currentUser.isManager() || currentUser.isHr() || currentUser.isAdmin()) {
                     int id = Integer.parseInt(request.getParameter("id"));
@@ -227,8 +226,8 @@ public class OvertimeServlet extends HttpServlet {
                     response.sendRedirect(request.getContextPath() + "/overtime?success=rejected");
                     return;
                 }
-                break;
             }
+            default -> {}
         }
 
         if (isAjax(request)) {

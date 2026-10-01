@@ -496,9 +496,9 @@
 
                     <!-- Nút Nhân viên: Gửi giải trình chấm công -->
                     <c:if test="${sessionScope.currentUser.employee and not sessionScope.currentUser.admin and not sessionScope.currentUser.hr and not sessionScope.currentUser.manager and not sessionScope.currentUser.accountant}">
-                        <button type="button" class="btn-ts-primary" onclick="alert('Đã mở biểu mẫu gửi giải trình chấm công Tháng 0${selectedMonth}/${selectedYear} của bạn.');">
+                        <a href="${pageContext.request.contextPath}/attendance" class="btn-ts-primary text-decoration-none">
                             <i class="bi bi-envelope-exclamation"></i> Gửi giải trình chấm công
-                        </button>
+                        </a>
                     </c:if>
                 </div>
             </div>
@@ -918,7 +918,7 @@
 
                     <div class="d-flex align-items-center justify-content-between pt-3 border-top" style="font-size:0.8rem;">
                         <span class="text-muted">Tổng logs hôm nay: <strong>342 lượt</strong></span>
-                        <a href="javascript:void(0);" onclick="alert('Đã kiểm tra 3 thiết bị ZKTeco: Kết nối WebSocket ổn định (Ping: 14ms)');" class="text-primary fw-bold text-decoration-none">
+                        <a href="javascript:void(0);" onclick="if (window.MixiToast) MixiToast.success('Đã kiểm tra 3 thiết bị ZKTeco: Kết nối WebSocket ổn định (Ping: 14ms)'); else alert('Đã kiểm tra 3 thiết bị ZKTeco: Kết nối WebSocket ổn định (Ping: 14ms)');" class="text-primary fw-bold text-decoration-none">
                             Kiểm tra kết nối
                         </a>
                     </div>

@@ -56,7 +56,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.bulkDelete = function() {
         const checkedBoxes = document.querySelectorAll('.row-check:checked');
         if (checkedBoxes.length === 0) {
-            alert('Vui lòng chọn ít nhất một hợp đồng.');
+            if (window.MixiToast) MixiToast.warning('Vui lòng chọn ít nhất một hợp đồng.');
+            else alert('Vui lòng chọn ít nhất một hợp đồng.');
             return;
         }
         if (!confirm('Bạn có chắc chắn muốn xóa ' + checkedBoxes.length + ' hợp đồng đã chọn không? Thao tác này không thể hoàn tác.')) {
@@ -87,9 +88,11 @@ document.addEventListener('DOMContentLoaded', function() {
     window.bulkExport = function() {
         const checkedBoxes = document.querySelectorAll('.row-check:checked');
         if (checkedBoxes.length === 0) {
-            alert('Vui lòng chọn ít nhất một hợp đồng.');
+            if (window.MixiToast) MixiToast.warning('Vui lòng chọn ít nhất một hợp đồng.');
+            else alert('Vui lòng chọn ít nhất một hợp đồng.');
             return;
         }
+        if (window.MixiToast) MixiToast.info('Đang xuất danh sách ' + checkedBoxes.length + ' hợp đồng...');
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = window.location.pathname;

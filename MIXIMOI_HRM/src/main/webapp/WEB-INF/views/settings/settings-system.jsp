@@ -84,6 +84,10 @@
                             <i class="bi bi-shield-lock"></i>
                             <span>7. Bảo mật & Nhật ký</span>
                         </a>
+                        <a href="#sec-system-health" class="settings-nav-link">
+                            <i class="bi bi-cpu text-success"></i>
+                            <span>8. Giám sát Hiệu năng (Health)</span>
+                        </a>
 
                         <!-- Sync Status Card -->
                         <div class="p-3 bg-light rounded-3 mt-3 border" style="font-size: 0.74rem;">
@@ -527,6 +531,92 @@
                             </div>
                         </div>
 
+                        <!-- Section 8: Giám sát Hiệu năng & Sức khỏe Hệ thống (System Health) -->
+                        <div id="sec-system-health" class="card border-0 shadow-sm rounded-3 p-4 mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="d-flex align-items-center justify-content-center bg-success-subtle text-success rounded-2" style="width: 32px; height: 32px;">
+                                        <i class="bi bi-cpu"></i>
+                                    </div>
+                                    <h2 class="h6 fw-bold text-dark mb-0">8. Giám sát Hiệu năng &amp; Sức khỏe Hệ thống (Health Monitor)</h2>
+                                </div>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
+                                    <span class="vssid-status-dot"></span> Đang hoạt động tối ưu
+                                </span>
+                            </div>
+                            <small class="text-muted mb-3 d-block">Theo dõi trạng thái HikariCP Connection Pool, mức tiêu thụ bộ nhớ JVM Heap và hạ tầng PostgreSQL theo thời gian thực.</small>
+
+                            <div class="row g-3">
+                                <!-- HikariCP Connection Pool -->
+                                <div class="col-12 col-md-6">
+                                    <div class="p-3 border rounded-3 bg-light h-100">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <strong class="text-dark small d-flex align-items-center gap-2">
+                                                <i class="bi bi-database-check text-primary"></i> HikariCP Database Pool
+                                            </strong>
+                                            <span class="badge bg-primary font-monospace">${not empty healthMetrics.poolName ? healthMetrics.poolName : 'MixiMoi-HRM-Pool'}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between small text-muted mb-1">
+                                            <span>Kết nối hoạt động / Tổng số:</span>
+                                            <strong class="text-dark">${healthMetrics.activeConnections} / ${healthMetrics.totalConnections} (Max: ${healthMetrics.maximumPoolSize})</strong>
+                                        </div>
+                                        <div class="progress mb-2" style="height: 8px;">
+                                            <c:set var="poolPercent" value="${(healthMetrics.totalConnections > 0) ? (healthMetrics.activeConnections * 100 / healthMetrics.maximumPoolSize) : 10}"/>
+                                            <div class="progress-bar bg-primary" role="progressbar" data-width="${poolPercent > 0 ? poolPercent : 15}"></div>
+                                        </div>
+                                        <div class="row g-2 text-center pt-2 border-top" style="font-size: 0.72rem;">
+                                            <div class="col-4">
+                                                <div class="text-muted">Đang rảnh (Idle)</div>
+                                                <strong class="text-success fs-6">${healthMetrics.idleConnections}</strong>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="text-muted">Đang bận (Active)</div>
+                                                <strong class="text-primary fs-6">${healthMetrics.activeConnections}</strong>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="text-muted">Hàng đợi (Wait)</div>
+                                                <strong class="text-muted fs-6">${healthMetrics.threadsAwaitingConnection}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- JVM Heap Memory & Runtime -->
+                                <div class="col-12 col-md-6">
+                                    <div class="p-3 border rounded-3 bg-light h-100">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <strong class="text-dark small d-flex align-items-center gap-2">
+                                                <i class="bi bi-memory text-warning"></i> Bộ nhớ JVM Heap &amp; Runtime
+                                            </strong>
+                                            <span class="badge bg-warning-subtle text-warning-emphasis font-monospace">Java ${healthMetrics.javaVersion}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between small text-muted mb-1">
+                                            <span>Bộ nhớ đã dùng / Cấp phát:</span>
+                                            <strong class="text-dark">${healthMetrics.heapUsedMb} MB / ${healthMetrics.heapTotalMb} MB (Max: ${healthMetrics.heapMaxMb} MB)</strong>
+                                        </div>
+                                        <div class="progress mb-2" style="height: 8px;">
+                                            <c:set var="memPercent" value="${(healthMetrics.heapMaxMb > 0) ? (healthMetrics.heapUsedMb * 100 / healthMetrics.heapMaxMb) : 25}"/>
+                                            <div class="progress-bar bg-warning" role="progressbar" data-width="${memPercent > 0 ? memPercent : 20}"></div>
+                                        </div>
+                                        <div class="row g-2 text-center pt-2 border-top" style="font-size: 0.72rem;">
+                                            <div class="col-4">
+                                                <div class="text-muted">Bộ nhớ trống</div>
+                                                <strong class="text-success fs-6">${healthMetrics.heapFreeMb} MB</strong>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="text-muted">CPU Cores</div>
+                                                <strong class="text-dark fs-6">${healthMetrics.availableProcessors} Cores</strong>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="text-muted">Hệ điều hành</div>
+                                                <strong class="text-primary font-monospace">${healthMetrics.osName}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Sticky Footer Save Bar -->
                         <div class="settings-sticky-footer d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
                             <span class="text-muted small">
@@ -553,5 +643,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="${pageContext.request.contextPath}/assets/js/main.js"></script>
+<script>
+    document.querySelectorAll('.progress-bar[data-width]').forEach(function(el) {
+        var w = el.getAttribute('data-width');
+        if (w) el.style.width = w + '%';
+    });
+</script>
 </body>
 </html>

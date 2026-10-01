@@ -938,13 +938,13 @@
                                                             <button type="button"
                                                                 class="btn btn-sm btn-dark text-white p-1"
                                                                 title="Sao chép"
-                                                                onclick="navigator.clipboard.writeText('mxm_live_9a8bcd02ea9871fc3e54721089ad1'); alert('Đã sao chép API Key vào clipboard!');">
+                                                                onclick="navigator.clipboard.writeText('mxm_live_9a8bcd02ea9871fc3e54721089ad1'); if (window.MixiToast) MixiToast.success('Đã sao chép API Key vào clipboard!'); else alert('Đã sao chép API Key vào clipboard!');">
                                                                 <i class="bi bi-clipboard"></i> Sao chép
                                                             </button>
                                                             <button type="button"
                                                                 class="btn btn-sm btn-dark text-warning p-1"
                                                                 title="Tạo lại"
-                                                                onclick="confirm('Bạn có chắc chắn muốn thu hồi và tạo mới API Key?') && alert('Đã tái tạo API Key mới thành công!');">
+                                                                onclick="if (confirm('Bạn có chắc chắn muốn thu hồi và tạo mới API Key?')) { if (window.MixiToast) MixiToast.success('Đã tái tạo API Key mới thành công!'); else alert('Đã tái tạo API Key mới thành công!'); }">
                                                                 <i class="bi bi-arrow-repeat"></i> Tạo mới
                                                             </button>
                                                         </div>
@@ -1082,13 +1082,13 @@
                                                 <div class="d-flex flex-wrap gap-2">
                                                     <button type="button"
                                                         class="btn btn-sm btn-primary shadow-sm d-flex align-items-center gap-1"
-                                                        onclick="alert('Bắt đầu tiến trình tạo Snapshot CSDL tức thì...');">
+                                                        onclick="if (window.MixiToast) MixiToast.info('Bắt đầu tiến trình tạo Snapshot CSDL tức thì...'); else alert('Bắt đầu tiến trình tạo Snapshot CSDL tức thì...');">
                                                         <i class="bi bi-cloud-arrow-up-fill"></i> Sao lưu ngay lập tức
                                                         (Snapshot)
                                                     </button>
                                                     <button type="button"
                                                         class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
-                                                        onclick="alert('Đang tải tệp miximoi_backup_20260912_0300.sql.gz (1.42 GB)...');">
+                                                        onclick="if (window.MixiToast) MixiToast.info('Đang tải tệp miximoi_backup_20260912_0300.sql.gz (1.42 GB)...'); else alert('Đang tải tệp miximoi_backup_20260912_0300.sql.gz (1.42 GB)...');">
                                                         <i class="bi bi-download"></i> Tải bản sao lưu gần nhất (1.42
                                                         GB)
                                                     </button>

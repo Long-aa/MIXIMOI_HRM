@@ -66,7 +66,7 @@
                     <a href="${pageContext.request.contextPath}/departments?action=export" class="btn-export" title="Xuất danh sách phòng ban">
                         <i class="bi bi-download"></i> Xuất Excel
                     </a>
-                    <button class="btn-org-chart" onclick="alert('Sơ đồ tổ chức đang phát triển')">
+                    <button type="button" class="btn-org-chart" data-bs-toggle="modal" data-bs-target="#modalOrgChart">
                         <i class="bi bi-diagram-3"></i> Sơ đồ tổ chức
                     </button>
                     <%-- Chỉ Admin và HR được thêm phòng ban --%>
@@ -258,8 +258,7 @@
                                             </td>
                                             <td>
                                                 <div class="dept-name-cell">
-                                                    <div class="dept-icon-circle"
-                                                         style="${ck % 4 == 0 ? 'background:#eff6ff;color:#2563eb' : ck % 4 == 1 ? 'background:#f0fdf4;color:#16a34a' : ck % 4 == 2 ? 'background:#f5f3ff;color:#7c3aed' : 'background:#fffbeb;color:#d97706'}">
+                                                    <div class="dept-icon-circle ${ck % 4 == 0 ? 'dept-circle-blue' : ck % 4 == 1 ? 'dept-circle-green' : ck % 4 == 2 ? 'dept-circle-purple' : 'dept-circle-amber'}">
                                                         <c:out value="${fn:toUpperCase(fn:substring(dept.name, 0, 2))}"/>
                                                     </div>
                                                     <div>
@@ -312,7 +311,7 @@
                                                 </a>
                                                 <fmt:formatNumber var="pctFill" value="${pct}" maxFractionDigits="0"/>
                                                 <div class="dept-progress-bar">
-                                                    <div class="dept-progress-fill" style="width: ${pctFill}%;"></div>
+                                                    <div class="dept-progress-fill" data-width="${pctFill}" style="max-width:100%;"></div>
                                                 </div>
                                                 <div class="dept-progress-pct"><fmt:formatNumber value="${pct}" maxFractionDigits="1"/>%</div>
                                             </td>
@@ -481,8 +480,109 @@
             </div>
         </div>
     </div>
+<%-- ===== ENTERPRISE ORG CHART MODAL ===== --%>
+<div class="modal fade" id="modalOrgChart" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px; overflow:hidden;">
+            <div class="modal-header border-0 bg-primary text-white p-3 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-diagram-3-fill fs-5"></i>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0">Sơ Đồ Cơ Cấu Tổ Chức Doanh Nghiệp (MIXIMOI GROUP ORG CHART)</h5>
+                        <small class="opacity-75">Cơ cấu phân cấp Ban Lãnh đạo, Khối phòng ban và Định biên nhân sự</small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-light" onclick="window.print()">
+                        <i class="bi bi-printer me-1"></i>In sơ đồ
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+            </div>
+            <div class="modal-body p-4" style="background:#f8fafc;">
+                <div class="org-chart-wrapper">
+                    <!-- Root Node: Board of Directors & CEO -->
+                    <div class="org-chart-root">
+                        <span class="badge bg-warning text-dark font-monospace mb-2">HEADQUARTERS • LEVEL 1</span>
+                        <h5 class="fw-bold mb-1">BAN TỔNG GIÁM ĐỐC</h5>
+                        <div class="small opacity-90 mb-1">Ông <strong>Nguyễn Văn An</strong> — Tổng Giám Đốc Điều Hành</div>
+                        <div class="d-flex justify-content-center gap-3 mt-2 pt-2 border-top border-white border-opacity-25" style="font-size:0.75rem;">
+                            <span><i class="bi bi-people-fill me-1"></i>Toàn tập đoàn: <strong>${totalEmp}</strong> nhân sự</span>
+                            <span><i class="bi bi-buildings-fill me-1"></i><strong>${deptCount}</strong> Khối phòng ban</span>
+                        </div>
+                    </div>
+
+                    <!-- Horizontal Branch Line -->
+                    <div class="org-chart-branch-line"></div>
+
+                    <!-- Department Cards Grid -->
+                    <div class="org-chart-grid">
+                        <c:forEach var="dept" items="${deptSource}">
+                            <div class="org-dept-card">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge bg-primary-subtle text-primary fw-bold font-monospace">
+                                        <c:out value="${not empty dept.code ? dept.code : 'DEPT'}"/>
+                                    </span>
+                                    <span class="badge bg-light text-muted border" style="font-size:0.72rem;">
+                                        ID #${dept.id}
+                                    </span>
+                                </div>
+                                <h6 class="fw-bold text-dark mb-1"><c:out value="${dept.name}"/></h6>
+                                <div class="text-muted small mb-2" style="font-size:0.78rem;">
+                                    <i class="bi bi-person-badge text-primary me-1"></i>Trưởng phòng: 
+                                    <strong class="text-dark"><c:out value="${not empty dept.managerName ? dept.managerName : 'Chưa bổ nhiệm'}"/></strong>
+                                </div>
+
+                                <!-- Headcount & Quota indicator -->
+                                <c:set var="quota" value="15"/>
+                                <c:set var="currentCount" value="${not empty dept.employeeCount ? dept.employeeCount : 0}"/>
+                                <c:set var="pct" value="${currentCount * 100 / quota}"/>
+                                <div class="d-flex justify-content-between text-muted" style="font-size:0.74rem;">
+                                    <span>Quy mô: <strong>${currentCount}</strong> / ${quota} nhân sự</span>
+                                    <c:choose>
+                                        <c:when test="${currentCount > quota}">
+                                            <span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Vượt định biên</span>
+                                        </c:when>
+                                        <c:when test="${currentCount >= quota * 0.8}">
+                                            <span class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> Tối ưu</span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="text-primary fw-bold"><i class="bi bi-info-circle"></i> Đang tuyển thêm</span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </div>
+                                <div class="org-quota-bar">
+                                    <div class="org-quota-fill ${currentCount > quota ? 'bg-danger' : (currentCount >= quota * 0.8 ? 'bg-success' : 'bg-primary')}" 
+                                         data-width="${pct > 100 ? 100 : (pct > 0 ? pct : 8)}" style="max-width:100%;"></div>
+                                </div>
+
+                                <a href="${pageContext.request.contextPath}/employees?departmentId=${dept.id}" 
+                                   class="btn btn-sm btn-outline-primary w-100 mt-2 d-flex align-items-center justify-content-center gap-1"
+                                   style="font-size:0.78rem; border-radius:8px;">
+                                    <i class="bi bi-people"></i>
+                                    <span>Xem ${currentCount} nhân viên</span>
+                                </a>
+                            </div>
+                        </c:forEach>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer p-3 bg-light border-0 d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>Hệ thống tự động đồng bộ sơ đồ tổ chức theo cơ sở dữ liệu thời gian thực.
+                </small>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="${pageContext.request.contextPath}/assets/js/department.js"></script>
+<script>
+    document.querySelectorAll('[data-width]').forEach(function(el) {
+        var w = el.getAttribute('data-width');
+        if (w) el.style.width = w + '%';
+    });
+</script>
 </body>
 </html>
