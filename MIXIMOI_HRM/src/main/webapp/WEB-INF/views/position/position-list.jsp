@@ -968,7 +968,16 @@
                                             <!-- View detail -->
                                             <button type="button" class="btn-pos-action view" 
                                                     title="Xem chi tiết chức danh"
-                                                    onclick="viewPosDetail('${pos.id}', '<c:out value="${pos.code}"/>', '<c:out value="${pos.name}"/>', '<c:out value="${pos.description}"/>', '<c:out value="${pos.level}"/>', '<c:out value="${pos.departmentName}"/>', '${pos.salaryRangeFormatted}', '${pos.employeeCount}', '${pos.hasKpi}')">
+                                                    onclick="viewPosDetail(this)"
+                                                    data-id="${pos.id}"
+                                                    data-code="${pos.code}"
+                                                    data-name="${pos.name}"
+                                                    data-desc="${pos.description}"
+                                                    data-level="${pos.level}"
+                                                    data-dept="${pos.departmentName}"
+                                                    data-salary="${pos.salaryRangeFormatted}"
+                                                    data-emp="${pos.employeeCount}"
+                                                    data-kpi="${pos.hasKpi}">
                                                 <i class="bi bi-eye"></i>
                                             </button>
                                             <!-- Edit -->
@@ -982,7 +991,7 @@
                                             <c:if test="${sessionScope.currentUser.canManageEmployees()}">
                                                 <a href="${pageContext.request.contextPath}/positions?action=duplicate&id=${pos.id}"
                                                    class="btn-pos-action copy" title="Nhân bản chức vụ"
-                                                   onclick="return confirm('Bạn có muốn nhân bản chức vụ này?')">
+                                                   onclick="return confirm('Bạn có muốn nhân bản chức vụ này?');">
                                                     <i class="bi bi-copy"></i>
                                                 </a>
                                             </c:if>
@@ -990,7 +999,10 @@
                                             <c:if test="${sessionScope.currentUser.canManageEmployees()}">
                                                 <button type="button" class="btn-pos-action delete" 
                                                         title="Xóa chức danh"
-                                                        onclick="confirmDeletePos('${pos.id}', '<c:out value="${pos.name}"/>', '${pos.employeeCount}')">
+                                                        onclick="confirmDeletePos(this)"
+                                                        data-id="${pos.id}"
+                                                        data-name="${pos.name}"
+                                                        data-emp="${pos.employeeCount}">
                                                     <i class="bi bi-trash3"></i>
                                                 </button>
                                             </c:if>
@@ -1391,24 +1403,41 @@
     function bulkEdit() {
         const checked = document.querySelectorAll('.pos-row-checkbox:checked').length;
         if (checked === 0) {
-            alert('Vui lòng chọn ít nhất một chức vụ để thao tác sửa hàng loạt.');
+            if (window.MixiToast) MixiToast.warning('Vui lòng chọn ít nhất một chức vụ để thao tác sửa hàng loạt.');
+            else alert('Vui lòng chọn ít nhất một chức vụ để thao tác sửa hàng loạt.');
             return;
         }
-        alert('Đang mở bảng điều khiển sửa hàng loạt cho ' + checked + ' chức vụ.');
+        if (window.MixiToast) MixiToast.info('Đang mở bảng điều khiển sửa hàng loạt cho ' + checked + ' chức vụ.');
+        else alert('Đang mở bảng điều khiển sửa hàng loạt cho ' + checked + ' chức vụ.');
     }
 
     function bulkArchive() {
         const checked = document.querySelectorAll('.pos-row-checkbox:checked').length;
         if (checked === 0) {
-            alert('Vui lòng chọn ít nhất một chức vụ để lưu trữ.');
+            if (window.MixiToast) MixiToast.warning('Vui lòng chọn ít nhất một chức vụ để lưu trữ.');
+            else alert('Vui lòng chọn ít nhất một chức vụ để lưu trữ.');
             return;
         }
         if (confirm('Bạn có chắc chắn muốn chuyển ' + checked + ' chức vụ được chọn vào mục lưu trữ?')) {
-            alert('Đã lưu trữ thành công ' + checked + ' chức vụ.');
+            if (window.MixiToast) MixiToast.success('Đã lưu trữ thành công ' + checked + ' chức vụ.');
+            else alert('Đã lưu trữ thành công ' + checked + ' chức vụ.');
         }
     }
 
-    function viewPosDetail(id, code, name, desc, level, dept, salary, emp, hasKpi) {
+    function viewPosDetail(btnOrId, code, name, desc, level, dept, salary, emp, hasKpi) {
+        let id = btnOrId;
+        if (typeof btnOrId === 'object' && btnOrId !== null) {
+            const btn = btnOrId;
+            id = btn.dataset.id;
+            code = btn.dataset.code;
+            name = btn.dataset.name;
+            desc = btn.dataset.desc;
+            level = btn.dataset.level;
+            dept = btn.dataset.dept;
+            salary = btn.dataset.salary;
+            emp = btn.dataset.emp;
+            hasKpi = btn.dataset.kpi;
+        }
         document.getElementById('detailPosName').textContent = name;
         document.getElementById('detailPosCode').textContent = code;
         document.getElementById('detailPosLevel').textContent = level;
@@ -1425,7 +1454,13 @@
         new bootstrap.Modal(document.getElementById('posDetailModal')).show();
     }
 
-    function confirmDeletePos(id, name, empCount) {
+    function confirmDeletePos(btnOrId, name, empCount) {
+        let id = btnOrId;
+        if (typeof btnOrId === 'object' && btnOrId !== null) {
+            id = btnOrId.dataset.id;
+            name = btnOrId.dataset.name;
+            empCount = btnOrId.dataset.emp;
+        }
         document.getElementById('deletePosId').value = id;
         document.getElementById('deletePosName').textContent = name;
         const count = parseInt(empCount) || 0;

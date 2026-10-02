@@ -345,7 +345,7 @@
                     <div class="month-selector-wrap" style="background:#fff; border:1.5px solid #e2e8f0; border-radius:10px; padding:3px 6px;">
                         <a href="${pageContext.request.contextPath}/overtime?month=${selectedMonth > 1 ? selectedMonth - 1 : 12}&year=${selectedMonth > 1 ? selectedYear : selectedYear - 1}" class="month-btn-nav"><i class="bi bi-chevron-left"></i></a>
                         <span class="month-display-text" style="font-size:0.86rem; font-weight:700; color:#0f172a; padding:0 8px;">
-                            <i class="bi bi-calendar3 text-primary"></i> Tháng 0${selectedMonth}/${selectedYear}
+                            <i class="bi bi-calendar3 text-primary"></i> Tháng ${selectedMonth < 10 ? '0' : ''}${selectedMonth}/${selectedYear}
                         </span>
                         <a href="${pageContext.request.contextPath}/overtime?month=${selectedMonth < 12 ? selectedMonth + 1 : 1}&year=${selectedMonth < 12 ? selectedYear : selectedYear + 1}" class="month-btn-nav"><i class="bi bi-chevron-right"></i></a>
                     </div>
@@ -532,7 +532,7 @@
                                     </c:when>
                                     <c:otherwise>
                                         <c:forEach var="ot" items="${overtimes}">
-                                            <tr>
+                                            <tr class="ot-row" data-ot-id="${ot.id}">
                                                 <!-- Dự án / Nhân viên -->
                                                 <td>
                                                     <div class="project-name-bold">${ot.projectName}</div>
@@ -562,7 +562,7 @@
                                                 <!-- Cấp duyệt (2 cấp) -->
                                                 <td>
                                                     <!-- Cấp 1: Lead duyệt -->
-                                                    <div class="approver-step-item">
+                                                    <div class="approver-step-item ot-lead-step">
                                                         <c:choose>
                                                             <c:when test="${ot.leadStatus eq 'APPROVED'}">
                                                                 <i class="bi bi-check-circle-fill step-icon-approved"></i>
@@ -580,7 +580,7 @@
                                                     </div>
 
                                                     <!-- Cấp 2: HR duyệt -->
-                                                    <div class="approver-step-item">
+                                                    <div class="approver-step-item ot-hr-step">
                                                         <c:choose>
                                                             <c:when test="${ot.hrStatus eq 'APPROVED'}">
                                                                 <i class="bi bi-check-circle-fill step-icon-approved"></i>
@@ -599,7 +599,7 @@
                                                 </td>
 
                                                 <!-- Trạng thái -->
-                                                <td class="text-center">
+                                                <td class="text-center ot-status-cell">
                                                     <c:choose>
                                                         <c:when test="${ot.status eq 'PENDING_LEAD'}">
                                                             <span class="ot-status-pill pending-lead">Chờ duyệt cấp 1</span>
@@ -621,7 +621,7 @@
 
                                                 <!-- Thao tác Phân quyền theo Role -->
                                                 <td>
-                                                    <div class="ot-actions justify-content-center">
+                                                    <div class="ot-actions ot-actions-cell justify-content-center">
                                                         <!-- Phê duyệt Cấp 1: Manager & Admin -->
                                                         <c:if test="${(sessionScope.currentUser.manager or sessionScope.currentUser.admin) and ot.status eq 'PENDING_LEAD'}">
                                                             <form method="post" action="${pageContext.request.contextPath}/overtime" class="d-inline">
@@ -977,46 +977,7 @@
     </div>
 </div>
 
-<script>
-    function calculateOtHours() {
-        const start = document.getElementById('otStartTime').value;
-        const end = document.getElementById('otEndTime').value;
-        const coeff = document.getElementById('otCoefficient').value;
-
-        if (start && end) {
-            const [sh, sm] = start.split(':').map(Number);
-            const [eh, em] = end.split(':').map(Number);
-            let sMinutes = sh * 60 + sm;
-            let eMinutes = eh * 60 + em;
-            if (eMinutes < sMinutes) eMinutes += 24 * 60; // qua đêm
-            const diffHours = Math.max(0.5, Math.round(((eMinutes - sMinutes) / 60.0) * 10) / 10);
-            document.getElementById('calcHoursDisplay').innerText = diffHours;
-        }
-        document.getElementById('calcCoeffDisplay').innerText = coeff + 'x';
-    }
-
-    function openRejectOtModal(id, name, project) {
-        document.getElementById('sharedRejectOtId').value = id;
-        document.getElementById('sharedRejectOtEmp').textContent = name;
-        document.getElementById('sharedRejectOtProj').textContent = project;
-        var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('sharedRejectOtModal'));
-        modal.show();
-    }
-
-    function openViewOtModal(btn) {
-        document.getElementById('sharedViewOtProj').textContent = btn.getAttribute('data-project') || '—';
-        document.getElementById('sharedViewOtEmp').textContent = btn.getAttribute('data-emp') || '—';
-        document.getElementById('sharedViewOtDate').textContent = btn.getAttribute('data-date') || '—';
-        document.getElementById('sharedViewOtHours').textContent = btn.getAttribute('data-hours') || '—';
-        document.getElementById('sharedViewOtAmount').textContent = btn.getAttribute('data-amount') || '—';
-        document.getElementById('sharedViewOtReason').textContent = btn.getAttribute('data-reason') || '—';
-        document.getElementById('sharedViewOtLead').textContent = btn.getAttribute('data-lead') || '—';
-        document.getElementById('sharedViewOtHr').textContent = btn.getAttribute('data-hr') || '—';
-        var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('sharedViewOtModal'));
-        modal.show();
-    }
-</script>
-
+<script src="${pageContext.request.contextPath}/assets/js/overtime.js"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
 </body>
 </html>

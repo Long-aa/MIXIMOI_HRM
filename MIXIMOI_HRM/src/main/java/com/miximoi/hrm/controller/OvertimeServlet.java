@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -43,8 +44,9 @@ public class OvertimeServlet extends HttpServlet {
         HttpSession session = request.getSession(false);
         User currentUser = (User) session.getAttribute("currentUser");
 
-        int month = 9;
-        int year = 2026;
+        LocalDate now = LocalDate.now();
+        int month = now.getMonthValue();
+        int year = now.getYear();
         try {
             if (request.getParameter("month") != null) month = Integer.parseInt(request.getParameter("month"));
             if (request.getParameter("year") != null) year = Integer.parseInt(request.getParameter("year"));
@@ -54,7 +56,7 @@ public class OvertimeServlet extends HttpServlet {
         if (tab == null || tab.trim().isEmpty()) tab = "all";
 
         String deptParam = request.getParameter("departmentId");
-        Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.parseInt(deptParam) : null;
+        Integer departmentId = (deptParam != null && !deptParam.isEmpty()) ? Integer.valueOf(deptParam) : null;
         String otType = request.getParameter("otType");
         String project = request.getParameter("project");
         String keyword = request.getParameter("keyword");
@@ -75,7 +77,7 @@ public class OvertimeServlet extends HttpServlet {
         int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
 
         int page = 1;
-        try { page = Integer.parseInt(request.getParameter("page")); } catch (Exception ignored) {}
+        try { page = Integer.parseInt(request.getParameter("page")); } catch (NumberFormatException ignored) {}
         if (page < 1) page = 1;
         if (page > totalPages && totalPages > 0) page = totalPages;
 
@@ -116,7 +118,7 @@ public class OvertimeServlet extends HttpServlet {
         if (action == null) action = "";
 
         switch (action) {
-            case "create": {
+            case "create" -> {
                 // Tạo đơn đăng ký tăng ca mới
                 try {
                     int empId = currentUser.getEmployeeId() > 0 ? currentUser.getEmployeeId() : 1;
@@ -180,43 +182,58 @@ public class OvertimeServlet extends HttpServlet {
                     overtimeDAO.insert(ot);
                     response.sendRedirect(request.getContextPath() + "/overtime?success=created");
                     return;
-                } catch (Exception e) {
+                } catch (DateTimeParseException | NumberFormatException | NullPointerException e) {
                     System.err.println("OvertimeServlet.create error: " + e.getMessage());
                     response.sendRedirect(request.getContextPath() + "/overtime?error=create_failed");
                     return;
                 }
             }
-            case "approve_lead": {
+            case "approve_lead" -> {
                 // Quản lý / Lead phê duyệt Cấp 1
                 if (currentUser.isManager() || currentUser.isAdmin() || currentUser.isHr()) {
                     int id = Integer.parseInt(request.getParameter("id"));
                     overtimeDAO.approveLead(id, currentUser.getEmployeeId(), currentUser.getFullName());
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đã duyệt Cấp 1 (Lead) thành công", "PENDING_HR", "Chờ duyệt cấp 2", currentUser.getFullName());
+                        return;
+                    }
                     response.sendRedirect(request.getContextPath() + "/overtime?success=lead_approved");
                     return;
                 }
-                break;
             }
-            case "approve_hr": {
+            case "approve_hr" -> {
                 // HR Lead phê duyệt Cấp 2 (Hoàn tất)
                 if (currentUser.isHr() || currentUser.isAdmin()) {
                     int id = Integer.parseInt(request.getParameter("id"));
                     overtimeDAO.approveHr(id, currentUser.getEmployeeId(), currentUser.getFullName());
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đã phê duyệt Cấp 2 (HR Lead) hoàn tất", "APPROVED", "Đã phê duyệt", currentUser.getFullName());
+                        return;
+                    }
                     response.sendRedirect(request.getContextPath() + "/overtime?success=hr_approved");
                     return;
                 }
-                break;
             }
-            case "reject": {
+            case "reject" -> {
                 // Từ chối đơn
                 if (currentUser.isManager() || currentUser.isHr() || currentUser.isAdmin()) {
                     int id = Integer.parseInt(request.getParameter("id"));
                     String rejectReason = request.getParameter("rejectReason");
                     overtimeDAO.reject(id, currentUser.getEmployeeId(), currentUser.getFullName(), rejectReason);
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đã từ chối đơn tăng ca thành công", "REJECTED", "Từ chối", currentUser.getFullName());
+                        return;
+                    }
                     response.sendRedirect(request.getContextPath() + "/overtime?success=rejected");
                     return;
                 }
-                break;
             }
+            default -> {}
+        }
+
+        if (isAjax(request)) {
+            writeJson(response, false, "Thao tác không hợp lệ hoặc không có quyền.");
+            return;
         }
 
         response.sendRedirect(request.getContextPath() + "/overtime");
@@ -230,5 +247,26 @@ public class OvertimeServlet extends HttpServlet {
             return false;
         }
         return true;
+    }
+
+    private boolean isAjax(HttpServletRequest request) {
+        return "XMLHttpRequest".equalsIgnoreCase(request.getHeader("X-Requested-With"))
+                || "true".equalsIgnoreCase(request.getParameter("ajax"))
+                || (request.getHeader("Accept") != null && request.getHeader("Accept").contains("application/json"));
+    }
+
+    private void writeJson(HttpServletResponse response, boolean success, String message) throws IOException {
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"success\":" + success + ",\"message\":\"" + (message != null ? message.replace("\"", "\\\"") : "") + "\"}");
+    }
+
+    private void writeJson(HttpServletResponse response, boolean success, String message, String newStatus, String statusText, String approverName) throws IOException {
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"success\":" + success
+                + ",\"message\":\"" + (message != null ? message.replace("\"", "\\\"") : "") + "\""
+                + (newStatus != null ? ",\"newStatus\":\"" + newStatus + "\"" : "")
+                + (statusText != null ? ",\"statusText\":\"" + statusText + "\"" : "")
+                + (approverName != null ? ",\"approverName\":\"" + approverName.replace("\"", "\\\"") + "\"" : "")
+                + "}");
     }
 }

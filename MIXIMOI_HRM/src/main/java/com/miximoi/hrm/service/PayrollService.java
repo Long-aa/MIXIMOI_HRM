@@ -4,7 +4,6 @@ import com.miximoi.hrm.dao.AllowanceDAO;
 import com.miximoi.hrm.dao.AttendanceDAO;
 import com.miximoi.hrm.dao.BonusDAO;
 import com.miximoi.hrm.dao.ContractDAO;
-import com.miximoi.hrm.dao.EmployeeDAO;
 import com.miximoi.hrm.dao.OvertimeDAO;
 import com.miximoi.hrm.dao.PaymentDAO;
 import com.miximoi.hrm.dao.PayrollDAO;
@@ -39,13 +38,13 @@ public class PayrollService {
     private final PayrollDAO         payrollDAO      = new PayrollDAO();
     private final AttendanceDAO      attendanceDAO   = new AttendanceDAO();
     private final OvertimeDAO        overtimeDAO     = new OvertimeDAO();
-    private final EmployeeDAO        employeeDAO     = new EmployeeDAO();
     private final ContractDAO        contractDAO     = new ContractDAO();
     private final AllowanceDAO       allowanceDAO    = new AllowanceDAO();
     private final BonusDAO           bonusDAO        = new BonusDAO();
     private final SalaryDeductionDAO deductionDAO    = new SalaryDeductionDAO();
     private final SalaryConfigDAO    configDAO       = new SalaryConfigDAO();
     private final PaymentDAO         paymentDAO      = new PaymentDAO();
+    private final PayrollServiceImpl payrollServiceImpl = new PayrollServiceImpl();
 
     // Hằng số fallback (khi bảng salary_configs chưa có dữ liệu)
     private static final double BHXH_RATE_DEFAULT  = 0.08;
@@ -53,11 +52,9 @@ public class PayrollService {
     private static final double BHTN_RATE_DEFAULT  = 0.01;
     private static final BigDecimal INSURANCE_CEILING_DEFAULT = new BigDecimal("46800000");
     private static final BigDecimal PERSONAL_REDUCTION_DEFAULT = new BigDecimal("11000000");
-    private static final BigDecimal DEPENDENT_REDUCTION_DEFAULT = new BigDecimal("4400000");
 
     /**
-     * Tính lương cho tất cả nhân viên trong một kỳ.
-     * Nếu nhân viên đã có bản DRAFT trong kỳ thì xóa và tính lại.
+     * Tính lương cho tất cả nhân viên trong một kỳ với JDBC Transaction và Snapshot payroll_details.
      *
      * @param month       tháng tính lương
      * @param year        năm tính lương
@@ -65,16 +62,7 @@ public class PayrollService {
      * @return số nhân viên đã tính lương
      */
     public int calculatePayrollForPeriod(int month, int year, int createdById) {
-        // Xóa các bản DRAFT cũ để tính lại
-        payrollDAO.deleteByPeriod(month, year);
-
-        List<Employee> employees = employeeDAO.findAll();
-        int count = 0;
-        for (Employee emp : employees) {
-            Payroll pr = calculateForEmployee(emp, month, year, createdById);
-            if (payrollDAO.insert(pr)) count++;
-        }
-        return count;
+        return payrollServiceImpl.processMonthlyPayroll(month, year, createdById);
     }
 
     /** Tính lương chi tiết cho 1 nhân viên */
@@ -153,6 +141,12 @@ public class PayrollService {
         pr.setDeduction(totalDeduction);
         pr.setNetSalary(netSalary);
         pr.setCreatedById(createdById);
+        pr.setStatus("DRAFT");
+        pr.setGrossIncome(grossIncome);
+        pr.setBhxhAmount(bhxh);
+        pr.setBhytAmount(bhyt);
+        pr.setBhtnAmount(bhtn);
+        pr.setTncnTax(tncn);
         return pr;
     }
 
@@ -212,7 +206,7 @@ public class PayrollService {
 
                 conn.commit();
                 return true;
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 System.err.println("PayrollService.payPayrollSingle lỗi, đã rollback: " + e.getMessage());
                 return false;
@@ -229,10 +223,11 @@ public class PayrollService {
      * Thực hiện thanh toán hàng loạt (Batch Disburse) tất cả bản ghi APPROVED trong kỳ.
      * Sử dụng JDBC Transaction để đảm bảo tính toàn vẹn dữ liệu.
      */
-    public int batchDisburse(int month, int year, int approvedById) {
+    public int batchDisburse(int month, int year, int approvedById, String paymentMethod) {
         List<Payroll> list = payrollDAO.findByPeriod(month, year);
         if (list == null || list.isEmpty()) return 0;
 
+        String method = (paymentMethod != null && !paymentMethod.isEmpty()) ? paymentMethod : "BANK_TRANSFER";
         int count = 0;
         try (Connection conn = DBConnection.getConnection()) {
             conn.setAutoCommit(false);
@@ -244,9 +239,12 @@ public class PayrollService {
                         payment.setEmployeeId(pr.getEmployeeId());
                         payment.setAmount(pr.getNetSalary() != null ? pr.getNetSalary() : BigDecimal.ZERO);
                         payment.setPaymentDate(LocalDate.now());
-                        payment.setPaymentMethod("BANK_TRANSFER");
+                        payment.setPaymentMethod(method);
                         payment.setStatus("COMPLETED");
-                        payment.setNotes("Chi lương tự động kỳ T" + pr.getPayMonth() + "/" + pr.getPayYear() + " qua Napas");
+                        String memo = "BANK_TRANSFER".equals(method)
+                                ? ("Chi lương tự động kỳ T" + pr.getPayMonth() + "/" + pr.getPayYear() + " qua Napas/H2H - " + pr.getEmployeeCode())
+                                : ("Chi trả tiền mặt tại quỹ kỳ T" + pr.getPayMonth() + "/" + pr.getPayYear() + " - " + pr.getEmployeeCode());
+                        payment.setNotes(memo);
                         paymentDAO.insertWithConnection(conn, payment);
 
                         payrollDAO.updateStatusWithConnection(conn, pr.getId(), "PAID", approvedById);
@@ -254,7 +252,7 @@ public class PayrollService {
                     }
                 }
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 System.err.println("PayrollService.batchDisburse lỗi, đã rollback: " + e.getMessage());
                 return 0;
@@ -266,6 +264,10 @@ public class PayrollService {
             return 0;
         }
         return count;
+    }
+
+    public int batchDisburse(int month, int year, int approvedById) {
+        return batchDisburse(month, year, approvedById, "BANK_TRANSFER");
     }
 
     public BigDecimal getTotalPayroll(int month, int year) {

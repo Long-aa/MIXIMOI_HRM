@@ -13,7 +13,7 @@
 </head>
 <body>
 <div class="app-container">
-    <c:set var="activeMenu" value="employees" scope="request"/>
+    <c:set var="activeMenu" value="employees" scope="request" />
     <%@ include file="/WEB-INF/views/common/sidebar.jsp" %>
 
     <main class="app-main">
@@ -21,7 +21,7 @@
 
         <div class="app-content">
 
-            <!-- Toast Container -->
+            <!-- Toast Container for modern dynamic notifications -->
             <div class="toast-container-custom" id="toastContainer"></div>
 
             <!-- Page Header -->
@@ -32,8 +32,8 @@
                         <span>•</span>
                         <span id="headerFormId">
                             <c:choose>
-                                <c:when test="${not empty employee and employee.id > 0}">MÃ NV: <c:out value="${employee.employeeCode}"/></c:when>
-                                <c:otherwise>HỒ SƠ MỚI: <c:out value="${nextEmployeeCode}"/></c:otherwise>
+                                <c:when test="${not empty employee and employee.id > 0}">MÃ NV: <c:out value="${employee.employeeCode}" /></c:when>
+                                <c:otherwise>HỒ SƠ MỚI: <c:out value="${nextEmployeeCode}" /></c:otherwise>
                             </c:choose>
                         </span>
                     </div>
@@ -50,24 +50,35 @@
                 </div>
             </div>
 
-            <!-- Server-side alert message -->
+            <!-- Server-side alert error message -->
             <c:if test="${not empty error}">
                 <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3" style="border-radius:12px; font-size:0.875rem;" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Lỗi:</strong> ${error}
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Lỗi:</strong> ${error}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </c:if>
+
+            <c:if test="${not empty candidateSource}">
+                <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3 d-flex align-items-center gap-2" style="border-radius:12px; font-size:0.875rem;" role="alert">
+                    <i class="bi bi-person-check-fill fs-5 text-success"></i>
+                    <div>
+                        Tiếp nhận ứng viên <strong><c:out value="${candidateSource.fullName}"/></strong> (<c:out value="${candidateSource.candidateCode}"/>) vào biên chế chính thức. Thông tin và tệp CV đã được đồng bộ tự động.
+                    </div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
                 </div>
             </c:if>
 
             <!-- Draft Restored Banner (Hidden by default) -->
             <div id="draftAlertBanner" class="alert alert-info alert-dismissible fade show border-0 shadow-sm mb-3 d-none" style="border-radius:12px; font-size:0.85rem;" role="alert">
                 <i class="bi bi-info-circle-fill me-2 text-primary"></i>
-                <span id="draftAlertText">Phát hiện dữ liệu nháp đã lưu trước đó.</span>
+                <span id="draftAlertText">Phát hiện dữ liệu nháp đã lưu trên trình duyệt này.</span>
                 <button type="button" class="btn btn-sm btn-primary ms-3 py-0 px-2" style="font-size:0.75rem;" onclick="restoreDraftData()">Khôi phục dữ liệu</button>
                 <button type="button" class="btn btn-sm btn-outline-danger ms-1 py-0 px-2" style="font-size:0.75rem;" onclick="clearDraft()">Xóa bản nháp</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary ms-1 py-0 px-2" style="font-size:0.75rem;" onclick="dismissDraft()">Bỏ qua</button>
             </div>
 
-            <!-- Stepper Navigation -->
+            <!-- Stepper Navigation (4 Steps) -->
             <div class="wizard-stepper">
                 <button type="button" class="stepper-tab active" id="stepperTab1" onclick="jumpToStep(1)">
                     <div class="stepper-num" id="stepperNum1">01</div>
@@ -99,13 +110,40 @@
                 </button>
             </div>
 
-            <!-- FORM START (Standard POST for clean parameter binding) -->
-            <form method="post" action="${pageContext.request.contextPath}/employees" id="employeeForm">
+            <!-- FORM START -->
+            <form method="post" action="${pageContext.request.contextPath}/employees" id="employeeForm" enctype="multipart/form-data" novalidate>
+                <!-- Client-side validation message bar -->
+                <div id="clientValidationAlert" class="alert alert-danger border-0 shadow-sm d-none mb-3" role="alert" aria-live="polite"></div>
+
                 <input type="hidden" name="action" value="${empty employee or employee.id == 0 ? 'add' : 'update'}">
                 <c:if test="${not empty employee and employee.id > 0}">
-                    <input type="hidden" name="id" value="${employee.id}">
+                    <input type="hidden" name="id" id="employeeId" value="${employee.id}">
+                </c:if>
+                <c:if test="${not empty candidateSource}">
+                    <input type="hidden" name="candidateId" id="candidateIdHidden" value="${candidateSource.id}">
                 </c:if>
 
+                <!-- Avatar URL Resolution -->
+                <c:choose>
+                    <c:when test="${not empty employee.avatarUrl}">
+                        <c:choose>
+                            <c:when test="${fn:startsWith(employee.avatarUrl, 'http')}">
+                                <c:set var="avatarSrc" value="${employee.avatarUrl}" />
+                            </c:when>
+                            <c:otherwise>
+                                <c:set var="avatarSrc" value="${pageContext.request.contextPath}${employee.avatarUrl}" />
+                            </c:otherwise>
+                        </c:choose>
+                    </c:when>
+                    <c:when test="${not empty employee.fullName}">
+                        <c:set var="avatarSrc" value="https://ui-avatars.com/api/?name=${employee.fullName}&amp;background=2563eb&amp;color=fff" />
+                    </c:when>
+                    <c:otherwise>
+                        <c:set var="avatarSrc" value="https://ui-avatars.com/api/?name=NV&amp;background=e2e8f0&amp;color=64748b" />
+                    </c:otherwise>
+                </c:choose>
+
+                <!-- 2-COLUMN WIZARD LAYOUT -->
                 <div class="wizard-layout">
 
                     <!-- ============================================================ -->
@@ -116,40 +154,37 @@
                         <div id="sidePanelStep1">
                             <div class="sidebar-card">
                                 <div class="sidebar-card-body text-center">
-                                    <div class="avatar-upload-box" onclick="triggerAvatarUpload()">
-                                        <img id="avatarPreviewImg" src="${not empty employee.avatarUrl ? employee.avatarUrl : (not empty employee.fullName ? ('https://ui-avatars.com/api/?name=' += employee.fullName += '&background=2563eb&color=fff') : 'https://ui-avatars.com/api/?name=NV&background=e2e8f0&color=64748b')}"
-                                             class="avatar-img-preview" alt="Avatar">
-                                        <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="previewAvatar(this)">
+                                    <input type="file" id="avatarFileInput" name="avatarFile" accept=".jpg,.jpeg,.png,.webp,image/*" style="display:none;" onchange="previewAvatar(this)">
+                                    <div class="avatar-upload-box upload-drop-zone" id="avatarDropZone" style="cursor:pointer;" onclick="triggerAvatarUpload(event)" title="Nhấn để chọn ảnh chân dung từ máy tính">
+                                        <img id="avatarPreviewImg" src="${avatarSrc}" class="avatar-img-preview" alt="Avatar">
+                                        <input type="hidden" name="avatarUrl" id="avatarUrlHidden" value="${not empty employee.avatarUrl ? employee.avatarUrl : ''}">
                                     </div>
-                                    <button type="button" class="avatar-upload-btn" onclick="triggerAvatarUpload()">
-                                        <i class="bi bi-camera-fill"></i> Tải ảnh chân dung (3x4 / 4x6)
+                                    <button type="button" class="avatar-upload-btn border-0" style="cursor:pointer;" onclick="triggerAvatarUpload(event)">
+                                        <i class="bi bi-camera-fill me-1"></i> Tải ảnh chân dung (3x4 / 4x6)
                                     </button>
                                     <div style="font-size:0.7rem; color:#94a3b8; margin-top:6px;">
-                                        Hỗ trợ JPG, PNG. Kích thước tối đa 5MB. Ảnh rõ nét, nền trơn sáng màu.
+                                        Hỗ trợ JPG, PNG. Kích thước tối đa 5MB. Ảnh rõ nét, nền sáng màu.
                                     </div>
 
                                     <!-- System info card -->
                                     <div class="sys-info-box text-start">
                                         <div class="sys-info-header">
-                                            <span class="sys-info-title">Thông tin hệ thống cấp</span>
+                                            <span class="sys-info-title">Thông tin hệ thống</span>
                                             <span class="sys-info-tag">Tự động sinh</span>
                                         </div>
                                         <div class="sys-info-row">
                                             <span class="sys-info-label">Mã nhân viên</span>
-                                            <span class="sys-info-val text-primary font-monospace" id="sideEmpCodeDisplay"><c:out value="${empty employee.employeeCode ? nextEmployeeCode : employee.employeeCode}"/></span>
-                                        </div>
-                                        <div class="sys-info-row">
-                                            <span class="sys-info-label">Ngày khởi tạo</span>
-                                            <span class="sys-info-val" id="sideCreatedDate">
-                                                <c:choose>
-                                                    <c:when test="${not empty employee and not empty employee.createdAt}"><c:out value="${employee.createdAt.toLocalDate()}"/></c:when>
-                                                    <c:otherwise>Hôm nay</c:otherwise>
-                                                </c:choose>
+                                            <span class="sys-info-val text-primary font-monospace" id="sysInfoCode">
+                                                <c:out value="${empty employee.employeeCode ? nextEmployeeCode : employee.employeeCode}" />
                                             </span>
                                         </div>
                                         <div class="sys-info-row">
-                                            <span class="sys-info-label">Trạng thái hồ sơ</span>
-                                            <span class="sys-badge-draft">${empty employee or employee.id == 0 ? 'Tạo mới (Bản nháp)' : employee.status}</span>
+                                            <span class="sys-info-label">Trạng thái tạo</span>
+                                            <span class="sys-badge-draft">${empty employee or employee.id == 0 ? 'Mới khởi tạo' : 'Đang cập nhật'}</span>
+                                        </div>
+                                        <div class="sys-info-row">
+                                            <span class="sys-info-label">Quyền truy cập</span>
+                                            <span class="sys-info-val">Cổng thông tin NV</span>
                                         </div>
                                     </div>
                                 </div>
@@ -160,10 +195,17 @@
                                 <div class="sidebar-card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <span style="font-size:0.78rem; font-weight:700; color:#1e293b;">Tiến độ Bước 1</span>
-                                        <span style="font-size:0.85rem; font-weight:800; color:#2563eb;" id="step1Pct">75%</span>
+                                        <span style="font-size:0.85rem; font-weight:800; color:#2563eb;" id="step1Pct">${empty employee or employee.id == 0 ? '0%' : '100%'}</span>
                                     </div>
                                     <div class="progress" style="height:7px; border-radius:999px; background:#e2e8f0;">
-                                        <div class="progress-bar bg-primary" id="step1ProgressBar" style="width:75%; border-radius:999px;"></div>
+                                        <c:choose>
+                                            <c:when test="${empty employee or employee.id == 0}">
+                                                <div class="progress-bar bg-primary" id="step1ProgressBar" style="width:0%; border-radius:999px;"></div>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <div class="progress-bar bg-primary" id="step1ProgressBar" style="width:100%; border-radius:999px;"></div>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </div>
                                     <div style="font-size:0.72rem; color:#94a3b8; margin-top:8px;">
                                         Vui lòng hoàn thiện các trường đánh dấu sao (<span class="text-danger">*</span>) để mở khóa tiếp tục sang bước Công việc.
@@ -174,8 +216,9 @@
                                             <i class="bi bi-shield-check text-primary"></i> Quy chuẩn dữ liệu nhân sự
                                         </div>
                                         <ul style="font-size:0.72rem; color:#64748b; margin:0; padding-left:1.1rem; line-height:1.5;">
-                                            <li>CCCD/Hộ chiếu phải còn hiệu lực ít nhất <strong>6 tháng</strong> tính đến ngày ký tiếp nhận.</li>
-                                            <li>Email công ty (@miximoi.vn) sẽ được dùng để kích hoạt tài khoản SSO và nhận phiếu lương hàng tháng.</li>
+                                            <li>CCCD/Hộ chiếu phải còn hiệu lực ít nhất <strong>6 tháng</strong>.</li>
+                                            <li>Email cá nhân được dùng để kích hoạt tài khoản và nhận phiếu lương.</li>
+                                            <li>Địa chỉ thường trú ghi đầy đủ theo căn cước công dân.</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -184,34 +227,27 @@
 
                         <!-- PANEL STEP 2 SIDEBAR -->
                         <div id="sidePanelStep2" style="display:none;">
-                            <!-- Profile Summary Card -->
                             <div class="sidebar-card">
                                 <div class="sidebar-card-body">
                                     <div class="profile-summary-header">
-                                        <img src="${not empty employee.avatarUrl ? employee.avatarUrl : (not empty employee.fullName ? ('https://ui-avatars.com/api/?name=' += employee.fullName += '&background=2563eb&color=fff') : 'https://ui-avatars.com/api/?name=NV&background=e2e8f0&color=64748b')}"
-                                             class="profile-summary-avatar" alt="Avatar" id="sideProfileAvatar">
+                                        <img src="${avatarSrc}" class="profile-summary-avatar" alt="Avatar" id="sideProfileAvatar2">
                                         <div>
-                                            <div class="profile-summary-name" id="sideProfileName"><c:out value="${not empty employee.fullName ? employee.fullName : 'Chưa nhập họ tên'}"/></div>
-                                            <span class="profile-summary-code" id="sideProfileCode"><c:out value="${not empty employee.employeeCode ? employee.employeeCode : nextEmployeeCode}"/></span>
-                                            <div style="font-size:0.72rem; color:#64748b; margin-top:2px;" id="sideProfileAgeGender">
-                                                <c:choose>
-                                                    <c:when test="${not empty employee}">
-                                                        <c:out value="${employee.gender eq 'MALE' ? 'Nam' : employee.gender eq 'FEMALE' ? 'Nữ' : 'Khác'}"/>
-                                                    </c:when>
-                                                    <c:otherwise>—</c:otherwise>
-                                                </c:choose>
+                                            <div class="profile-summary-name" id="sideProfileName2">
+                                                <c:out value="${not empty employee.fullName ? employee.fullName : 'Chưa nhập họ tên'}" />
                                             </div>
+                                            <span class="profile-summary-code" id="sideProfileCode2">
+                                                <c:out value="${not empty employee.employeeCode ? employee.employeeCode : nextEmployeeCode}" />
+                                            </span>
                                         </div>
                                     </div>
                                     <div class="profile-summary-details">
-                                        <div><i class="bi bi-envelope"></i> <span id="sideProfileEmail"><c:out value="${not empty employee.email ? employee.email : 'Chưa có email'}"/></span></div>
-                                        <div><i class="bi bi-telephone"></i> <span id="sideProfilePhone"><c:out value="${not empty employee.phone ? employee.phone : 'Chưa có SĐT'}"/></span></div>
-                                        <div><i class="bi bi-geo-alt"></i> <span id="sideProfileAddr"><c:out value="${not empty employee.address ? employee.address : 'Chưa có địa chỉ'}"/></span></div>
+                                        <div><i class="bi bi-envelope"></i> <span id="sideProfileEmail2"><c:out value="${not empty employee.email ? employee.email : 'Chưa có email'}" /></span></div>
+                                        <div><i class="bi bi-telephone"></i> <span id="sideProfilePhone2"><c:out value="${not empty employee.phone ? employee.phone : 'Chưa có SĐT'}" /></span></div>
+                                        <div><i class="bi bi-geo-alt"></i> <span id="sideProfileAddr2"><c:out value="${not empty employee.address ? employee.address : 'Chưa có địa chỉ'}" /></span></div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Onboarding Checklist -->
                             <div class="sidebar-card">
                                 <div class="sidebar-card-body">
                                     <div class="checklist-title">
@@ -219,24 +255,39 @@
                                         <span class="badge bg-primary-subtle text-primary" style="font-size:0.65rem;">3 Hạng mục</span>
                                     </div>
                                     <div class="checklist-item">
-                                        <input class="form-check-input" type="checkbox" checked>
+                                        <input class="form-check-input" type="checkbox" checked disabled>
                                         <div>
                                             <div class="c-title">Chuẩn bị thiết bị làm việc</div>
-                                            <div class="c-desc">Laptop &amp; phụ kiện IT</div>
+                                            <div class="c-desc">Laptop &amp; phụ kiện IT phòng kỹ thuật bàn giao</div>
                                         </div>
                                     </div>
                                     <div class="checklist-item">
-                                        <input class="form-check-input" type="checkbox" checked>
+                                        <input class="form-check-input" type="checkbox" checked disabled>
                                         <div>
-                                            <div class="c-title">Cấp tài khoản M365 &amp; Slack</div>
-                                            <div class="c-desc">SSO tự động kích hoạt ngày nhận việc</div>
+                                            <div class="c-title">Cấp tài khoản SSO &amp; Email</div>
+                                            <div class="c-desc">Kích hoạt tài khoản @miximoi.vn ngày nhận việc</div>
                                         </div>
                                     </div>
                                     <div class="checklist-item">
-                                        <input class="form-check-input" type="checkbox" checked>
+                                        <input class="form-check-input" type="checkbox" checked disabled>
                                         <div>
                                             <div class="c-title">Cấu hình FaceID chấm công</div>
-                                            <div class="c-desc">Đồng bộ máy quét chấm công</div>
+                                            <div class="c-desc">Đồng bộ máy quét chấm công tầng 6 Landmark 81</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="sidebar-card">
+                                <div class="sidebar-card-body">
+                                    <div class="checklist-title">
+                                        <span>Sơ đồ tổ chức nhân sự</span>
+                                        <span class="badge bg-success-subtle text-success" style="font-size:0.65rem;">Báo cáo</span>
+                                    </div>
+                                    <div class="p-2 rounded bg-light border" style="font-size:0.75rem;">
+                                        <div class="text-muted mb-1"><i class="bi bi-diagram-3 me-1 text-primary"></i> Quản lý trực tiếp:</div>
+                                        <div class="fw-bold text-dark" id="sideReportingManager">
+                                            <c:out value="${not empty employee.lineManager ? employee.lineManager : 'Theo phân bổ phòng ban'}" />
                                         </div>
                                     </div>
                                 </div>
@@ -249,15 +300,13 @@
                             <div class="sidebar-card mb-2">
                                 <div class="sidebar-card-body p-3">
                                     <div class="d-flex align-items-center gap-2">
-                                        <img src="${not empty employee.avatarUrl ? employee.avatarUrl : (not empty employee.fullName ? ('https://ui-avatars.com/api/?name=' += employee.fullName += '&background=2563eb&color=fff') : 'https://ui-avatars.com/api/?name=NV&background=e2e8f0&color=64748b')}"
-                                             class="profile-summary-avatar rounded-circle" style="width:38px; height:38px; object-fit:cover;" alt="Avatar" id="sideStep3Avatar">
+                                        <img src="${avatarSrc}" class="profile-summary-avatar rounded-circle" style="width:38px; height:38px; object-fit:cover;" alt="Avatar" id="sideStep3Avatar">
                                         <div>
-                                            <div style="font-weight:800; font-size:0.88rem; color:#0f172a;" id="sideStep3Name"><c:out value="${not empty employee.fullName ? employee.fullName : 'Nhân sự mới'}"/></div>
+                                            <div style="font-weight:800; font-size:0.88rem; color:#0f172a;" id="sideStep3Name">
+                                                <c:out value="${not empty employee.fullName ? employee.fullName : 'Nhân sự mới'}" />
+                                            </div>
                                             <div style="font-size:0.72rem; color:#64748b;" id="sideStep3Pos">
-                                                <c:choose>
-                                                    <c:when test="${not empty employee.positionName}"><c:out value="${employee.positionName}"/> • <c:out value="${employee.departmentName}"/></c:when>
-                                                    <c:otherwise>Vị trí &amp; Phòng ban đang chọn</c:otherwise>
-                                                </c:choose>
+                                                <c:out value="${not empty employee.employeeCode ? employee.employeeCode : nextEmployeeCode}" />
                                             </div>
                                         </div>
                                     </div>
@@ -271,43 +320,40 @@
                                 </div>
                                 <div class="salary-est-banner">
                                     <div class="banner-top">
-                                        <span>ƯỚC TÍNH NET (VND)</span>
-                                        <span class="badge bg-white text-primary" style="font-size:0.65rem;" id="calcNetPct">87.7% Gross</span>
+                                        <span>ƯỚC TÍNH THỰC LĨNH (NET)</span>
+                                        <span class="badge bg-white text-primary" style="font-size:0.65rem;" id="calcNetPct">89.5% Gross</span>
                                     </div>
-                                    <div class="banner-amount" id="calcNetDisplay">~ 27.200.000 đ</div>
-                                    <div class="banner-sub">Tạm tính sau BHXH (10.5%) &amp; Thuế TNCN (0 NPT)</div>
+                                    <div class="banner-amount" id="calcNetDisplay">~ 0 đ</div>
+                                    <div class="banner-sub">Tạm tính sau BHXH bắt buộc (10.5%) &amp; Thuế TNCN (0 NPT)</div>
                                 </div>
 
                                 <div class="salary-breakdown-row">
                                     <span style="color:#64748b;">• Lương cơ bản:</span>
-                                    <strong id="calcBaseDisplay">28.500.000 đ</strong>
+                                    <strong id="calcBaseDisplay">0 đ</strong>
                                 </div>
                                 <div class="salary-breakdown-row">
-                                    <span style="color:#64748b;">• Tổng phụ cấp:</span>
+                                    <span style="color:#64748b;">• Tổng phụ cấp cố định:</span>
                                     <strong style="color:#059669;" id="calcAllowanceDisplay">+ 2.500.000 đ</strong>
                                 </div>
                                 <div class="salary-breakdown-row" style="border-top:1px solid #e2e8f0; font-weight:700;">
-                                    <span>Tổng Gross hợp đồng:</span>
-                                    <span id="calcGrossDisplay">31.000.000 đ</span>
+                                    <span>Tổng Gross thu nhập:</span>
+                                    <span style="color:var(--primary);" id="calcGrossDisplay">2.500.000 đ</span>
                                 </div>
-                                <div class="salary-breakdown-row" style="font-size:0.74rem;">
-                                    <span style="color:#64748b;">Khấu trừ BHXH, BHYT, BHTN (10.5%):</span>
-                                    <span style="color:#ef4444;" id="calcBhxhDisplay">- 2.992.500 đ</span>
+                                <div class="salary-breakdown-row" style="font-size:0.75rem; color:#dc2626;">
+                                    <span>Trừ BHXH bắt buộc (10.5%):</span>
+                                    <span id="calcInsuranceDisplay">- 0 đ</span>
                                 </div>
-                                <div class="salary-breakdown-row" style="font-size:0.74rem;">
-                                    <span style="color:#64748b;">Thuế TNCN tạm tính:</span>
-                                    <span style="color:#ef4444;" id="calcTaxDisplay">- 807.500 đ</span>
+                                <div class="salary-breakdown-row" style="font-size:0.75rem; color:#dc2626;">
+                                    <span>Tạm khấu trừ thuế TNCN:</span>
+                                    <span id="calcTaxDisplay">- 0 đ</span>
                                 </div>
 
                                 <div class="donut-container">
                                     <div class="donut-circle">
-                                        <span class="donut-text" id="calcDonutPct">88%</span>
+                                        <span class="donut-text" id="donutNetPct">90%</span>
                                     </div>
-                                    <div>
-                                        <div style="font-size:0.73rem; font-weight:800; color:#1e293b;">TỶ LỆ GIỮ LƯƠNG THỰC TẾ</div>
-                                        <div style="font-size:0.68rem; color:#64748b; line-height:1.3;">
-                                            Nhân viên nhận xấp xỉ 88% tổng chi phí nhân sự cơ bản theo quy chế pháp lý.
-                                        </div>
+                                    <div style="font-size:0.73rem; color:#64748b; line-height:1.4;">
+                                        Tỷ lệ thực nhận đạt mức cạnh tranh thị trường theo thang bảng lương MIXIMOI.
                                     </div>
                                 </div>
                             </div>
@@ -317,40 +363,55 @@
                         <div id="sidePanelStep4" style="display:none;">
                             <div class="sidebar-card">
                                 <div class="sidebar-card-body">
-                                    <div style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">
-                                        TỔNG KẾT HỒ SƠ ONBOARDING
-                                    </div>
-                                    <div class="d-flex align-items-center gap-2 mb-3">
-                                        <div class="form-section-icon green"><i class="bi bi-check2-circle"></i></div>
+                                    <div class="profile-summary-header">
+                                        <img src="${avatarSrc}" class="profile-summary-avatar" alt="Avatar" id="sideProfileAvatar4">
                                         <div>
-                                            <div style="font-size:0.86rem; font-weight:800; color:#0f172a;">Hồ sơ sẵn sàng nộp</div>
-                                            <div style="font-size:0.72rem; color:#059669; font-weight:600;">Đã hoàn thành 3/4 bước</div>
+                                            <div class="profile-summary-name" id="sideProfileName4">
+                                                <c:out value="${not empty employee.fullName ? employee.fullName : 'Chưa nhập họ tên'}" />
+                                            </div>
+                                            <span class="profile-summary-code" id="sideProfileCode4">
+                                                <c:out value="${not empty employee.employeeCode ? employee.employeeCode : nextEmployeeCode}" />
+                                            </span>
                                         </div>
                                     </div>
-                                    <div class="sys-info-row">
-                                        <span class="sys-info-label">Mã nhân viên:</span>
-                                        <strong id="finalEmpCode" class="text-primary font-monospace">NV014</strong>
+                                </div>
+                            </div>
+
+                            <div class="sidebar-card">
+                                <div class="sidebar-card-body">
+                                    <div class="checklist-title">
+                                        <span>Checklist Onboarding</span>
+                                        <span class="badge bg-primary-subtle text-primary" style="font-size:0.65rem;">3 Hạng mục</span>
                                     </div>
-                                    <div class="sys-info-row">
-                                        <span class="sys-info-label">Mã hợp đồng:</span>
-                                        <strong id="finalContractCode" class="text-success font-monospace">HD012</strong>
+                                    <div class="checklist-item">
+                                        <input class="form-check-input" type="checkbox" checked disabled>
+                                        <div>
+                                            <div class="c-title">Chuẩn bị thiết bị làm việc</div>
+                                            <div class="c-desc">Laptop &amp; phụ kiện IT phòng kỹ thuật bàn giao</div>
+                                        </div>
                                     </div>
-                                    <div class="sys-info-row">
-                                        <span class="sys-info-label">Chức danh:</span>
-                                        <strong id="finalPosition">Kỹ sư phần mềm</strong>
+                                    <div class="checklist-item">
+                                        <input class="form-check-input" type="checkbox" checked disabled>
+                                        <div>
+                                            <div class="c-title">Cấp tài khoản SSO &amp; Email</div>
+                                            <div class="c-desc">Kích hoạt tài khoản @miximoi.vn ngày nhận việc</div>
+                                        </div>
                                     </div>
-                                    <div class="sys-info-row">
-                                        <span class="sys-info-label">Mức lương:</span>
-                                        <strong id="finalSalary">28.500.000 đ</strong>
+                                    <div class="checklist-item">
+                                        <input class="form-check-input" type="checkbox" checked disabled>
+                                        <div>
+                                            <div class="c-title">Cấu hình FaceID chấm công</div>
+                                            <div class="c-desc">Đồng bộ máy quét chấm công tầng 6 Landmark 81</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                    </div>
+                    </div><!-- END LEFT COLUMN -->
 
                     <!-- ============================================================ -->
-                    <!-- RIGHT COLUMN: STEP PANELS                                    -->
+                    <!-- RIGHT COLUMN: Step Panels                                    -->
                     <!-- ============================================================ -->
                     <div>
 
@@ -377,7 +438,8 @@
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Họ và tên đầy đủ <span class="req">*</span></label>
                                             <input type="text" class="form-control form-control-custom step1-input"
-                                                   name="fullName" id="fullName" required placeholder="VD: Nguyễn Văn An"
+                                                   name="fullName" id="fullName" required
+                                                   placeholder="VD: Nguyễn Văn An"
                                                    value="<c:out value='${employee.fullName}'/>"
                                                    oninput="handleFullNameChange(this.value)">
                                         </div>
@@ -394,7 +456,7 @@
                                                 <input type="text" class="form-control form-control-custom step1-input"
                                                        name="employeeCode" id="employeeCode" required
                                                        value="${empty employee.employeeCode ? nextEmployeeCode : employee.employeeCode}"
-                                                       placeholder="NV014" readonly>
+                                                       placeholder="NV001" readonly>
                                                 <button type="button" class="auto-code-badge-btn" onclick="regenerateEmployeeCode()" title="Tự động sinh mã mới nhất">
                                                     <i class="bi bi-magic"></i> Tự sinh mã
                                                 </button>
@@ -416,17 +478,20 @@
                                             <div class="pill-radio-group">
                                                 <div class="pill-radio-option">
                                                     <input type="radio" name="gender" id="genderMale" value="MALE"
-                                                           ${empty employee.gender or employee.gender eq 'MALE' ? 'checked' : ''} onchange="updateGenderDisplay()">
+                                                           required ${empty employee.gender or employee.gender eq 'MALE' ? 'checked' : ''}
+                                                           onchange="updateGenderDisplay()">
                                                     <label for="genderMale"><i class="bi bi-gender-male me-1"></i> Nam</label>
                                                 </div>
                                                 <div class="pill-radio-option">
                                                     <input type="radio" name="gender" id="genderFemale" value="FEMALE"
-                                                           ${employee.gender eq 'FEMALE' ? 'checked' : ''} onchange="updateGenderDisplay()">
+                                                           ${employee.gender eq 'FEMALE' ? 'checked' : ''}
+                                                           onchange="updateGenderDisplay()">
                                                     <label for="genderFemale"><i class="bi bi-gender-female me-1"></i> Nữ</label>
                                                 </div>
                                                 <div class="pill-radio-option">
                                                     <input type="radio" name="gender" id="genderOther" value="OTHER"
-                                                           ${employee.gender eq 'OTHER' ? 'checked' : ''} onchange="updateGenderDisplay()">
+                                                           ${employee.gender eq 'OTHER' ? 'checked' : ''}
+                                                           onchange="updateGenderDisplay()">
                                                     <label for="genderOther">Khác</label>
                                                 </div>
                                             </div>
@@ -437,8 +502,10 @@
                                             <label class="form-label-custom">Số CCCD / Hộ chiếu (12 số) <span class="req">*</span></label>
                                             <div class="position-relative">
                                                 <input type="text" class="form-control form-control-custom step1-input"
-                                                       name="identityNumber" id="idNumber" required placeholder="Nhập số CCCD 12 số"
-                                                       maxlength="12" pattern="[0-9]{9,12}" value="<c:out value='${employee.identityNumber}'/>"
+                                                       name="identityNumber" id="idNumber" required
+                                                       placeholder="Nhập số CCCD 12 chữ số"
+                                                       maxlength="12" pattern="[0-9]{9,12}"
+                                                       value="<c:out value='${employee.identityNumber}'/>"
                                                        oninput="validateCccd(this)">
                                                 <i class="bi bi-check-circle-fill text-success position-absolute" id="cccdValidIcon"
                                                    style="right:12px; top:50%; transform:translateY(-50%); font-size:1rem; display:none;"></i>
@@ -449,7 +516,8 @@
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Ngày cấp CCCD <span class="req">*</span></label>
                                             <input type="date" class="form-control form-control-custom step1-input"
-                                                   name="identityDate" id="idIssueDate" required value="<c:out value='${employee.identityDate}'/>">
+                                                   name="identityDate" id="idIssueDate" required
+                                                   value="<c:out value='${employee.identityDate}'/>">
                                         </div>
 
                                         <!-- Nơi cấp -->
@@ -458,49 +526,38 @@
                                             <input type="text" class="form-control form-control-custom step1-input"
                                                    name="identityPlace" id="idIssuePlace" required
                                                    placeholder="Cục Cảnh sát Quản lý hành chính về trật tự xã hội"
-                                                   value="${employee.identityPlace}">
+                                                   value="${empty employee.identityPlace ? 'Cục Cảnh sát QLHC về TTXH' : employee.identityPlace}">
                                         </div>
 
-                                        <!-- Dân tộc -->
-                                        <div class="col-md-6">
+                                        <!-- Dân tộc & Tôn giáo & Quốc tịch & Hôn nhân -->
+                                        <div class="col-md-3">
                                             <label class="form-label-custom">Dân tộc</label>
-                                            <select class="form-select form-select-custom" name="ethnicity" id="ethnicity">
-                                                <option value="Kinh" ${empty employee.ethnicity or employee.ethnicity eq 'Kinh' ? 'selected' : ''}>Kinh</option>
-                                                <option value="Tày" ${employee.ethnicity eq 'Tày' ? 'selected' : ''}>Tày</option>
-                                                <option value="Thái" ${employee.ethnicity eq 'Thái' ? 'selected' : ''}>Thái</option>
-                                                <option value="Mường" ${employee.ethnicity eq 'Mường' ? 'selected' : ''}>Mường</option>
-                                                <option value="Khác" ${employee.ethnicity eq 'Khác' ? 'selected' : ''}>Khác</option>
-                                            </select>
+                                            <input type="text" class="form-control form-control-custom" name="ethnicity" id="ethnicity"
+                                                   placeholder="Kinh" value="${empty employee.ethnicity ? 'Kinh' : employee.ethnicity}">
                                         </div>
-
-                                        <!-- Tôn giáo -->
-                                        <div class="col-md-6">
+                                        <div class="col-md-3">
                                             <label class="form-label-custom">Tôn giáo</label>
-                                            <input type="text" class="form-control form-control-custom" name="religion"
-                                                   id="religion" placeholder="Không" value="<c:out value='${not empty employee.religion ? employee.religion : \"Không\"}'/>">
+                                            <input type="text" class="form-control form-control-custom" name="religion" id="religion"
+                                                   placeholder="Không" value="${empty employee.religion ? 'Không' : employee.religion}">
                                         </div>
-
-                                        <!-- Quốc tịch -->
-                                        <div class="col-md-6">
+                                        <div class="col-md-3">
                                             <label class="form-label-custom">Quốc tịch</label>
-                                            <input type="text" class="form-control form-control-custom" name="nationality"
-                                                   id="nationality" value="<c:out value='${not empty employee.nationality ? employee.nationality : \"Việt Nam\"}'/>">
+                                            <input type="text" class="form-control form-control-custom" name="nationality" id="nationality"
+                                                   placeholder="Việt Nam" value="${empty employee.nationality ? 'Việt Nam' : employee.nationality}">
                                         </div>
-
-                                        <!-- Tình trạng hôn nhân -->
-                                        <div class="col-md-6">
+                                        <div class="col-md-3">
                                             <label class="form-label-custom">Tình trạng hôn nhân</label>
                                             <select class="form-select form-select-custom" name="maritalStatus" id="maritalStatus">
                                                 <option value="SINGLE" ${empty employee.maritalStatus or employee.maritalStatus eq 'SINGLE' ? 'selected' : ''}>Độc thân</option>
                                                 <option value="MARRIED" ${employee.maritalStatus eq 'MARRIED' ? 'selected' : ''}>Đã kết hôn</option>
-                                                <option value="OTHER" ${employee.maritalStatus eq 'OTHER' ? 'selected' : ''}>Khác</option>
+                                                <option value="DIVORCED" ${employee.maritalStatus eq 'DIVORCED' ? 'selected' : ''}>Ly hôn</option>
                                             </select>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Section 1.2: Liên lạc & Địa chỉ cư trú -->
+                            <!-- Section 1.2: Thông tin liên lạc & Địa chỉ cư trú -->
                             <div class="form-section-card">
                                 <div class="form-section-header">
                                     <div class="form-section-title-wrap">
@@ -517,15 +574,16 @@
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Email cá nhân <span class="req">*</span></label>
                                             <input type="email" class="form-control form-control-custom step1-input"
-                                                   name="email" id="email" required placeholder="nguyenvanan.95@gmail.com"
+                                                   name="email" id="email" required
+                                                   placeholder="nguyenvanan.95@gmail.com"
                                                    value="<c:out value='${employee.email}'/>"
-                                                   oninput="document.getElementById('sideProfileEmail').innerText = this.value || 'Chưa nhập'">
+                                                   oninput="handleEmailInput(this.value)">
                                         </div>
 
                                         <!-- Email công ty dự kiến (TỰ ĐỘNG SINH) -->
                                         <div class="col-md-6">
                                             <label class="form-label-custom">
-                                                 <span>Email công ty dự kiến</span>
+                                                <span>Email công ty dự kiến</span>
                                                 <span class="badge bg-primary-subtle text-primary" style="font-size:0.65rem;">Tự động tạo</span>
                                             </label>
                                             <c:set var="empEmailPrefix" value="" />
@@ -542,7 +600,8 @@
                                             <div class="input-group">
                                                 <input type="text" class="form-control form-control-custom"
                                                        name="companyEmailPrefix" id="companyEmailPrefix"
-                                                       placeholder="vd: an.nv" style="border-radius:10px 0 0 10px; border-right:none;"
+                                                       placeholder="vd: an.nv"
+                                                       style="border-radius:10px 0 0 10px; border-right:none;"
                                                        value="<c:out value='${empEmailPrefix}'/>">
                                                 <span class="input-group-text" style="border-radius:0 10px 10px 0; background:#f1f5f9; font-size:0.85rem; font-weight:700; color:#2563eb; border-color:#e2e8f0;">@miximoi.vn</span>
                                             </div>
@@ -552,34 +611,19 @@
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Số điện thoại chính <span class="req">*</span></label>
                                             <input type="tel" class="form-control form-control-custom step1-input"
-                                                   name="phone" id="phone" required placeholder="0912 345 678"
+                                                   name="phone" id="phone" required
+                                                   placeholder="0912 345 678"
                                                    value="<c:out value='${employee.phone}'/>"
-                                                   oninput="document.getElementById('sideProfilePhone').innerText = this.value || 'Chưa nhập'">
+                                                   oninput="handlePhoneInput(this.value)">
                                         </div>
 
-                                        <!-- Liên hệ khẩn cấp -->
+                                        <!-- SĐT liên hệ phụ / Zalo -->
                                         <div class="col-md-6">
-                                            <label class="form-label-custom">Liên hệ khẩn cấp (Họ tên • SĐT • Quan hệ)</label>
-                                            <div class="row g-1">
-                                                <div class="col-md-5">
-                                                    <input type="text" class="form-control form-control-custom"
-                                                           name="emergencyContactName" id="emergencyContactName"
-                                                           placeholder="Họ tên"
-                                                           value="<c:out value='${employee.emergencyContactName}'/>"> 
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <input type="text" class="form-control form-control-custom"
-                                                           name="emergencyContactPhone" id="emergencyContactPhone"
-                                                           placeholder="SĐT"
-                                                           value="<c:out value='${employee.emergencyContactPhone}'/>"> 
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <input type="text" class="form-control form-control-custom"
-                                                           name="emergencyContactRelation" id="emergencyContactRelation"
-                                                           placeholder="Quan hệ"
-                                                           value="<c:out value='${employee.emergencyContactRelation}'/>"> 
-                                                </div>
-                                            </div>
+                                            <label class="form-label-custom">Số điện thoại phụ / Zalo</label>
+                                            <input type="tel" class="form-control form-control-custom"
+                                                   name="secondaryPhone" id="secondaryPhone"
+                                                   placeholder="0987 654 321"
+                                                   value="<c:out value='${employee.secondaryPhone}'/>">
                                         </div>
 
                                         <!-- Địa chỉ thường trú -->
@@ -587,9 +631,10 @@
                                             <label class="form-label-custom">Địa chỉ thường trú (Ghi rõ theo CCCD) <span class="req">*</span></label>
                                             <input type="text" class="form-control form-control-custom step1-input"
                                                    name="address" id="address" required
+                                                   autocomplete="street-address"
                                                    placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
                                                    value="<c:out value='${employee.address}'/>"
-                                                   oninput="document.getElementById('sideProfileAddr').innerText = this.value || 'Chưa nhập'">
+                                                   oninput="handleAddressInput(this.value)">
                                         </div>
 
                                         <!-- Địa chỉ tạm trú -->
@@ -597,7 +642,8 @@
                                             <label class="form-label-custom">
                                                 <span>Địa chỉ tạm trú / Nơi ở hiện nay</span>
                                                 <label style="font-weight:500; font-size:0.75rem; color:#475569; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                                                    <input type="checkbox" id="sameAddressCheck" onchange="toggleSameAddress(this)"> Giống địa chỉ thường trú
+                                                    <input type="checkbox" id="sameAddressCheck" onchange="toggleSameAddress(this)">
+                                                    Giống địa chỉ thường trú
                                                 </label>
                                             </label>
                                             <input type="text" class="form-control form-control-custom"
@@ -624,53 +670,93 @@
                                 <div class="form-section-body">
                                     <div class="doc-upload-grid">
                                         <!-- Mặt trước CCCD -->
-                                        <div class="doc-upload-card d-flex flex-column justify-content-center align-items-center" style="min-height:140px;" onclick="triggerDocUpload('cccdFrontInput')">
-                                            <i class="bi bi-card-heading text-primary" id="cccdFrontIcon" style="font-size:1.8rem; margin-bottom:4px;"></i>
-                                            <img id="cccdFrontPreview" src="" class="doc-upload-preview d-none" alt="Mặt trước CCCD">
-                                            <input type="file" id="cccdFrontInput" accept="image/*,.pdf" style="display:none;" onchange="handleDocFile(this, 'cccdFrontPreview', 'cccdFrontName')">
-                                            <div class="doc-upload-title">
-                                                <span>Mặt trước CCCD</span>
-                                            </div>
+                                        <div class="doc-upload-card upload-drop-zone d-flex flex-column justify-content-center align-items-center"
+                                             id="cccdFrontDropZone" data-upload-input="cccdFrontInput"
+                                             onclick="triggerDocUpload('cccdFrontInput', event)"
+                                             style="min-height:140px; cursor:pointer;">
+                                            <c:choose>
+                                                <c:when test="${not empty employee.idCardFrontUrl}">
+                                                    <img id="cccdFrontPreview" src="${employee.idCardFrontUrl.startsWith('http') ? employee.idCardFrontUrl : pageContext.request.contextPath.concat(employee.idCardFrontUrl)}"
+                                                         class="doc-upload-preview" alt="Mặt trước CCCD" style="max-height:75px; object-fit:contain; border-radius:6px; margin-bottom:6px;">
+                                                    <i class="bi bi-card-heading text-primary d-none" id="cccdFrontIcon" style="font-size:1.8rem; margin-bottom:4px;"></i>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <i class="bi bi-card-heading text-primary" id="cccdFrontIcon" style="font-size:1.8rem; margin-bottom:4px;"></i>
+                                                    <img id="cccdFrontPreview" src="" class="doc-upload-preview d-none" alt="Mặt trước CCCD" style="max-height:75px; object-fit:contain; border-radius:6px; margin-bottom:6px;">
+                                                </c:otherwise>
+                                            </c:choose>
+                                            <input type="file" id="cccdFrontInput" name="cccdFrontFile" accept=".jpg,.jpeg,.png,.webp,.pdf,image/*" class="file-input-hidden" onchange="handleDocFile(this, 'cccdFrontPreview', 'cccdFrontName')">
+                                            <input type="hidden" name="idCardFrontUrl" id="idCardFrontUrlHidden" value="<c:out value='${employee.idCardFrontUrl}'/>">
+                                            <div class="doc-upload-title"><span>Mặt trước CCCD</span></div>
                                             <div class="d-flex justify-content-between align-items-center mt-2" style="font-size:0.7rem; width:100%;">
-                                                <span class="text-truncate text-muted" id="cccdFrontName" style="max-width:120px;">Bấm để tải tệp</span>
-                                                <span class="text-danger fw-bold d-none" id="cccdFrontDel" onclick="event.stopPropagation(); clearDocUpload('cccdFrontPreview', 'cccdFrontName')">Xóa</span>
+                                                <span class="text-truncate text-muted" id="cccdFrontName" style="max-width:120px;">
+                                                    ${not empty employee.idCardFrontUrl ? 'Đã có file • Bấm đổi' : 'Bấm để tải tệp'}
+                                                </span>
+                                                <span class="text-danger fw-bold ${empty employee.idCardFrontUrl ? 'd-none' : ''}" id="cccdFrontDel" onclick="event.preventDefault(); event.stopPropagation(); clearDocUpload('cccdFrontPreview', 'cccdFrontName')">Xóa</span>
                                             </div>
                                         </div>
 
                                         <!-- Mặt sau CCCD -->
-                                        <div class="doc-upload-card d-flex flex-column justify-content-center align-items-center" style="min-height:140px;" onclick="triggerDocUpload('cccdBackInput')">
-                                            <i class="bi bi-card-text text-primary" id="cccdBackIcon" style="font-size:1.8rem; margin-bottom:4px;"></i>
-                                            <img id="cccdBackPreview" src="" class="doc-upload-preview d-none" alt="Mặt sau CCCD">
-                                            <input type="file" id="cccdBackInput" accept="image/*,.pdf" style="display:none;" onchange="handleDocFile(this, 'cccdBackPreview', 'cccdBackName')">
-                                            <div class="doc-upload-title">
-                                                <span>Mặt sau CCCD</span>
-                                            </div>
+                                        <div class="doc-upload-card upload-drop-zone d-flex flex-column justify-content-center align-items-center"
+                                             id="cccdBackDropZone" data-upload-input="cccdBackInput"
+                                             onclick="triggerDocUpload('cccdBackInput', event)"
+                                             style="min-height:140px; cursor:pointer;">
+                                            <c:choose>
+                                                <c:when test="${not empty employee.idCardBackUrl}">
+                                                    <img id="cccdBackPreview" src="${employee.idCardBackUrl.startsWith('http') ? employee.idCardBackUrl : pageContext.request.contextPath.concat(employee.idCardBackUrl)}"
+                                                         class="doc-upload-preview" alt="Mặt sau CCCD" style="max-height:75px; object-fit:contain; border-radius:6px; margin-bottom:6px;">
+                                                    <i class="bi bi-card-text text-primary d-none" id="cccdBackIcon" style="font-size:1.8rem; margin-bottom:4px;"></i>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <i class="bi bi-card-text text-primary" id="cccdBackIcon" style="font-size:1.8rem; margin-bottom:4px;"></i>
+                                                    <img id="cccdBackPreview" src="" class="doc-upload-preview d-none" alt="Mặt sau CCCD" style="max-height:75px; object-fit:contain; border-radius:6px; margin-bottom:6px;">
+                                                </c:otherwise>
+                                            </c:choose>
+                                            <input type="file" id="cccdBackInput" name="cccdBackFile" accept=".jpg,.jpeg,.png,.webp,.pdf,image/*" class="file-input-hidden" onchange="handleDocFile(this, 'cccdBackPreview', 'cccdBackName')">
+                                            <input type="hidden" name="idCardBackUrl" id="idCardBackUrlHidden" value="<c:out value='${employee.idCardBackUrl}'/>">
+                                            <div class="doc-upload-title"><span>Mặt sau CCCD</span></div>
                                             <div class="d-flex justify-content-between align-items-center mt-2" style="font-size:0.7rem; width:100%;">
-                                                <span class="text-truncate text-muted" id="cccdBackName" style="max-width:120px;">Bấm để tải tệp</span>
-                                                <span class="text-danger fw-bold d-none" id="cccdBackDel" onclick="event.stopPropagation(); clearDocUpload('cccdBackPreview', 'cccdBackName')">Xóa</span>
+                                                <span class="text-truncate text-muted" id="cccdBackName" style="max-width:120px;">
+                                                    ${not empty employee.idCardBackUrl ? 'Đã có file • Bấm đổi' : 'Bấm để tải tệp'}
+                                                </span>
+                                                <span class="text-danger fw-bold ${empty employee.idCardBackUrl ? 'd-none' : ''}" id="cccdBackDel" onclick="event.preventDefault(); event.stopPropagation(); clearDocUpload('cccdBackPreview', 'cccdBackName')">Xóa</span>
                                             </div>
                                         </div>
 
                                         <!-- Sơ yếu lý lịch / Khám SK -->
-                                        <div class="doc-upload-card d-flex flex-column justify-content-center align-items-center" style="min-height:140px;" onclick="triggerDocUpload('resumeInput')">
+                                        <div class="doc-upload-card upload-drop-zone d-flex flex-column justify-content-center align-items-center"
+                                             id="resumeDropZone" data-upload-input="resumeInput"
+                                             onclick="triggerDocUpload('resumeInput', event)"
+                                             style="min-height:140px; cursor:pointer;">
                                             <i class="bi bi-file-earmark-arrow-up text-primary" style="font-size:1.8rem; margin-bottom:4px;"></i>
-                                            <input type="file" id="resumeInput" accept=".pdf,.docx,.doc" style="display:none;" onchange="handleResumeFile(this)">
-                                            <div class="doc-upload-title" id="resumeTitle">Sơ yếu lí lịch / Khám SK</div>
-                                            <div class="doc-upload-sub" id="resumeSub">Kéo thả tệp hoặc bấm để chọn</div>
-                                            <span class="badge bg-light text-muted mt-2" id="resumeBadge" style="font-size:0.65rem;">PDF, DOCX &lt;= 10MB</span>
+                                            <input type="file" id="resumeInput" name="resumeFile" accept=".pdf,.docx,.doc" class="file-input-hidden" onchange="handleResumeFile(this)">
+                                            <input type="hidden" name="resumeUrl" id="resumeUrlHidden" value="<c:out value='${employee.resumeUrl}'/>">
+                                            <div class="doc-upload-title" id="resumeTitle">
+                                                <c:choose>
+                                                    <c:when test="${not empty employee.resumeUrl}">
+                                                        <span class="text-truncate d-inline-block" style="max-width:140px;">${employee.resumeUrl.substring(employee.resumeUrl.lastIndexOf('/') + 1)}</span>
+                                                    </c:when>
+                                                    <c:otherwise>Sơ yếu lí lịch / Khám SK</c:otherwise>
+                                                </c:choose>
+                                            </div>
+                                            <div class="doc-upload-sub" id="resumeSub">
+                                                <c:choose>
+                                                    <c:when test="${not empty employee.resumeUrl}">
+                                                        <span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Đã đính kèm CV</span>
+                                                    </c:when>
+                                                    <c:otherwise>Kéo thả tệp hoặc bấm để chọn</c:otherwise>
+                                                </c:choose>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center mt-2" style="font-size:0.7rem; width:100%;">
+                                                <span class="badge bg-light text-muted border" id="resumeBadge" style="font-size:0.65rem;">PDF, DOCX &lt;= 10MB</span>
+                                                <span class="text-danger fw-bold ${empty employee.resumeUrl ? 'd-none' : ''}" id="resumeFileDel" onclick="event.preventDefault(); event.stopPropagation(); clearResumeUpload();">Xóa</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Panel Step 1 Navigation Footer -->
-                            <div class="step-nav-footer mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
-                                <span class="text-muted small"><i class="bi bi-info-circle text-primary me-1"></i> Điền các thông tin cơ bản để tiếp tục chuyển bước.</span>
-                                <button type="button" class="btn btn-primary px-4 py-2 fw-bold d-inline-flex align-items-center gap-2" onclick="nextStep()">
-                                    <span>Tiếp tục: Bước 2 (Công việc &amp; Định biên)</span>
-                                    <i class="bi bi-arrow-right"></i>
-                                </button>
-                            </div>
+
 
                         </div><!-- END PANEL STEP 1 -->
 
@@ -687,7 +773,7 @@
                                         <div class="form-section-icon green"><i class="bi bi-building"></i></div>
                                         <div>
                                             <h3 class="form-section-title">1. Thông tin Tổ chức &amp; Định biên nhân sự</h3>
-                                            <div class="form-section-desc">Phân bổ cấu trúc phòng ban và lọc các vị trí thiếu phù hợp với nghiệp vụ</div>
+                                            <div class="form-section-desc">Phân bổ cấu trúc phòng ban và định biên nhân sự tập đoàn</div>
                                         </div>
                                     </div>
                                     <span class="badge bg-success-subtle text-success" id="deptFilterBadge" style="font-size:0.72rem;">Định biên chuẩn</span>
@@ -705,7 +791,7 @@
                                                 <option value="">— Chọn phòng ban —</option>
                                                 <c:forEach var="dept" items="${departments}">
                                                     <option value="${dept.id}" ${employee.departmentId == dept.id ? 'selected' : ''}>
-                                                        <c:out value="${dept.name}"/>
+                                                        <c:out value="${dept.name}" />
                                                     </option>
                                                 </c:forEach>
                                             </select>
@@ -715,48 +801,48 @@
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Khối / Chi nhánh làm việc <span class="req">*</span></label>
                                             <select class="form-select form-select-custom" name="workLocation" id="workLocation">
-                                                <option value="HO" selected>Trụ sở chính Landmark 81, TP. HCM</option>
-                                                <option value="HN">Chi nhánh Hà Nội (Keangnam Landmark 72)</option>
-                                                <option value="DN">Chi nhánh Đà Nẵng</option>
-                                                <option value="REMOTE">Làm việc từ xa (Remote)</option>
+                                                <option value="HO" ${empty employee.workLocation or employee.workLocation eq 'HO' ? 'selected' : ''}>Trụ sở chính Landmark 81, TP. HCM</option>
+                                                <option value="HN" ${employee.workLocation eq 'HN' ? 'selected' : ''}>Chi nhánh Hà Nội (Keangnam Landmark 72)</option>
+                                                <option value="DN" ${employee.workLocation eq 'DN' ? 'selected' : ''}>Chi nhánh Đà Nẵng</option>
+                                                <option value="REMOTE" ${employee.workLocation eq 'REMOTE' ? 'selected' : ''}>Làm việc từ xa (Remote)</option>
                                             </select>
                                         </div>
 
-                                        <!-- Quota Banner Widget (Hiển thị định biên & vị trí còn thiếu) -->
+                                        <!-- Quota Banner Widget -->
                                         <div class="col-12">
                                             <div class="quota-banner has-dept" id="deptQuotaBanner">
                                                 <div class="quota-header">
                                                     <div>
                                                         <div style="font-weight:800; font-size:0.9rem; color:#0f172a;" id="quotaDeptName">
-                                                            🏢 Phòng Kỹ thuật (Kỹ thuật phần mềm &amp; Hệ thống)
+                                                            🏢 Vui lòng chọn phòng ban để tải định biên
                                                         </div>
                                                         <div style="font-size:0.75rem; color:#64748b;" id="quotaDeptDesc">
-                                                            Nghiệp vụ: Phát triển và duy trì hệ sinh thái sản phẩm công nghệ MIXIMOI
+                                                            Nghiệp vụ: Quản lý nhân sự theo định biên phê duyệt
                                                         </div>
                                                     </div>
                                                     <span class="quota-badge-vacant" id="quotaVacantBadge">
-                                                        <i class="bi bi-person-plus-fill"></i> Còn thiếu 11 chỉ tiêu
+                                                        <i class="bi bi-person-plus-fill"></i> Sẵn sàng tuyển dụng
                                                     </span>
                                                 </div>
                                                 <div class="d-flex justify-content-between align-items-center" style="font-size:0.75rem;">
-                                                    <span style="font-weight:700; color:#1e293b;" id="quotaRatioText">Hiện có 4 / 15 nhân sự</span>
-                                                    <span style="font-weight:800; color:#2563eb;" id="quotaPctText">27% định biên</span>
+                                                    <span style="font-weight:700; color:#1e293b;" id="quotaRatioText">Hiện có 0 / 15 nhân sự</span>
+                                                    <span style="font-weight:800; color:#2563eb;" id="quotaPctText">Đang cập nhật</span>
                                                 </div>
                                                 <div class="quota-progress">
-                                                    <div class="quota-progress-bar" id="quotaProgressBar" style="width:27%;"></div>
+                                                    <div class="quota-progress-bar" id="quotaProgressBar" style="width:50%;"></div>
                                                 </div>
                                                 <div style="font-size:0.72rem; color:#64748b; margin-top:4px;" id="quotaRecruitHint">
-                                                    <i class="bi bi-info-circle me-1 text-primary"></i> Đang mở cổng tuyển dụng để bổ sung nhân sự cho các vị trí chuyên môn còn thiếu.
+                                                    <i class="bi bi-info-circle me-1 text-primary"></i> Đang mở cổng tiếp nhận ứng viên cho vị trí chuyên môn.
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <!-- Chức danh / Vị trí chuyên môn (LỌC THEO PHÒNG BAN) -->
+                                        <!-- Chức danh / Vị trí chuyên môn -->
                                         <div class="col-md-6">
                                             <label class="form-label-custom">
                                                 <span>Chức danh / Vị trí chuyên môn <span class="req">*</span></span>
                                                 <span class="text-primary fw-normal" style="font-size:0.72rem;" id="posFilterNote">
-                                                    <i class="bi bi-funnel-fill"></i> Đã lọc theo nghiệp vụ phòng
+                                                    <i class="bi bi-funnel-fill"></i> Đã lọc theo phòng ban
                                                 </span>
                                             </label>
                                             <select class="form-select form-select-custom" name="positionId" id="positionId" required
@@ -764,42 +850,42 @@
                                                 <option value="">— Chọn chức vụ phù hợp —</option>
                                                 <c:forEach var="p" items="${positions}">
                                                     <option value="${p.id}" ${employee.positionId == p.id ? 'selected' : ''} data-department-id="${p.departmentId}">
-                                                        <c:out value="${p.name}"/>
+                                                        <c:out value="${p.name}" />
                                                     </option>
                                                 </c:forEach>
                                             </select>
                                             <div id="positionVacantAlert" class="position-vacant-info d-none">
                                                 <i class="bi bi-bell-fill"></i>
-                                                <span id="positionVacantMsg">Vị trí này đang thiếu 7 nhân sự so với chỉ tiêu định biên.</span>
+                                                <span id="positionVacantMsg">Vị trí này đang còn chỉ tiêu định biên.</span>
                                             </div>
                                         </div>
 
                                         <!-- Cấp bậc nhân sự (Level) -->
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Cấp bậc nhân sự (Level) <span class="req">*</span></label>
-                                            <select class="form-select form-select-custom" name="employeeLevel" id="employeeLevel">
-                                                <option value="L1">Level 1 - Junior Associate</option>
-                                                <option value="L2">Level 2 - Specialist (Chuyên viên)</option>
-                                                <option value="L3" selected>Level 3 - Senior Specialist (Chuyên gia)</option>
-                                                <option value="L4">Level 4 - Lead / Principal Specialist</option>
-                                                <option value="L5">Level 5 - Manager / Director</option>
+                                            <select class="form-select form-select-custom" name="employeeLevel" id="employeeLevel" required>
+                                                <option value="L1" ${employee.employeeLevel eq 'L1' ? 'selected' : ''}>Level 1 - Junior Associate</option>
+                                                <option value="L2" ${employee.employeeLevel eq 'L2' ? 'selected' : ''}>Level 2 - Specialist (Chuyên viên)</option>
+                                                <option value="L3" ${empty employee.employeeLevel or employee.employeeLevel eq 'L3' ? 'selected' : ''}>Level 3 - Senior Specialist (Chuyên gia)</option>
+                                                <option value="L4" ${employee.employeeLevel eq 'L4' ? 'selected' : ''}>Level 4 - Lead / Principal Specialist</option>
+                                                <option value="L5" ${employee.employeeLevel eq 'L5' ? 'selected' : ''}>Level 5 - Manager / Director</option>
                                             </select>
                                         </div>
 
                                         <!-- Quản lý trực tiếp -->
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Quản lý trực tiếp (Direct Manager)</label>
-                                            <input type="text" class="form-control form-control-custom" name="lineManager"
-                                                   id="lineManager" placeholder="VD: Trưởng bộ phận phụ trách"
-                                                   value="">
+                                            <input type="text" class="form-control form-control-custom" name="lineManager" id="lineManager"
+                                                   placeholder="VD: Trưởng bộ phận phụ trách"
+                                                   value="<c:out value='${employee.lineManager}'/>">
                                         </div>
 
                                         <!-- Người hướng dẫn -->
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Người hướng dẫn (Mentor / Buddy Onboarding)</label>
-                                            <input type="text" class="form-control form-control-custom" name="mentorName"
-                                                   id="mentorName" placeholder="VD: Chuyên viên hướng dẫn hội nhập"
-                                                   value="">
+                                            <input type="text" class="form-control form-control-custom" name="mentorName" id="mentorName"
+                                                   placeholder="VD: Chuyên viên hướng dẫn hội nhập"
+                                                   value="<c:out value='${employee.mentorName}'/>">
                                         </div>
                                     </div>
                                 </div>
@@ -821,7 +907,7 @@
                                         <!-- Hình thức làm việc -->
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Hình thức làm việc <span class="req">*</span></label>
-                                            <select class="form-select form-select-custom" name="employeeTypeId" id="employeeTypeId">
+                                            <select class="form-select form-select-custom" name="employeeTypeId" id="employeeTypeId" required>
                                                 <option value="1" ${empty employee.employeeTypeId or employee.employeeTypeId == 1 ? 'selected' : ''}>Toàn thời gian (Full-time)</option>
                                                 <option value="2" ${employee.employeeTypeId == 2 ? 'selected' : ''}>Nhân viên thử việc</option>
                                                 <option value="3" ${employee.employeeTypeId == 3 ? 'selected' : ''}>Nhân viên thời vụ</option>
@@ -832,7 +918,7 @@
                                         <!-- Ca làm việc -->
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Ca làm việc áp dụng <span class="req">*</span></label>
-                                            <select class="form-select form-select-custom" name="defaultShift" id="defaultShift">
+                                            <select class="form-select form-select-custom" name="defaultShift" id="defaultShift" required>
                                                 <option value="1" selected>Ca hành chính: 08:00 - 17:30 (Nghỉ trưa 12:00 - 13:30)</option>
                                                 <option value="2">Ca linh hoạt (Flexible: 08:30 - 18:00)</option>
                                                 <option value="3">Ca ca kíp (Theo phân công tổ chức)</option>
@@ -842,35 +928,22 @@
                                         <!-- Ngày bắt đầu nhận việc -->
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Ngày bắt đầu nhận việc (Onboarding) <span class="req">*</span></label>
-                                            <input type="date" class="form-control form-control-custom" name="startDate"
-                                                   id="startDate" required value="${not empty employee.startDate ? employee.startDate : ''}">
+                                            <c:set var="initStartDate" value="${not empty employee.startDate ? employee.startDate : ''}" />
+                                            <c:if test="${empty initStartDate}">
+                                                <c:set var="initStartDate" value="<%= java.time.LocalDate.now().toString() %>" />
+                                            </c:if>
+                                            <input type="date" class="form-control form-control-custom" name="startDate" id="startDate" required
+                                                   value="${initStartDate}">
                                         </div>
 
                                         <!-- Thời gian thử việc -->
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Thời gian thử việc <span class="req">*</span></label>
-                                            <select class="form-select form-select-custom" name="probationDuration" id="probationDuration">
+                                            <select class="form-select form-select-custom" name="probationDuration" id="probationDuration" required>
                                                 <option value="2" selected>02 tháng (85% - 100% lương theo thoả thuận)</option>
                                                 <option value="1">01 tháng (85% lương)</option>
                                                 <option value="0">Không thử việc (Ký chính thức ngay)</option>
                                             </select>
-                                        </div>
-
-                                        <!-- Địa điểm & Cấu hình chấm công -->
-                                        <div class="col-md-12">
-                                            <label class="form-label-custom">Địa điểm &amp; Cấu hình chấm công <span class="req">*</span></label>
-                                            <div class="p-3 border rounded-3 bg-light d-flex align-items-center justify-content-between">
-                                                <div class="d-flex align-items-center gap-3">
-                                                    <div class="form-section-icon blue"><i class="bi bi-geo-alt-fill"></i></div>
-                                                    <div>
-                                                        <div style="font-weight:700; font-size:0.85rem; color:#0f172a;">Văn phòng chính - Tầng 6 Tháp A Landmark 81</div>
-                                                        <div style="font-size:0.72rem; color:#64748b;">BSSID: MIXIMOI_CORP_5G • GPS Bán kính: 150m</div>
-                                                    </div>
-                                                </div>
-                                                <span class="badge bg-success-subtle text-success" style="font-size:0.72rem;">
-                                                    <i class="bi bi-check-circle me-1"></i>Tích hợp FaceID &amp; WiFi ID
-                                                </span>
-                                            </div>
                                         </div>
 
                                         <!-- Trạng thái nhân sự -->
@@ -882,76 +955,84 @@
                                                 <option value="INACTIVE" ${employee.status eq 'INACTIVE' ? 'selected' : ''}>Đã thôi việc (Inactive)</option>
                                             </select>
                                         </div>
+
                                         <div class="col-md-6 ${employee.status eq 'INACTIVE' ? '' : 'd-none'}" id="terminationFields">
                                             <label class="form-label-custom">Ngày thôi việc &amp; Lý do</label>
-                                            <div class="input-group">
-                                                <input type="date" class="form-control form-control-custom" name="endDate" id="endDate" value="${employee.endDate}" style="max-width:160px;">
-                                                <input type="text" class="form-control form-control-custom" name="terminationReason" id="terminationReason" placeholder="Lý do thôi việc..." value="<c:out value='${employee.terminationReason}'/>">
+                                            <div class="row g-2">
+                                                <div class="col-6">
+                                                    <input type="date" class="form-control form-control-custom" name="endDate" id="empEndDate" value="${employee.endDate}">
+                                                </div>
+                                                <div class="col-6">
+                                                    <input type="text" class="form-control form-control-custom" name="terminationReason" id="terminationReason" placeholder="Lý do nghỉ" value="<c:out value='${employee.terminationReason}'/>">
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div><!-- END Section 2.2 form-section-card -->
 
-                            <!-- Section 2.3: Thiết lập Tài nguyên & Công cụ -->
+                            <!-- Section 2.3: Thiết lập Tài khoản & Quyền truy cập -->
                             <div class="form-section-card">
                                 <div class="form-section-header">
                                     <div class="form-section-title-wrap">
-                                        <div class="form-section-icon green"><i class="bi bi-laptop"></i></div>
+                                        <div class="form-section-icon green"><i class="bi bi-shield-lock"></i></div>
                                         <div>
-                                            <h3 class="form-section-title">3. Thiết lập Tài nguyên &amp; Công cụ làm việc</h3>
-                                            <div class="form-section-desc">Cấp quyền truy cập hệ thống và đăng ký tài sản CNTT</div>
+                                            <h3 class="form-section-title">3. Thiết lập Tài khoản &amp; Quyền truy cập</h3>
+                                            <div class="form-section-desc">Cấp tài khoản đăng nhập hệ thống và phân quyền bảo mật</div>
                                         </div>
                                     </div>
+                                    <span class="badge bg-primary-subtle text-primary" style="font-size:0.72rem;">Đồng bộ SSO</span>
                                 </div>
                                 <div class="form-section-body">
                                     <div class="row g-3">
+                                        <!-- Email công ty dự kiến -->
                                         <div class="col-md-6">
-                                            <label class="form-label-custom">Email công ty đề xuất</label>
-                                            <div class="position-relative">
-                                                <input type="text" class="form-control form-control-custom" id="step2CompanyEmail"
-                                                       value="${not empty employee.email ? employee.email : ''}" placeholder="Chờ nhập ở Bước 1" readonly style="padding-right:32px;">
-                                                <i class="bi bi-check-circle-fill text-success position-absolute" style="right:10px; top:50%; transform:translateY(-50%);"></i>
+                                            <label class="form-label-custom">Email công ty dự kiến <span class="req">*</span></label>
+                                            <div class="input-group">
+                                                <c:set var="companyEmailVal" value="" />
+                                                <c:if test="${not empty employee.email and employee.email.endsWith('@miximoi.vn')}">
+                                                    <c:set var="companyEmailVal" value="${employee.email}" />
+                                                </c:if>
+                                                <input type="email" class="form-control form-control-custom"
+                                                       name="companyEmail" id="step2CompanyEmail"
+                                                       placeholder="vd: an.nguyen@miximoi.vn"
+                                                       value="<c:out value='${companyEmailVal}'/>">
                                             </div>
                                         </div>
+
+                                        <!-- Tên tài khoản đăng nhập (SSO) -->
                                         <div class="col-md-6">
-                                            <label class="form-label-custom">Phân quyền hệ thống HRM <span class="req">*</span></label>
-                                            <select class="form-select form-select-custom" name="systemRole">
-                                                <option value="EMPLOYEE" selected>Nhân viên thông thường (Self-service Portal)</option>
-                                                <option value="MANAGER">Quản lý phê duyệt (Line Manager)</option>
-                                                <option value="HR">Chuyên viên Nhân sự (HR Officer)</option>
-                                            </select>
+                                            <label class="form-label-custom">Tên tài khoản đăng nhập (SSO) <span class="req">*</span></label>
+                                            <div class="input-group">
+                                                <span class="input-group-text" style="background:#f1f5f9; border-color:#e2e8f0; font-size:0.85rem;"><i class="bi bi-person-fill text-muted"></i></span>
+                                                <input type="text" class="form-control form-control-custom font-monospace"
+                                                       name="ssoUsername" id="ssoUsername"
+                                                       placeholder="vd: an.nguyen hoặc mã NV"
+                                                       value="<c:out value='${not empty userAccount ? userAccount.username : \"\"}'/>">
+                                            </div>
                                         </div>
 
-                                        <div class="col-md-12">
-                                            <label class="form-label-custom">Yêu cầu cấp phát trang thiết bị (IT Asset Request)</label>
-                                            <div class="row g-2">
-                                                <div class="col-md-4">
-                                                    <div class="p-2 border rounded-2 bg-light d-flex align-items-center gap-2">
-                                                        <input type="checkbox" class="form-check-input mt-0" checked>
-                                                        <div>
-                                                            <div style="font-weight:700; font-size:0.78rem;">MacBook Pro 16"</div>
-                                                            <div style="font-size:0.68rem; color:#64748b;">M3 Pro / 36GB / 512GB</div>
-                                                        </div>
-                                                    </div>
+                                        <!-- Quyền truy cập hệ thống -->
+                                        <div class="col-12">
+                                            <label class="form-label-custom">Quyền truy cập hệ thống phân cấp</label>
+                                            <div class="d-flex flex-wrap gap-4 p-3 bg-light rounded-3 border">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="accessPortal" name="accessRoles" value="PORTAL" checked disabled>
+                                                    <label class="form-check-label fw-bold" for="accessPortal" style="font-size:0.82rem; cursor:pointer;">
+                                                        Cổng nhân viên (Employee Portal)
+                                                    </label>
                                                 </div>
-                                                <div class="col-md-4">
-                                                    <div class="p-2 border rounded-2 bg-light d-flex align-items-center gap-2">
-                                                        <input type="checkbox" class="form-check-input mt-0" checked>
-                                                        <div>
-                                                            <div style="font-weight:700; font-size:0.78rem;">Màn hình Dell UltraSharp</div>
-                                                            <div style="font-size:0.68rem; color:#64748b;">27" 4K IPS USB-C Hub</div>
-                                                        </div>
-                                                    </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="accessAttendance" name="accessRoles" value="ATTENDANCE" checked disabled>
+                                                    <label class="form-check-label fw-bold" for="accessAttendance" style="font-size:0.82rem; cursor:pointer;">
+                                                        Chấm công &amp; Xem ca
+                                                    </label>
                                                 </div>
-                                                <div class="col-md-4">
-                                                    <div class="p-2 border rounded-2 bg-light d-flex align-items-center gap-2">
-                                                        <input type="checkbox" class="form-check-input mt-0" checked>
-                                                        <div>
-                                                            <div style="font-weight:700; font-size:0.78rem;">Thẻ từ &amp; Tag ra vào</div>
-                                                            <div style="font-size:0.68rem; color:#64748b;">Thẻ nhân viên bảo mật NFC</div>
-                                                        </div>
-                                                    </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="accessPayslips" name="accessRoles" value="PAYSLIP" checked disabled>
+                                                    <label class="form-check-label fw-bold" for="accessPayslips" style="font-size:0.82rem; cursor:pointer;">
+                                                        Xem phiếu lương điện tử
+                                                    </label>
                                                 </div>
                                             </div>
                                         </div>
@@ -959,16 +1040,7 @@
                                 </div>
                             </div>
 
-                            <!-- Panel Step 2 Navigation Footer -->
-                            <div class="step-nav-footer mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
-                                <button type="button" class="btn btn-outline-secondary px-3 py-2 d-inline-flex align-items-center gap-1" onclick="prevStep()">
-                                    <i class="bi bi-arrow-left"></i> <span>Quay lại Bước 1</span>
-                                </button>
-                                <button type="button" class="btn btn-primary px-4 py-2 fw-bold d-inline-flex align-items-center gap-2" onclick="nextStep()">
-                                    <span>Tiếp tục: Bước 3 (Lương &amp; Phúc lợi)</span>
-                                    <i class="bi bi-arrow-right"></i>
-                                </button>
-                            </div>
+
 
                         </div><!-- END PANEL STEP 2 -->
 
@@ -985,7 +1057,7 @@
                                         <div class="form-section-icon purple"><i class="bi bi-cash-stack"></i></div>
                                         <div>
                                             <h3 class="form-section-title">1. Mức lương &amp; Chế độ chi trả</h3>
-                                            <div class="form-section-desc">Căn cứ tính đơn giá ngày công và chính sách trích lập bắt buộc</div>
+                                            <div class="form-section-desc">Căn cứ tính đơn giá ngày công và trích lập bảo hiểm bắt buộc</div>
                                         </div>
                                     </div>
                                     <span class="badge bg-purple-subtle text-purple" id="posSalarySuggestionBadge" style="font-size:0.72rem; color:#7c3aed; background:#f5f3ff;">
@@ -1000,7 +1072,7 @@
                                             <div class="position-relative">
                                                 <c:set var="formattedBaseSalary" value="" />
                                                 <c:if test="${not empty employee.baseSalary and employee.baseSalary > 0}">
-                                                    <fmt:formatNumber var="formattedBaseSalary" value="${employee.baseSalary}" pattern="#,##0"/>
+                                                    <fmt:formatNumber var="formattedBaseSalary" value="${employee.baseSalary}" pattern="#,##0" />
                                                 </c:if>
                                                 <input type="text" class="form-control form-control-custom fw-bold text-primary fs-6"
                                                        name="baseSalary" id="baseSalary" required
@@ -1010,7 +1082,7 @@
                                                 <span class="position-absolute end-0 top-50 translate-middle-y me-3 text-muted fw-bold" style="font-size:0.78rem;">VNĐ / Tháng</span>
                                             </div>
                                             <div style="font-size:0.72rem; color:#94a3b8; margin-top:4px;" id="salaryRangeHint">
-                                                Khung dải lương vị trí: 25.000.000 – 35.000.000 VNĐ
+                                                Khung dải lương tham chiếu: 15.000.000 – 35.000.000 VNĐ
                                             </div>
                                         </div>
 
@@ -1028,7 +1100,7 @@
                                                 </div>
                                             </div>
                                             <div style="font-size:0.72rem; color:#64748b; margin-top:4px;" id="probationSubText">
-                                                Thử việc 2 tháng: 24.225.000 VNĐ/tháng
+                                                Thử việc 2 tháng theo Luật Lao Động 2019
                                             </div>
                                         </div>
 
@@ -1041,7 +1113,7 @@
                                                         <input type="radio" name="insuranceBasis" id="ib1" value="ACTUAL" checked onchange="recalcCompensation()">
                                                         <label for="ib1" style="font-size:0.8rem; font-weight:700; cursor:pointer;">
                                                             Đóng theo lương thực tế thỏa thuận
-                                                            <div style="font-size:0.7rem; font-weight:400; color:#64748b;">Trích đóng dựa trên 100% lương cơ bản</div>
+                                                            <div style="font-size:0.7rem; font-weight:400; color:#64748b;">Trích đóng dựa trên mức lương cơ bản</div>
                                                         </label>
                                                     </div>
                                                 </div>
@@ -1050,28 +1122,10 @@
                                                         <input type="radio" name="insuranceBasis" id="ib2" value="CAP" onchange="recalcCompensation()">
                                                         <label for="ib2" style="font-size:0.8rem; font-weight:700; cursor:pointer;">
                                                             Đóng theo trần quy định Nhà nước
-                                                            <div style="font-size:0.7rem; font-weight:400; color:#64748b;">Giới hạn tối đa 20 lần mức lương cơ sở (36.000.000 VNĐ)</div>
+                                                            <div style="font-size:0.7rem; font-weight:400; color:#64748b;">Giới hạn tối đa 20 lần mức lương cơ sở</div>
                                                         </label>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Chu kỳ trả lương -->
-                                        <div class="col-md-6">
-                                            <label class="form-label-custom">Chu kỳ trả lương định kỳ</label>
-                                            <div class="position-relative">
-                                                <input type="text" class="form-control form-control-custom" value="Hàng tháng vào ngày 05 tháng tiếp theo" readonly>
-                                                <i class="bi bi-calendar-check position-absolute end-0 top-50 translate-middle-y me-3 text-muted"></i>
-                                            </div>
-                                        </div>
-
-                                        <!-- Quy chuẩn số ngày làm việc -->
-                                        <div class="col-md-6">
-                                            <label class="form-label-custom">Quy chuẩn số ngày làm việc chuẩn</label>
-                                            <div class="position-relative">
-                                                <input type="text" class="form-control form-control-custom" value="Theo ngày làm việc thực tế trong tháng (T2 - T6)" readonly>
-                                                <i class="bi bi-info-circle position-absolute end-0 top-50 translate-middle-y me-3 text-muted"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -1085,21 +1139,18 @@
                                         <div class="form-section-icon purple"><i class="bi bi-gift"></i></div>
                                         <div>
                                             <h3 class="form-section-title">2. Các khoản Phụ cấp cố định hàng tháng</h3>
-                                            <div class="form-section-desc">Phụ cấp không chịu thuế theo quy định thỏa ước lao động tập thể</div>
+                                            <div class="form-section-desc">Phụ cấp hỗ trợ chế độ đãi ngộ theo quy chế tập đoàn MIXIMOI</div>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" style="font-size:0.75rem; border-radius:8px;" onclick="addCustomAllowance()">
-                                        <i class="bi bi-plus-circle me-1"></i>Thêm phụ cấp khác
-                                    </button>
                                 </div>
-                                <div class="form-section-body" id="allowanceListContainer">
+                                <div class="form-section-body">
                                     <!-- Phụ cấp ăn trưa -->
                                     <div class="allowance-box-item active" id="allowanceRowLunch">
                                         <div class="allowance-left">
                                             <input type="checkbox" class="form-check-input mt-0" id="alLunch" checked onchange="toggleAllowanceRow(this, 1000000)">
                                             <div>
-                                                <div class="allowance-name">Phụ cấp ăn trưa <span class="badge bg-success-subtle text-success ms-1" style="font-size:0.65rem;">Miễn thuế TNCN</span></div>
-                                                <div class="allowance-sub">Hỗ trợ suất ăn giữa ca làm việc hàng ngày</div>
+                                                <div class="allowance-name">Phụ cấp ăn trưa <span class="badge bg-success-subtle text-success ms-1" style="font-size:0.65rem;">Cố định</span></div>
+                                                <div class="allowance-sub">Hỗ trợ bữa ăn ca làm việc hàng ngày</div>
                                             </div>
                                         </div>
                                         <div class="allowance-amount">1.000.000 đ / tháng</div>
@@ -1110,8 +1161,8 @@
                                         <div class="allowance-left">
                                             <input type="checkbox" class="form-check-input mt-0" id="alGas" checked onchange="toggleAllowanceRow(this, 1000000)">
                                             <div>
-                                                <div class="allowance-name">Phụ cấp xăng xe / đi lại <span class="badge bg-info-subtle text-info ms-1" style="font-size:0.65rem;">Hỗ trợ di chuyển</span></div>
-                                                <div class="allowance-sub">Chi phí công tác, nhiên liệu phương tiện cá nhân</div>
+                                                <div class="allowance-name">Phụ cấp xăng xe / đi lại <span class="badge bg-info-subtle text-info ms-1" style="font-size:0.65rem;">Hỗ trợ</span></div>
+                                                <div class="allowance-sub">Chi phí công tác, nhiên liệu di chuyển cá nhân</div>
                                             </div>
                                         </div>
                                         <div class="allowance-amount">1.000.000 đ / tháng</div>
@@ -1123,7 +1174,7 @@
                                             <input type="checkbox" class="form-check-input mt-0" id="alPhone" checked onchange="toggleAllowanceRow(this, 500000)">
                                             <div>
                                                 <div class="allowance-name">Phụ cấp điện thoại / liên lạc <span class="badge bg-primary-subtle text-primary ms-1" style="font-size:0.65rem;">Viễn thông</span></div>
-                                                <div class="allowance-sub">Gói cước 4G và thoại phục vụ công việc chuyên môn</div>
+                                                <div class="allowance-sub">Gói cước 4G và thoại phục vụ liên lạc công việc</div>
                                             </div>
                                         </div>
                                         <div class="allowance-amount">500.000 đ / tháng</div>
@@ -1131,16 +1182,7 @@
                                 </div>
                             </div>
 
-                            <!-- Panel Step 3 Navigation Footer -->
-                            <div class="step-nav-footer mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
-                                <button type="button" class="btn btn-outline-secondary px-3 py-2 d-inline-flex align-items-center gap-1" onclick="prevStep()">
-                                    <i class="bi bi-arrow-left"></i> <span>Quay lại Bước 2</span>
-                                </button>
-                                <button type="button" class="btn btn-primary px-4 py-2 fw-bold d-inline-flex align-items-center gap-2" onclick="nextStep()">
-                                    <span>Tiếp tục: Bước 4 (Hợp đồng &amp; Bảo hiểm)</span>
-                                    <i class="bi bi-arrow-right"></i>
-                                </button>
-                            </div>
+
 
                         </div><!-- END PANEL STEP 3 -->
 
@@ -1169,7 +1211,8 @@
                                             <label class="form-label-custom">Loại hợp đồng <span class="req">*</span></label>
                                             <div class="contract-card-grid">
                                                 <div class="contract-card-opt">
-                                                    <input type="radio" name="contractType" id="ctIndefinite" value="INDEFINITE" checked>
+                                                    <input type="radio" name="contractType" id="ctIndefinite" value="INDEFINITE"
+                                                           ${empty contract or contract.contractType eq 'INDEFINITE' ? 'checked' : ''}>
                                                     <label for="ctIndefinite">
                                                         <i class="bi bi-infinity text-success"></i>
                                                         <span class="c-name">Không xác định</span>
@@ -1177,7 +1220,8 @@
                                                     </label>
                                                 </div>
                                                 <div class="contract-card-opt">
-                                                    <input type="radio" name="contractType" id="ctFixed" value="FIXED_TERM">
+                                                    <input type="radio" name="contractType" id="ctFixed" value="FIXED_TERM"
+                                                           ${contract.contractType eq 'FIXED_TERM' ? 'checked' : ''}>
                                                     <label for="ctFixed">
                                                         <i class="bi bi-calendar-range text-primary"></i>
                                                         <span class="c-name">Xác định thời hạn</span>
@@ -1185,7 +1229,8 @@
                                                     </label>
                                                 </div>
                                                 <div class="contract-card-opt">
-                                                    <input type="radio" name="contractType" id="ctSeasonal" value="SEASONAL">
+                                                    <input type="radio" name="contractType" id="ctSeasonal" value="SEASONAL"
+                                                           ${contract.contractType eq 'SEASONAL' ? 'checked' : ''}>
                                                     <label for="ctSeasonal">
                                                         <i class="bi bi-sun text-warning"></i>
                                                         <span class="c-name">Thời vụ</span>
@@ -1193,7 +1238,8 @@
                                                     </label>
                                                 </div>
                                                 <div class="contract-card-opt">
-                                                    <input type="radio" name="contractType" id="ctProbation" value="PROBATION">
+                                                    <input type="radio" name="contractType" id="ctProbation" value="PROBATION"
+                                                           ${contract.contractType eq 'PROBATION' ? 'checked' : ''}>
                                                     <label for="ctProbation">
                                                         <i class="bi bi-hourglass-split text-purple"></i>
                                                         <span class="c-name">Thử việc</span>
@@ -1212,10 +1258,9 @@
                                                 </span>
                                             </label>
                                             <div class="auto-code-wrap">
-                                                <input type="text" class="form-control form-control-custom"
-                                                       name="contractCode" id="contractCode" required
-                                                       value="${empty nextContractCode ? 'HD012' : nextContractCode}"
-                                                       placeholder="HD012" readonly>
+                                                <input type="text" class="form-control form-control-custom" name="contractCode" id="contractCode" required
+                                                       value="${not empty contract ? contract.contractCode : (empty nextContractCode ? 'HD001' : nextContractCode)}"
+                                                       placeholder="HD001" readonly>
                                                 <button type="button" class="auto-code-badge-btn" onclick="regenerateContractCode()" title="Tự động sinh mã hợp đồng">
                                                     <i class="bi bi-magic"></i> Tự sinh mã
                                                 </button>
@@ -1225,28 +1270,47 @@
                                         <!-- Ngày ký hợp đồng -->
                                         <div class="col-md-3">
                                             <label class="form-label-custom">Ngày ký hợp đồng <span class="req">*</span></label>
-                                            <input type="date" class="form-control form-control-custom"
-                                                   name="contractSignDate" id="contractSignDate" required value="${not empty employee.startDate ? employee.startDate : ''}">
+                                            <c:set var="initSignDate" value="${not empty contract and not empty contract.startDate ? contract.startDate : (not empty employee.startDate ? employee.startDate : '')}" />
+                                            <c:if test="${empty initSignDate}">
+                                                <c:set var="initSignDate" value="<%= java.time.LocalDate.now().toString() %>" />
+                                            </c:if>
+                                            <input type="date" class="form-control form-control-custom" name="contractSignDate" id="contractSignDate" required
+                                                   value="${initSignDate}">
                                         </div>
 
                                         <!-- Ngày hết hạn -->
                                         <div class="col-md-3">
                                             <label class="form-label-custom">Ngày hết hạn <small class="text-muted">(Nếu có)</small></label>
-                                            <input type="date" class="form-control form-control-custom"
-                                                   name="contractEndDate" id="contractEndDate">
+                                            <input type="date" class="form-control form-control-custom" name="contractEndDate" id="contractEndDate"
+                                                   value="${not empty contract and not empty contract.endDate ? contract.endDate : ''}">
+                                        </div>
+
+                                        <!-- File Hợp đồng đính kèm -->
+                                        <div class="col-md-12">
+                                            <label class="form-label-custom">File hợp đồng ký kết / Scan (PDF, DOCX)</label>
+                                            <input type="file" class="form-control form-control-custom" name="contractFile" id="contractFile" accept=".pdf,.doc,.docx">
+                                            <small class="text-muted" style="font-size:0.75rem;">Hỗ trợ PDF, Word (.doc, .docx). Tối đa 10MB</small>
+                                            <c:if test="${not empty contract and not empty contract.contractFileUrl}">
+                                                <div class="mt-2 d-flex align-items-center gap-2">
+                                                    <a href="${pageContext.request.contextPath}${contract.contractFileUrl}" target="_blank" class="btn btn-sm btn-outline-danger" style="font-size:0.75rem; border-radius:6px;">
+                                                        <i class="bi bi-file-earmark-pdf"></i> Tải / Xem file hợp đồng hiện tại
+                                                    </a>
+                                                    <span class="text-success" style="font-size:0.75rem;"><i class="bi bi-check-circle-fill"></i> Đã đính kèm</span>
+                                                </div>
+                                            </c:if>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Section 4.2: Bảo hiểm & Thuế -->
+                            <!-- Section 4.2: Bảo hiểm, Thuế & Ngân hàng -->
                             <div class="form-section-card">
                                 <div class="form-section-header">
                                     <div class="form-section-title-wrap">
                                         <div class="form-section-icon orange"><i class="bi bi-shield-lock"></i></div>
                                         <div>
-                                            <h3 class="form-section-title">2. Đăng ký Bảo hiểm &amp; Thuế</h3>
-                                            <div class="form-section-desc">Mã số BHXH, mã số thuế cá nhân và nơi đăng ký KCB</div>
+                                            <h3 class="form-section-title">2. Đăng ký Bảo hiểm, Thuế &amp; Ngân hàng</h3>
+                                            <div class="form-section-desc">Mã số BHXH, mã số thuế cá nhân và tài khoản nhận lương</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1259,8 +1323,8 @@
                                                     <i class="bi bi-magic"></i> Gợi ý mã
                                                 </span>
                                             </label>
-                                            <input type="text" class="form-control form-control-custom font-monospace"
-                                                   name="insuranceNumber" id="bhxhCode" placeholder="VD: 0101988234" value="<c:out value='${employee.insuranceNumber}'/>">
+                                            <input type="text" class="form-control form-control-custom font-monospace" name="insuranceNumber" id="bhxhCode"
+                                                   placeholder="VD: 0101988234" value="<c:out value='${employee.insuranceNumber}'/>">
                                         </div>
 
                                         <div class="col-md-6">
@@ -1270,58 +1334,30 @@
                                                     <i class="bi bi-magic"></i> Gợi ý mã
                                                 </span>
                                             </label>
-                                            <input type="text" class="form-control form-control-custom font-monospace"
-                                                   name="taxCode" id="taxCode" placeholder="VD: 8492019482" value="<c:out value='${employee.taxCode}'/>">
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label-custom">Nơi đăng ký KCB ban đầu</label>
-                                            <input type="text" class="form-control form-control-custom"
-                                                   name="kcbPlace" id="kcbPlace" placeholder="VD: Bệnh viện Nhân dân Gia Định"
-                                                   value="">
+                                            <input type="text" class="form-control form-control-custom font-monospace" name="taxCode" id="taxCode"
+                                                   placeholder="VD: 8492019482" value="<c:out value='${employee.taxCode}'/>">
                                         </div>
 
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Tài khoản ngân hàng chi trả lương</label>
                                             <div class="input-group">
                                                 <select class="form-select form-select-custom" style="max-width:130px;" name="bankName">
-                                                    <option value="VCB" ${empty employee.bankName or employee.bankName eq 'VCB' ? 'selected' : ''}>VCB</option>
+                                                    <option value="VCB" ${empty employee.bankName or employee.bankName eq 'VCB' ? 'selected' : ''}>Vietcombank</option>
                                                     <option value="TCB" ${employee.bankName eq 'TCB' ? 'selected' : ''}>Techcombank</option>
                                                     <option value="MB" ${employee.bankName eq 'MB' ? 'selected' : ''}>MB Bank</option>
                                                     <option value="ACB" ${employee.bankName eq 'ACB' ? 'selected' : ''}>ACB</option>
                                                     <option value="BIDV" ${employee.bankName eq 'BIDV' ? 'selected' : ''}>BIDV</option>
                                                     <option value="CTG" ${employee.bankName eq 'CTG' ? 'selected' : ''}>VietinBank</option>
                                                 </select>
-                                                <input type="text" class="form-control form-control-custom" name="bankAccount"
-                                                       id="bankAccount" placeholder="Số tài khoản ngân hàng" value="<c:out value='${employee.bankAccount}'/>">
+                                                <input type="text" class="form-control form-control-custom" name="bankAccount" id="bankAccount"
+                                                       placeholder="Số tài khoản ngân hàng" value="<c:out value='${employee.bankAccount}'/>">
                                             </div>
                                         </div>
 
                                         <div class="col-md-6">
                                             <label class="form-label-custom">Chi nhánh ngân hàng mở tài khoản</label>
-                                            <input type="text" class="form-control form-control-custom" name="bankBranch"
-                                                   id="bankBranch" placeholder="VD: Chi nhánh TP. Hồ Chí Minh" value="<c:out value='${employee.bankBranch}'/>">
-                                        </div>
-                                        <input type="hidden" name="avatarUrl" id="avatarUrlHidden" value="<c:out value='${employee.avatarUrl}'/>">
-
-                                        <!-- Final Confirmation Box -->
-                                        <div class="col-12 mt-2">
-                                            <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border:1.5px solid #86efac; border-radius:12px; padding:1.1rem 1.25rem;">
-                                                <div style="font-size:0.9rem; font-weight:800; color:#15803d; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
-                                                    <i class="bi bi-check-circle-fill fs-5"></i> Xác nhận hoàn tất &amp; Lưu hồ sơ nhân viên
-                                                </div>
-                                                <div style="font-size:0.8rem; color:#166534; line-height:1.5;">
-                                                    Tôi xác nhận rằng toàn bộ thông tin kê khai trên là hoàn toàn chính xác, đúng pháp lý và đã đối chiếu với giấy tờ gốc. Dữ liệu nhân viên và hợp đồng lao động sẽ được đồng bộ ngay lập tức vào cơ sở dữ liệu MIXIMOI HRM.
-                                                </div>
-                                                <div class="mt-2 pt-2 border-top border-success-subtle">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="confirmAccuracy" required checked>
-                                                        <label class="form-check-label fw-bold text-success" for="confirmAccuracy" style="font-size:0.82rem; cursor:pointer;">
-                                                            Tôi đã kiểm tra kỹ và xác nhận lưu hồ sơ nhân sự này <span class="text-danger">*</span>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <input type="text" class="form-control form-control-custom" name="bankBranch" id="bankBranch"
+                                                   placeholder="VD: Chi nhánh TP. Hồ Chí Minh" value="<c:out value='${employee.bankBranch}'/>">
                                         </div>
                                     </div>
                                 </div>
@@ -1342,17 +1378,13 @@
                                     <div class="row g-3">
                                         <div class="col-md-4">
                                             <label class="form-label-custom">Họ tên người liên hệ</label>
-                                            <input type="text" class="form-control form-control-custom"
-                                                   name="emergencyContactName" id="emergencyContactName"
-                                                   placeholder="VD: Nguyễn Thị Bình"
-                                                   value="<c:out value='${employee.emergencyContactName}'/>">
+                                            <input type="text" class="form-control form-control-custom" name="emergencyContactName" id="emergencyContactName"
+                                                   placeholder="VD: Nguyễn Thị Bình" value="<c:out value='${employee.emergencyContactName}'/>">
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label-custom">Số điện thoại liên hệ</label>
-                                            <input type="tel" class="form-control form-control-custom"
-                                                   name="emergencyContactPhone" id="emergencyContactPhone"
-                                                   placeholder="VD: 0901234567"
-                                                   value="<c:out value='${employee.emergencyContactPhone}'/>">
+                                            <input type="tel" class="form-control form-control-custom" name="emergencyContactPhone" id="emergencyContactPhone"
+                                                   placeholder="VD: 0901234567" value="<c:out value='${employee.emergencyContactPhone}'/>">
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label-custom">Mối quan hệ</label>
@@ -1370,64 +1402,30 @@
                                 </div>
                             </div>
 
-                            <!-- Section 4.4: Trạng thái nhân viên (chỉ hiện khi chỉnh sửa) -->
-                            <c:if test="${not empty employee and employee.id > 0}">
-                            <div class="form-section-card">
-                                <div class="form-section-header">
-                                    <div class="form-section-title-wrap">
-                                        <div class="form-section-icon orange"><i class="bi bi-toggle-on"></i></div>
-                                        <div>
-                                            <h3 class="form-section-title">4. Trạng thái nhân viên</h3>
-                                            <div class="form-section-desc">Cập nhật tình trạng công tác hiện tại của nhân viên</div>
-                                        </div>
+                            <!-- Final Confirmation Box -->
+                            <div class="mt-4">
+                                <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border:1.5px solid #86efac; border-radius:12px; padding:1.1rem 1.25rem;">
+                                    <div style="font-size:0.9rem; font-weight:800; color:#15803d; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
+                                        <i class="bi bi-check-circle-fill fs-5"></i> Xác nhận hoàn tất &amp; ${empty employee or employee.id == 0 ? 'Lưu hồ sơ nhân viên' : 'Cập nhật hồ sơ nhân sự'}
                                     </div>
-                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:0.72rem;">Chỉ HR / Admin</span>
-                                </div>
-                                <div class="form-section-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-4">
-                                            <label class="form-label-custom">Trạng thái công tác <span class="req">*</span></label>
-                                            <select class="form-select form-select-custom" name="status" id="employeeStatus"
-                                                    onchange="toggleStatusFields(this.value)">
-                                                <option value="ACTIVE"   ${employee.status eq 'ACTIVE'   ? 'selected' : ''}>✅ Đang làm việc (Active)</option>
-                                                <option value="ON_LEAVE" ${employee.status eq 'ON_LEAVE' ? 'selected' : ''}>🟡 Nghỉ tạm thời (On Leave)</option>
-                                                <option value="INACTIVE" ${employee.status eq 'INACTIVE' ? 'selected' : ''}>🔴 Đã nghỉ việc (Inactive)</option>
-                                            </select>
+                                    <div style="font-size:0.8rem; color:#166534; line-height:1.5;">
+                                        Tôi xác nhận rằng toàn bộ thông tin kê khai trên là hoàn toàn chính xác, đúng pháp lý và đã đối chiếu với giấy tờ gốc. Dữ liệu nhân viên và hợp đồng lao động sẽ được đồng bộ ngay lập tức vào cơ sở dữ liệu MIXIMOI HRM.
+                                    </div>
+                                    <div class="mt-2 pt-2 border-top border-success-subtle">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="confirmAccuracy" name="confirmAccuracy" value="true">
+                                            <label class="form-check-label fw-bold text-success" for="confirmAccuracy" style="font-size:0.82rem; cursor:pointer;">
+                                                ${empty employee or employee.id == 0 ? 'Tôi đã kiểm tra kỹ và xác nhận lưu hồ sơ nhân sự này' : 'Tôi đã kiểm tra kỹ và xác nhận cập nhật hồ sơ nhân sự này'} <span class="text-danger">*</span>
+                                            </label>
                                         </div>
-                                        <div class="col-md-4" id="endDateField" style="${employee.status eq 'INACTIVE' or employee.status eq 'ON_LEAVE' ? '' : 'display:none;'}">
-                                            <label class="form-label-custom">Ngày nghỉ việc / Ngày kết thúc</label>
-                                            <input type="date" class="form-control form-control-custom"
-                                                   name="endDate" id="endDate"
-                                                   value="${not empty employee.endDate ? employee.endDate : ''}">
-                                        </div>
-                                        <div class="col-md-4" id="terminationField" style="${employee.status eq 'INACTIVE' ? '' : 'display:none;'}">
-                                            <label class="form-label-custom">Lý do nghỉ việc</label>
-                                            <select class="form-select form-select-custom" name="terminationReason" id="terminationReason">
-                                                <option value="">— Chọn lý do —</option>
-                                                <option value="Tự nguyện xin nghỉ" ${employee.terminationReason eq 'Tự nguyện xin nghỉ' ? 'selected' : ''}>Tự nguyện xin nghỉ</option>
-                                                <option value="Hết hạn hợp đồng" ${employee.terminationReason eq 'Hết hạn hợp đồng' ? 'selected' : ''}>Hết hạn hợp đồng</option>
-                                                <option value="Sa thải" ${employee.terminationReason eq 'Sa thải' ? 'selected' : ''}>Sa thải</option>
-                                                <option value="Nghỉ hưu" ${employee.terminationReason eq 'Nghỉ hưu' ? 'selected' : ''}>Nghỉ hưu</option>
-                                                <option value="Chuyển công tác" ${employee.terminationReason eq 'Chuyển công tác' ? 'selected' : ''}>Chuyển công tác</option>
-                                                <option value="Khác" ${employee.terminationReason eq 'Khác' ? 'selected' : ''}>Khác</option>
-                                            </select>
-                                        </div>
-                                        <c:if test="${not empty employee.terminationReason and employee.terminationReason ne 'Tự nguyện xin nghỉ' and employee.terminationReason ne 'Hết hạn hợp đồng' and employee.terminationReason ne 'Sa thải' and employee.terminationReason ne 'Nghỉ hưu' and employee.terminationReason ne 'Chuyển công tác'}">
-                                        <div class="col-12" id="terminationNoteField">
-                                            <label class="form-label-custom">Ghi chú lý do nghỉ việc</label>
-                                            <input type="text" class="form-control form-control-custom"
-                                                   name="terminationNote" placeholder="Mô tả thêm lý do nghỉ..."
-                                                   value="<c:out value='${employee.terminationReason}'/>">
-                                        </div>
-                                        </c:if>
                                     </div>
                                 </div>
                             </div>
-                            </c:if>
 
-
+                            <!-- Panel Step 4 Navigation Footer -->
                             <div class="step-nav-footer mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
-                                <button type="button" class="btn btn-outline-secondary px-3 py-2 d-inline-flex align-items-center gap-1" onclick="prevStep()">
+                                <button type="button" class="btn btn-outline-secondary px-3 py-2 d-inline-flex align-items-center gap-1"
+                                        data-wizard-prev onclick="prevStep(); return false;">
                                     <i class="bi bi-arrow-left"></i> <span>Quay lại Bước 3</span>
                                 </button>
                                 <button type="submit" class="btn btn-success px-4 py-2 fw-bold fs-6 d-inline-flex align-items-center gap-2">
@@ -1447,14 +1445,15 @@
                 <!-- ============================================================ -->
                 <div class="wizard-action-bar">
                     <div style="font-size:0.78rem; color:#64748b; display:flex; align-items:center; gap:8px;">
-                        <a href="${pageContext.request.contextPath}/employees" class="btn btn-sm btn-light border text-muted px-2" style="font-size:0.75rem;" onclick="return confirmDiscard();">
+                        <a href="${pageContext.request.contextPath}/employees" class="btn btn-sm btn-light border text-muted px-2"
+                           style="font-size:0.75rem;" onclick="return confirmDiscard();">
                             <i class="bi bi-x-circle me-1"></i>Hủy bỏ
                         </a>
                         <i class="bi bi-cloud-check text-success fs-6 ms-2"></i>
                         <span>Đã lưu nháp: <strong id="autoSaveTimer">Vừa xong</strong></span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <button type="button" class="btn-prev-step" id="btnPrev" onclick="prevStep()" disabled>
+                        <button type="button" class="btn-prev-step" id="btnPrev" data-wizard-prev onclick="prevStep(); return false;" disabled>
                             <i class="bi bi-arrow-left"></i> Quay lại
                         </button>
                         <c:choose>
@@ -1469,7 +1468,7 @@
                                 </button>
                             </c:otherwise>
                         </c:choose>
-                        <button type="button" class="btn-next-step" id="btnNext" onclick="nextStep()">
+                        <button type="button" class="btn-next-step" id="btnNext" data-wizard-next onclick="nextStep(); return false;">
                             <span id="btnNextText">Tiếp tục: Bước 2 (Công việc &amp; Vị trí)</span>
                             <i class="bi bi-arrow-right"></i>
                         </button>
@@ -1480,37 +1479,72 @@
                     </div>
                 </div>
 
-            </form><!-- END FORM -->
+            </form>
+            <!-- FORM END -->
 
-        </div>
+        </div><!-- END .app-content -->
     </main>
 </div>
 
+<!-- Core and Page JS -->
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
+<script src="${pageContext.request.contextPath}/assets/js/employee-form.js"></script>
 
 <script>
-    window.IS_EDIT_MODE = ${not empty employee and employee.id > 0 ? 'true' : 'false'};
-    window.CURRENT_EMP_POS_ID = "${not empty employee ? employee.positionId : ''}";
-    window.CURRENT_EMP_SALARY = "${formattedBaseSalary}";
-    window.CURRENT_EMP_NAME = "<c:out value='${employee.fullName}'/>";
-    window.CURRENT_EMP_CODE = "<c:out value='${employee.employeeCode}'/>";
-
-    function toggleStatusFields(status) {
-        const endDateField = document.getElementById('endDateField');
-        const terminationField = document.getElementById('terminationField');
-        if (!endDateField || !terminationField) return;
-        if (status === 'INACTIVE' || status === 'ON_LEAVE') {
-            endDateField.style.display = '';
-        } else {
-            endDateField.style.display = 'none';
-        }
-        if (status === 'INACTIVE') {
-            terminationField.style.display = '';
-        } else {
-            terminationField.style.display = 'none';
+    function handleFullNameChange(val) {
+        if (window.updateSummary) updateSummary();
+        const code = document.getElementById('employeeCode')?.value || '';
+        if (document.getElementById('sysInfoCode')) {
+            document.getElementById('sysInfoCode').innerText = code;
         }
     }
+    function handleEmailInput(val) {
+        if (document.getElementById('sideProfileEmail')) document.getElementById('sideProfileEmail').innerText = val || 'Chưa nhập';
+        if (document.getElementById('sideProfileEmail2')) document.getElementById('sideProfileEmail2').innerText = val || 'Chưa nhập';
+        if (document.getElementById('companyEmailPrefix') && !document.getElementById('companyEmailPrefix').value && val.includes('@')) {
+            document.getElementById('companyEmailPrefix').value = val.split('@')[0];
+        }
+    }
+    function handlePhoneInput(val) {
+        if (document.getElementById('sideProfilePhone')) document.getElementById('sideProfilePhone').innerText = val || 'Chưa nhập';
+        if (document.getElementById('sideProfilePhone2')) document.getElementById('sideProfilePhone2').innerText = val || 'Chưa nhập';
+    }
+    function handleAddressInput(val) {
+        if (document.getElementById('sideProfileAddr')) document.getElementById('sideProfileAddr').innerText = val || 'Chưa nhập';
+        if (document.getElementById('sideProfileAddr2')) document.getElementById('sideProfileAddr2').innerText = val || 'Chưa nhập';
+        if (document.getElementById('sameAddressCheck')?.checked && document.getElementById('tempAddress')) {
+            document.getElementById('tempAddress').value = val;
+        }
+    }
+    function calculateAge() {
+        const dob = document.getElementById('dateOfBirth')?.value;
+        if (!dob) return;
+        const birthDate = new Date(dob);
+        const ageDifMs = Date.now() - birthDate.getTime();
+        const ageDate = new Date(ageDifMs);
+        const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+        const genderEl = document.querySelector('input[name="gender"]:checked');
+        const genderTxt = genderEl ? (genderEl.value === 'MALE' ? 'Nam' : genderEl.value === 'FEMALE' ? 'Nữ' : 'Khác') : '';
+        if (document.getElementById('sideProfileAgeGender')) {
+            document.getElementById('sideProfileAgeGender').innerText = age + ' tuổi • ' + genderTxt;
+        }
+    }
+    function updateGenderDisplay() {
+        calculateAge();
+    }
+    function validateCccd(input) {
+        const icon = document.getElementById('cccdValidIcon');
+        if (!icon) return;
+        if (/^\d{12}$/.test(input.value.trim())) {
+            icon.style.display = 'block';
+        } else {
+            icon.style.display = 'none';
+        }
+    }
+    function confirmDiscard() {
+        return confirm('Bạn có chắc muốn rời khỏi trang này? Những thay đổi chưa lưu sẽ bị mất.');
+    }
 </script>
-<script src="${pageContext.request.contextPath}/assets/js/employee-form.js"></script>
+
 </body>
 </html>

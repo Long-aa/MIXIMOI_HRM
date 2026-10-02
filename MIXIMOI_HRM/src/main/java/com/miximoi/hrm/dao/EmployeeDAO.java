@@ -16,8 +16,9 @@ public class EmployeeDAO {
 
     private static final String BASE_SELECT =
         "SELECT e.id, e.employee_code, e.full_name, e.date_of_birth, e.gender, "
-      + "e.phone, e.email, e.address, e.temp_address, e.nationality, e.ethnicity, e.avatar_url, "
+      + "e.phone, e.email, e.address, e.temp_address, e.nationality, e.ethnicity, e.religion, e.marital_status, e.avatar_url, "
       + "e.identity_number, e.identity_date, e.identity_place, "
+      + "e.id_card_front_url, e.id_card_back_url, e.resume_url, "
       + "e.department_id, d.name AS department_name, "
       + "e.position_id, p.name AS position_name, "
       + "e.employee_type_id, et.name AS employee_type_name, "
@@ -25,6 +26,7 @@ public class EmployeeDAO {
       + "e.base_salary, e.bank_account, e.bank_name, e.bank_branch, "
       + "e.tax_code, e.insurance_number, "
       + "e.emergency_contact_name, e.emergency_contact_phone, e.emergency_contact_relation, "
+      + "e.work_location, e.employee_level, e.secondary_phone, e.line_manager, e.mentor_name, "
       + "e.created_at, e.updated_at "
       + "FROM employees e "
       + "LEFT JOIN departments d ON e.department_id = d.id "
@@ -78,11 +80,21 @@ public class EmployeeDAO {
                 sql.append("AND (e.status = 'ON_LEAVE' OR EXISTS (SELECT 1 FROM leave_requests lr WHERE lr.employee_id = e.id AND lr.status = 'APPROVED' AND CURRENT_DATE BETWEEN lr.start_date AND lr.end_date)) ");
             } else if ("INACTIVE".equalsIgnoreCase(status.trim())) {
                 sql.append("AND (e.status = 'INACTIVE' OR e.status = 'TERMINATED') ");
+            } else if ("NEW".equalsIgnoreCase(status.trim())) {
+                sql.append("AND (e.start_date IS NOT NULL AND e.start_date >= (CURRENT_DATE - INTERVAL '90 days')) ");
             } else {
                 sql.append("AND e.status = ? ");
             }
+        } else {
+            // Mặc định: ẩn nhân viên đã nghỉ việc/lưu trữ trong tab "Tất cả"
+            // Nhất quán với findAll() — INACTIVE/TERMINATED chỉ hiện khi lọc tường minh
+            sql.append("AND e.status NOT IN ('INACTIVE', 'TERMINATED') ");
         }
-        sql.append("ORDER BY e.employee_code");
+        if ("NEW".equalsIgnoreCase(status != null ? status.trim() : "")) {
+            sql.append("ORDER BY e.start_date DESC, e.employee_code");
+        } else {
+            sql.append("ORDER BY e.employee_code");
+        }
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -96,7 +108,7 @@ public class EmployeeDAO {
             }
             if (departmentId != null && departmentId > 0) ps.setInt(idx++, departmentId);
             if (positionId != null && positionId > 0) ps.setInt(idx++, positionId);
-            if (status != null && !status.trim().isEmpty() && !"ON_LEAVE".equalsIgnoreCase(status.trim()) && !"INACTIVE".equalsIgnoreCase(status.trim())) {
+            if (status != null && !status.trim().isEmpty() && !"ON_LEAVE".equalsIgnoreCase(status.trim()) && !"INACTIVE".equalsIgnoreCase(status.trim()) && !"NEW".equalsIgnoreCase(status.trim())) {
                 ps.setString(idx, status.trim());
             }
 
@@ -136,13 +148,14 @@ public class EmployeeDAO {
     /** Thêm nhân viên mới (đầy đủ các trường mở rộng) */
     public boolean insert(Employee emp) {
         String sql = "INSERT INTO employees (employee_code, full_name, date_of_birth, gender, "
-                   + "phone, email, address, temp_address, nationality, ethnicity, avatar_url, "
-                   + "identity_number, identity_date, identity_place, "
+                   + "phone, email, address, temp_address, nationality, ethnicity, religion, marital_status, avatar_url, "
+                   + "identity_number, identity_date, identity_place, id_card_front_url, id_card_back_url, resume_url, "
                    + "department_id, position_id, employee_type_id, "
                    + "start_date, status, base_salary, bank_account, bank_name, bank_branch, "
                    + "tax_code, insurance_number, "
-                   + "emergency_contact_name, emergency_contact_phone, emergency_contact_relation) "
-                   + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                   + "emergency_contact_name, emergency_contact_phone, emergency_contact_relation, "
+                   + "work_location, employee_level, secondary_phone, line_manager, mentor_name) "
+                   + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, emp.getEmployeeCode());
@@ -155,28 +168,38 @@ public class EmployeeDAO {
             ps.setString(8, emp.getTempAddress());
             ps.setString(9, emp.getNationality() != null ? emp.getNationality() : "Việt Nam");
             ps.setString(10, emp.getEthnicity());
-            ps.setString(11, emp.getAvatarUrl());
-            ps.setString(12, emp.getIdentityNumber());
-            ps.setDate(13, emp.getIdentityDate() != null ? Date.valueOf(emp.getIdentityDate()) : null);
-            ps.setString(14, emp.getIdentityPlace());
-            if (emp.getDepartmentId() > 0) ps.setInt(15, emp.getDepartmentId());
-            else ps.setNull(15, Types.INTEGER);
-            if (emp.getPositionId() > 0) ps.setInt(16, emp.getPositionId());
-            else ps.setNull(16, Types.INTEGER);
-            if (emp.getEmployeeTypeId() > 0) ps.setInt(17, emp.getEmployeeTypeId());
-            else ps.setInt(17, 1);
-            ps.setDate(18, emp.getStartDate() != null ? Date.valueOf(emp.getStartDate()) : Date.valueOf(java.time.LocalDate.now()));
-            ps.setString(19, emp.getStatus() != null && !emp.getStatus().isEmpty() ? emp.getStatus() : "ACTIVE");
-            if (emp.getBaseSalary() != null) ps.setBigDecimal(20, emp.getBaseSalary());
-            else ps.setNull(20, Types.NUMERIC);
-            ps.setString(21, emp.getBankAccount());
-            ps.setString(22, emp.getBankName());
-            ps.setString(23, emp.getBankBranch());
-            ps.setString(24, emp.getTaxCode());
-            ps.setString(25, emp.getInsuranceNumber());
-            ps.setString(26, emp.getEmergencyContactName());
-            ps.setString(27, emp.getEmergencyContactPhone());
-            ps.setString(28, emp.getEmergencyContactRelation());
+            ps.setString(11, emp.getReligion());
+            ps.setString(12, emp.getMaritalStatus());
+            ps.setString(13, emp.getAvatarUrl());
+            ps.setString(14, emp.getIdentityNumber());
+            ps.setDate(15, emp.getIdentityDate() != null ? Date.valueOf(emp.getIdentityDate()) : null);
+            ps.setString(16, emp.getIdentityPlace());
+            ps.setString(17, emp.getIdCardFrontUrl());
+            ps.setString(18, emp.getIdCardBackUrl());
+            ps.setString(19, emp.getResumeUrl());
+            if (emp.getDepartmentId() > 0) ps.setInt(20, emp.getDepartmentId());
+            else ps.setNull(20, Types.INTEGER);
+            if (emp.getPositionId() > 0) ps.setInt(21, emp.getPositionId());
+            else ps.setNull(21, Types.INTEGER);
+            if (emp.getEmployeeTypeId() > 0) ps.setInt(22, emp.getEmployeeTypeId());
+            else ps.setInt(22, 1);
+            ps.setDate(23, emp.getStartDate() != null ? Date.valueOf(emp.getStartDate()) : Date.valueOf(java.time.LocalDate.now()));
+            ps.setString(24, emp.getStatus() != null && !emp.getStatus().isEmpty() ? emp.getStatus() : "ACTIVE");
+            if (emp.getBaseSalary() != null) ps.setBigDecimal(25, emp.getBaseSalary());
+            else ps.setNull(25, Types.NUMERIC);
+            ps.setString(26, emp.getBankAccount());
+            ps.setString(27, emp.getBankName());
+            ps.setString(28, emp.getBankBranch());
+            ps.setString(29, emp.getTaxCode());
+            ps.setString(30, emp.getInsuranceNumber());
+            ps.setString(31, emp.getEmergencyContactName());
+            ps.setString(32, emp.getEmergencyContactPhone());
+            ps.setString(33, emp.getEmergencyContactRelation());
+            ps.setString(34, emp.getWorkLocation());
+            ps.setString(35, emp.getEmployeeLevel());
+            ps.setString(36, emp.getSecondaryPhone());
+            ps.setString(37, emp.getLineManager());
+            ps.setString(38, emp.getMentorName());
 
             int affected = ps.executeUpdate();
             if (affected > 0) {
@@ -193,48 +216,61 @@ public class EmployeeDAO {
 
     /** Cập nhật thông tin nhân viên (đầy đủ) */
     public boolean update(Employee emp) {
-        String sql = "UPDATE employees SET full_name=?, date_of_birth=?, gender=?, phone=?, "
-                   + "email=?, address=?, temp_address=?, nationality=?, ethnicity=?, avatar_url=?, "
+        String sql = "UPDATE employees SET employee_code=?, full_name=?, date_of_birth=?, gender=?, phone=?, "
+                   + "email=?, address=?, temp_address=?, nationality=?, ethnicity=?, religion=?, marital_status=?, avatar_url=?, "
                    + "identity_number=?, identity_date=?, identity_place=?, "
+                   + "id_card_front_url=?, id_card_back_url=?, resume_url=?, "
                    + "department_id=?, position_id=?, employee_type_id=?, "
                    + "start_date=?, end_date=?, termination_reason=?, status=?, "
                    + "base_salary=?, bank_account=?, bank_name=?, bank_branch=?, "
                    + "tax_code=?, insurance_number=?, "
                    + "emergency_contact_name=?, emergency_contact_phone=?, emergency_contact_relation=?, "
+                   + "work_location=?, employee_level=?, secondary_phone=?, line_manager=?, mentor_name=?, "
                    + "updated_at=CURRENT_TIMESTAMP WHERE id=?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, emp.getFullName());
-            ps.setDate(2, emp.getDateOfBirth() != null ? Date.valueOf(emp.getDateOfBirth()) : null);
-            ps.setString(3, emp.getGender());
-            ps.setString(4, emp.getPhone());
-            ps.setString(5, emp.getEmail());
-            ps.setString(6, emp.getAddress());
-            ps.setString(7, emp.getTempAddress());
-            ps.setString(8, emp.getNationality());
-            ps.setString(9, emp.getEthnicity());
-            ps.setString(10, emp.getAvatarUrl());
-            ps.setString(11, emp.getIdentityNumber());
-            ps.setDate(12, emp.getIdentityDate() != null ? Date.valueOf(emp.getIdentityDate()) : null);
-            ps.setString(13, emp.getIdentityPlace());
-            ps.setInt(14, emp.getDepartmentId());
-            ps.setInt(15, emp.getPositionId());
-            ps.setInt(16, emp.getEmployeeTypeId());
-            ps.setDate(17, emp.getStartDate() != null ? Date.valueOf(emp.getStartDate()) : null);
-            ps.setDate(18, emp.getEndDate() != null ? Date.valueOf(emp.getEndDate()) : null);
-            ps.setString(19, emp.getTerminationReason());
-            ps.setString(20, emp.getStatus());
-            if (emp.getBaseSalary() != null) ps.setBigDecimal(21, emp.getBaseSalary());
-            else ps.setNull(21, Types.NUMERIC);
-            ps.setString(22, emp.getBankAccount());
-            ps.setString(23, emp.getBankName());
-            ps.setString(24, emp.getBankBranch());
-            ps.setString(25, emp.getTaxCode());
-            ps.setString(26, emp.getInsuranceNumber());
-            ps.setString(27, emp.getEmergencyContactName());
-            ps.setString(28, emp.getEmergencyContactPhone());
-            ps.setString(29, emp.getEmergencyContactRelation());
-            ps.setInt(30, emp.getId());
+            ps.setString(1, emp.getEmployeeCode());
+            ps.setString(2, emp.getFullName());
+            ps.setDate(3, emp.getDateOfBirth() != null ? Date.valueOf(emp.getDateOfBirth()) : null);
+            ps.setString(4, emp.getGender());
+            ps.setString(5, emp.getPhone());
+            ps.setString(6, emp.getEmail());
+            ps.setString(7, emp.getAddress());
+            ps.setString(8, emp.getTempAddress());
+            ps.setString(9, emp.getNationality());
+            ps.setString(10, emp.getEthnicity());
+            ps.setString(11, emp.getReligion());
+            ps.setString(12, emp.getMaritalStatus());
+            ps.setString(13, emp.getAvatarUrl());
+            ps.setString(14, emp.getIdentityNumber());
+            ps.setDate(15, emp.getIdentityDate() != null ? Date.valueOf(emp.getIdentityDate()) : null);
+            ps.setString(16, emp.getIdentityPlace());
+            ps.setString(17, emp.getIdCardFrontUrl());
+            ps.setString(18, emp.getIdCardBackUrl());
+            ps.setString(19, emp.getResumeUrl());
+            ps.setInt(20, emp.getDepartmentId());
+            ps.setInt(21, emp.getPositionId());
+            ps.setInt(22, emp.getEmployeeTypeId());
+            ps.setDate(23, emp.getStartDate() != null ? Date.valueOf(emp.getStartDate()) : null);
+            ps.setDate(24, emp.getEndDate() != null ? Date.valueOf(emp.getEndDate()) : null);
+            ps.setString(25, emp.getTerminationReason());
+            ps.setString(26, emp.getStatus());
+            if (emp.getBaseSalary() != null) ps.setBigDecimal(27, emp.getBaseSalary());
+            else ps.setNull(27, Types.NUMERIC);
+            ps.setString(28, emp.getBankAccount());
+            ps.setString(29, emp.getBankName());
+            ps.setString(30, emp.getBankBranch());
+            ps.setString(31, emp.getTaxCode());
+            ps.setString(32, emp.getInsuranceNumber());
+            ps.setString(33, emp.getEmergencyContactName());
+            ps.setString(34, emp.getEmergencyContactPhone());
+            ps.setString(35, emp.getEmergencyContactRelation());
+            ps.setString(36, emp.getWorkLocation());
+            ps.setString(37, emp.getEmployeeLevel());
+            ps.setString(38, emp.getSecondaryPhone());
+            ps.setString(39, emp.getLineManager());
+            ps.setString(40, emp.getMentorName());
+            ps.setInt(41, emp.getId());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("EmployeeDAO.update lỗi: " + e.getMessage());
@@ -362,7 +398,160 @@ public class EmployeeDAO {
         return countByStatus("ACTIVE");
     }
 
-    // ===== Helper mapping =====
+    // =========================================================================
+    //  Phan trang (Pagination)
+    // =========================================================================
+
+    /**
+     * Lay danh sach nhan vien theo trang (Server-side Pagination).
+     *
+     * <p>Su dung LIMIT/OFFSET cua PostgreSQL - hieu qua voi bang lon.
+     * Chi truyen du lieu cua trang hien tai thay vi load toan bo.
+     *
+     * <p>Cong thuc OFFSET: {@code (page - 1) * pageSize}
+     *
+     * <pre>
+     *   Trang 1, pageSize=10: LIMIT 10 OFFSET 0   -> hang 1-10
+     *   Trang 2, pageSize=10: LIMIT 10 OFFSET 10  -> hang 11-20
+     *   Trang 3, pageSize=10: LIMIT 10 OFFSET 20  -> hang 21-30
+     * </pre>
+     *
+     * @param page     So trang hien tai (bat dau tu 1, khong phai 0)
+     * @param pageSize So ban ghi moi trang (e.g. 10, 20, 50)
+     * @return Danh sach nhan vien cua trang tuong ung (co the rong neu het du lieu)
+     * @throws IllegalArgumentException neu page < 1 hoac pageSize < 1
+     */
+    public List<Employee> getEmployeesWithPagination(int page, int pageSize) {
+        // --- Validate input de tranh OFFSET am hoac chia 0 ---
+        if (page < 1) {
+            throw new IllegalArgumentException("So trang phai >= 1, nhung nhan duoc: " + page);
+        }
+        if (pageSize < 1) {
+            throw new IllegalArgumentException("Page size phai >= 1, nhung nhan duoc: " + pageSize);
+        }
+
+        List<Employee> list = new ArrayList<>();
+
+        // LIMIT: bao nhieu ban ghi moi trang
+        // OFFSET: bo qua bao nhieu ban ghi o cac trang truoc
+        // Dung PreparedStatement de tranh SQL Injection va cache query plan tren PostgreSQL
+        String sql = BASE_SELECT
+                   + "WHERE e.status != 'INACTIVE' "
+                   + "ORDER BY e.employee_code "
+                   + "LIMIT ? OFFSET ?";
+
+        int offset = (page - 1) * pageSize;  // Tinh vi tri bat dau (0-indexed)
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, pageSize);  // Param 1: so ban ghi toi da lay ve
+            ps.setInt(2, offset);    // Param 2: bo qua bao nhieu ban ghi
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            System.err.println("EmployeeDAO.getEmployeesWithPagination loi (page="
+                               + page + ", size=" + pageSize + "): " + e.getMessage());
+        }
+
+        return list;
+    }
+
+    /**
+     * Dem tong so nhan vien dang ACTIVE – dung de tinh so trang toi da.
+     *
+     * <p>Ket hop voi {@link #getEmployeesWithPagination(int, int)} de hien thi phan trang:
+     * <pre>
+     *   int totalRecords = employeeDAO.countAllForPagination();
+     *   int totalPages   = (int) Math.ceil((double) totalRecords / pageSize);
+     * </pre>
+     *
+     * @return Tong so nhan vien dang hoat dong (status != INACTIVE)
+     */
+    public int countAllForPagination() {
+        String sql = "SELECT COUNT(*) FROM employees WHERE status != 'INACTIVE'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            System.err.println("EmployeeDAO.countAllForPagination loi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /**
+     * Phan trang ket hop tim kiem – lay du lieu loc theo keyword + department + status.
+     *
+     * @param keyword      Tu khoa tim kiem (ho ten, ma NV, email, SDT) – null thi bo qua
+     * @param departmentId ID phong ban – null hoac 0 thi bo qua filter nay
+     * @param status       Trang thai nhan vien – null thi bo qua filter nay
+     * @param page         So trang hien tai (bat dau tu 1)
+     * @param pageSize     So ban ghi moi trang
+     * @return Danh sach nhan vien khop dieu kien loc, gioi han theo trang
+     */
+    public List<Employee> searchWithPagination(String keyword, Integer departmentId,
+                                               String status, int page, int pageSize) {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+
+        List<Employee> list = new ArrayList<>();
+
+        // Xay dung SQL dong theo cac filter
+        StringBuilder sql = new StringBuilder(BASE_SELECT + "WHERE 1=1 ");
+
+        if (keyword != null && !keyword.isBlank()) {
+            sql.append("AND (LOWER(e.full_name) LIKE ? OR LOWER(e.employee_code) LIKE ? "
+                     + "  OR LOWER(e.email) LIKE ? OR e.phone LIKE ?) ");
+        }
+        if (departmentId != null && departmentId > 0) {
+            sql.append("AND e.department_id = ? ");
+        }
+        if (status != null && !status.isBlank()) {
+            sql.append("AND e.status = ? ");
+        }
+
+        sql.append("ORDER BY e.employee_code LIMIT ? OFFSET ?");
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+
+            int idx = 1;
+
+            if (keyword != null && !keyword.isBlank()) {
+                String like = "%" + keyword.strip().toLowerCase() + "%";
+                ps.setString(idx++, like);
+                ps.setString(idx++, like);
+                ps.setString(idx++, like);
+                ps.setString(idx++, "%" + keyword.strip() + "%");
+            }
+            if (departmentId != null && departmentId > 0) {
+                ps.setInt(idx++, departmentId);
+            }
+            if (status != null && !status.isBlank()) {
+                ps.setString(idx++, status.strip());
+            }
+
+            ps.setInt(idx++, pageSize);
+            ps.setInt(idx, (page - 1) * pageSize);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("EmployeeDAO.searchWithPagination loi: " + e.getMessage());
+        }
+
+        return list;
+    }
+
+
     private Employee mapRow(ResultSet rs) throws SQLException {
         Employee e = new Employee();
         e.setId(rs.getInt("id"));
@@ -377,11 +566,16 @@ public class EmployeeDAO {
         e.setTempAddress(rs.getString("temp_address"));
         e.setNationality(rs.getString("nationality"));
         e.setEthnicity(rs.getString("ethnicity"));
+        try { e.setReligion(rs.getString("religion")); } catch (SQLException ignored) {}
+        try { e.setMaritalStatus(rs.getString("marital_status")); } catch (SQLException ignored) {}
         e.setAvatarUrl(rs.getString("avatar_url"));
         e.setIdentityNumber(rs.getString("identity_number"));
         Date idDate = rs.getDate("identity_date");
         if (idDate != null) e.setIdentityDate(idDate.toLocalDate());
         e.setIdentityPlace(rs.getString("identity_place"));
+        try { e.setIdCardFrontUrl(rs.getString("id_card_front_url")); } catch (SQLException ignored) {}
+        try { e.setIdCardBackUrl(rs.getString("id_card_back_url")); } catch (SQLException ignored) {}
+        try { e.setResumeUrl(rs.getString("resume_url")); } catch (SQLException ignored) {}
         e.setDepartmentId(rs.getInt("department_id"));
         e.setDepartmentName(rs.getString("department_name"));
         e.setPositionId(rs.getInt("position_id"));
@@ -404,6 +598,11 @@ public class EmployeeDAO {
         e.setEmergencyContactName(rs.getString("emergency_contact_name"));
         e.setEmergencyContactPhone(rs.getString("emergency_contact_phone"));
         e.setEmergencyContactRelation(rs.getString("emergency_contact_relation"));
+        try { e.setWorkLocation(rs.getString("work_location")); } catch (SQLException ignored) {}
+        try { e.setEmployeeLevel(rs.getString("employee_level")); } catch (SQLException ignored) {}
+        try { e.setSecondaryPhone(rs.getString("secondary_phone")); } catch (SQLException ignored) {}
+        try { e.setLineManager(rs.getString("line_manager")); } catch (SQLException ignored) {}
+        try { e.setMentorName(rs.getString("mentor_name")); } catch (SQLException ignored) {}
         Timestamp createdAt = rs.getTimestamp("created_at");
         if (createdAt != null) e.setCreatedAt(createdAt.toLocalDateTime());
         Timestamp updatedAt = rs.getTimestamp("updated_at");

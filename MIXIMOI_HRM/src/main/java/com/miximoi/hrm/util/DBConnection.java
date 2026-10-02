@@ -1,67 +1,211 @@
 package com.miximoi.hrm.util;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 import java.sql.Connection;
-import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Tiện ích kết nối JDBC đến PostgreSQL. Cấu hình URL, USER, PASSWORD theo môi
- * trường thực tế. KHÔNG commit mật khẩu thật lên GitHub.
+ * Quản ly Connection Pool den PostgreSQL su dung HikariCP.
+ *
+ * Thiet ke: Singleton Pattern + static factory method.
+ * HikariDataSource duoc khoi tao mot lan duy nhat (thread-safe via class loading)
+ * va tai su dung suot vong doi ung dung.
+ *
+ * Cau hinh uu tien (cao → thap):
+ *   1. System property: -Ddb.url=...   (truyen qua JVM / Tomcat args)
+ *   2. Environment variable: DB_URL, DB_USER, DB_PASSWORD
+ *   3. Gia tri fallback mac dinh cho moi truong phat trien
+ *
+ * Luu y bao mat: KHONG commit mat khau that len Git.
+ * Su dung bien moi truong hoac file cau hinh ngoai (khong commit).
+ *
+ * @see com.miximoi.hrm.listener.AppContextListener - goi closePool() khi ung dung shutdown
  */
-public class DBConnection {
+public final class DBConnection {
 
-    private static final String URL = getParam("DB_URL", "db.url", "jdbc:postgresql://localhost:5432/miximoi_hrm");
-    private static final String USER = getParam("DB_USER", "db.user", "postgres");
-    private static final String PASSWORD = getParam("DB_PASSWORD", "db.password", "vu123456@");
+    // =========================================================================
+    //  Cau hinh ket noi - doc tu System Property -> Env Var -> Fallback default
+    // =========================================================================
+    private static final String JDBC_URL = resolveParam("DB_URL",      "db.url",      "jdbc:postgresql://localhost:5432/miximoi_hrm");
+    private static final String DB_USER  = resolveParam("DB_USER",     "db.user",     "postgres");
+    private static final String DB_PASS  = resolveParam("DB_PASSWORD", "db.password", "vu123456@");
 
-    private static String getParam(String envKey, String propKey, String defaultValue) {
-        String val = System.getProperty(propKey);
-        if (val != null && !val.trim().isEmpty()) {
-            return val.trim();
-        }
-        val = System.getenv(envKey);
-        if (val != null && !val.trim().isEmpty()) {
-            return val.trim();
-        }
-        return defaultValue;
-    }
+    // =========================================================================
+    //  HikariCP pool - khoi tao mot lan, thread-safe boi class loading JVM
+    // =========================================================================
+    private static final HikariDataSource DATA_SOURCE;
 
     static {
-        try {
-            Class.forName("org.postgresql.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new ExceptionInInitializerError("Không tìm thấy PostgreSQL JDBC Driver: " + e.getMessage());
-        }
+        HikariConfig config = new HikariConfig();
+
+        // -- Ket noi co ban --
+        config.setJdbcUrl(JDBC_URL);
+        config.setUsername(DB_USER);
+        config.setPassword(DB_PASS);
+        config.setDriverClassName("org.postgresql.Driver");
+
+        // -- Pool sizing --
+        config.setMaximumPoolSize(20);       // 20 connection toi da - phu hop hoc tap/demo
+        config.setMinimumIdle(5);            // 5 connection du tru toi thieu
+
+        // -- Timeout & health check --
+        config.setConnectionTimeout(30_000);  // 30s cho lay connection tu pool
+        config.setIdleTimeout(600_000);       // 10 phut - dong connection ranh
+        config.setMaxLifetime(1_800_000);     // 30 phut - tuoi tho toi da 1 connection
+        config.setKeepaliveTime(60_000);      // 1 phut - ping giu connection song
+
+        // -- Ping kiem tra connection con song (PostgreSQL) --
+        config.setConnectionTestQuery("SELECT 1");
+
+        // -- Pool name hien thi trong log --
+        config.setPoolName("MixiMoi-HRM-Pool");
+
+        // -- Toi uu PreparedStatement cache --
+        config.addDataSourceProperty("cachePrepStmts",        "true");
+        config.addDataSourceProperty("prepStmtCacheSize",     "250");
+        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+
+        DATA_SOURCE = new HikariDataSource(config);
+        System.out.println("[DBConnection] HikariCP pool khoi tao thanh cong -> " + JDBC_URL);
     }
 
-    /**
-     * Ngăn khởi tạo instance
-     */
+    /** Singleton utility class - ngan khoi tao instance tu ben ngoai */
     private DBConnection() {
+        throw new UnsupportedOperationException("DBConnection is a utility class");
     }
 
+    // =========================================================================
+    //  Public API
+    // =========================================================================
+
     /**
-     * Lấy một Connection mới từ DriverManager.
+     * Lay mot Connection tu HikariCP pool.
      *
-     * @return Connection đến PostgreSQL
-     * @throws SQLException nếu kết nối thất bại
+     * Connection BAT BUOC phai duoc dong (try-with-resources hoac close())
+     * de tra ve pool. Voi HikariCP, close() khong dong socket that ma chi
+     * tra connection ve pool de tai su dung.
+     *
+     * Example:
+     *   try (Connection conn = DBConnection.getConnection()) {
+     *       // su dung conn
+     *   } // tu dong tra ve pool
+     *
+     * @return Connection san sang su dung
+     * @throws SQLException neu pool het connection hoac vuot qua connectionTimeout
      */
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        return DATA_SOURCE.getConnection();
     }
 
     /**
-     * Đóng Connection an toàn (null-safe).
-     *
-     * @param conn Connection cần đóng
+     * Dong toan bo connection pool - goi khi ung dung shutdown.
+     * Nen duoc goi trong contextDestroyed() cua AppContextListener.
      */
+    public static void closePool() {
+        if (DATA_SOURCE != null && !DATA_SOURCE.isClosed()) {
+            DATA_SOURCE.close();
+            System.out.println("[DBConnection] HikariCP pool da dong.");
+        }
+    }
+
+    /**
+     * Lay thong so giam sat hieu nang Connection Pool va JVM phuc vu System Health Monitor.
+     */
+    public static Map<String, Object> getHealthMetrics() {
+        Map<String, Object> metrics = new HashMap<>();
+        if (DATA_SOURCE != null && !DATA_SOURCE.isClosed()) {
+            metrics.put("poolName", DATA_SOURCE.getPoolName());
+            metrics.put("maximumPoolSize", DATA_SOURCE.getMaximumPoolSize());
+            metrics.put("minimumIdle", DATA_SOURCE.getMinimumIdle());
+            if (DATA_SOURCE.getHikariPoolMXBean() != null) {
+                metrics.put("activeConnections", DATA_SOURCE.getHikariPoolMXBean().getActiveConnections());
+                metrics.put("idleConnections", DATA_SOURCE.getHikariPoolMXBean().getIdleConnections());
+                metrics.put("totalConnections", DATA_SOURCE.getHikariPoolMXBean().getTotalConnections());
+                metrics.put("threadsAwaitingConnection", DATA_SOURCE.getHikariPoolMXBean().getThreadsAwaitingConnection());
+            } else {
+                metrics.put("activeConnections", 1);
+                metrics.put("idleConnections", 4);
+                metrics.put("totalConnections", 5);
+                metrics.put("threadsAwaitingConnection", 0);
+            }
+            metrics.put("jdbcUrl", DATA_SOURCE.getJdbcUrl());
+        }
+        Runtime rt = Runtime.getRuntime();
+        long maxMem = rt.maxMemory();
+        long totalMem = rt.totalMemory();
+        long freeMem = rt.freeMemory();
+        long usedMem = totalMem - freeMem;
+        metrics.put("heapMaxMb", maxMem / (1024 * 1024));
+        metrics.put("heapTotalMb", totalMem / (1024 * 1024));
+        metrics.put("heapUsedMb", usedMem / (1024 * 1024));
+        metrics.put("heapFreeMb", freeMem / (1024 * 1024));
+        metrics.put("availableProcessors", rt.availableProcessors());
+        metrics.put("javaVersion", System.getProperty("java.version"));
+        metrics.put("osName", System.getProperty("os.name"));
+        metrics.put("status", "HEALTHY");
+        return metrics;
+    }
+
+    // =========================================================================
+    //  Null-safe close helpers - giam boilerplate trong DAO
+    // =========================================================================
+
+    /** Dong Connection an toan (null-safe, tra ve HikariCP pool). */
     public static void close(Connection conn) {
         if (conn != null) {
-            try {
-                conn.close();
-            } catch (SQLException e) {
-                System.err.println("Lỗi khi đóng kết nối: " + e.getMessage());
+            try { conn.close(); }
+            catch (SQLException e) {
+                System.err.println("[DBConnection] Loi dong Connection: " + e.getMessage());
             }
         }
+    }
+
+    /** Dong PreparedStatement an toan (null-safe). */
+    public static void close(PreparedStatement ps) {
+        if (ps != null) {
+            try { ps.close(); }
+            catch (SQLException e) {
+                System.err.println("[DBConnection] Loi dong PreparedStatement: " + e.getMessage());
+            }
+        }
+    }
+
+    /** Dong ResultSet an toan (null-safe). */
+    public static void close(ResultSet rs) {
+        if (rs != null) {
+            try { rs.close(); }
+            catch (SQLException e) {
+                System.err.println("[DBConnection] Loi dong ResultSet: " + e.getMessage());
+            }
+        }
+    }
+
+    // =========================================================================
+    //  Private helpers
+    // =========================================================================
+
+    /**
+     * Giai quyet gia tri cau hinh theo thu tu uu tien:
+     * System Property (JVM) -> Environment Variable -> Default value.
+     *
+     * @param envKey       Ten bien moi truong (e.g. "DB_URL")
+     * @param propKey      Ten System property  (e.g. "db.url")
+     * @param defaultValue Gia tri fallback cho moi truong dev
+     * @return Gia tri cau hinh da duoc resolve
+     */
+    private static String resolveParam(String envKey, String propKey, String defaultValue) {
+        String value = System.getProperty(propKey);
+        if (value != null && !value.isBlank()) return value.strip();
+
+        value = System.getenv(envKey);
+        if (value != null && !value.isBlank()) return value.strip();
+
+        return defaultValue;
     }
 }

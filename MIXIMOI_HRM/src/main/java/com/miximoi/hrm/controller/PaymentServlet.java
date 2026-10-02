@@ -1,6 +1,9 @@
 package com.miximoi.hrm.controller;
 
+import com.miximoi.hrm.dao.AuditLogDAO;
+import com.miximoi.hrm.dao.PaymentDAO;
 import com.miximoi.hrm.dao.PayrollDAO;
+import com.miximoi.hrm.model.Payment;
 import com.miximoi.hrm.model.Payroll;
 import com.miximoi.hrm.model.User;
 import com.miximoi.hrm.service.PayrollService;
@@ -12,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -24,6 +28,7 @@ import java.util.List;
 public class PaymentServlet extends HttpServlet {
 
     private final PayrollDAO     payrollDAO     = new PayrollDAO();
+    private final PaymentDAO     paymentDAO     = new PaymentDAO();
     private final PayrollService payrollService = new PayrollService();
 
     @Override
@@ -47,6 +52,15 @@ public class PaymentServlet extends HttpServlet {
         List<Payroll> allPayrolls = payrollDAO.findByPeriod(month, year);
         if (allPayrolls == null) allPayrolls = List.of();
 
+        if ("export_unc".equalsIgnoreCase(request.getParameter("action"))) {
+            exportBankSchedule(response, allPayrolls, month, year);
+            return;
+        }
+
+        // Lấy lịch sử giao dịch đã thanh toán
+        List<Payment> paymentHistory = paymentDAO.findByPeriod(month, year);
+        if (paymentHistory == null) paymentHistory = List.of();
+
         // KPI cho trang thanh toán
         BigDecimal totalPayroll  = payrollDAO.sumNetSalaryByPeriod(month, year);
         int        countApproved = payrollDAO.countByStatus(month, year, "APPROVED");
@@ -64,6 +78,7 @@ public class PaymentServlet extends HttpServlet {
 
         request.setAttribute("activeMenu",      "payment");
         request.setAttribute("payrollList",     allPayrolls);
+        request.setAttribute("paymentHistory",  paymentHistory);
         request.setAttribute("totalPayroll",    totalPayroll);
         request.setAttribute("totalDisbursed",  totalDisbursed);
         request.setAttribute("countApproved",   countApproved);
@@ -100,31 +115,76 @@ public class PaymentServlet extends HttpServlet {
             String m = request.getParameter("month"), y = request.getParameter("year");
             if (m != null && !m.isEmpty()) month = Integer.parseInt(m);
             if (y != null && !y.isEmpty()) year  = Integer.parseInt(y);
-        } catch (Exception ignored) {}
+        } catch (NumberFormatException ignored) {}
 
         switch (action) {
-            case "batch_disburse": {
-                int count = payrollService.batchDisburse(month, year, userId);
+            case "batch_disburse" -> {
+                String paymentMethod = request.getParameter("paymentMethod");
+                if (paymentMethod == null || paymentMethod.isEmpty()) paymentMethod = "BANK_TRANSFER";
+                int count = payrollService.batchDisburse(month, year, userId, paymentMethod);
+                AuditLogDAO.logAction(request, "DISBURSE_BATCH", "PAYMENT", null, 
+                        "Giải ngân hàng loạt kỳ " + month + "/" + year + ": " + count + " nhân viên, hình thức: " + paymentMethod);
                 response.sendRedirect(request.getContextPath()
                         + "/payment?month=" + month + "&year=" + year + "&success=batch_disbursed&count=" + count);
-                return;
             }
-            case "pay_single": {
+            case "pay_single" -> {
                 int id = Integer.parseInt(request.getParameter("id"));
-                boolean ok = payrollService.payPayrollSingle(id, userId, "BANK_TRANSFER", null);
+                String paymentMethod = request.getParameter("paymentMethod");
+                if (paymentMethod == null || paymentMethod.isEmpty()) paymentMethod = "BANK_TRANSFER";
+                String notes = request.getParameter("notes");
+                boolean ok = payrollService.payPayrollSingle(id, userId, paymentMethod, notes);
                 if (ok) {
+                    AuditLogDAO.logAction(request, "DISBURSE_SINGLE", "PAYMENT", id, 
+                            "Thanh toán phiếu lương ID " + id + " hình thức: " + paymentMethod + (notes != null && !notes.isEmpty() ? " (" + notes + ")" : ""));
                     response.sendRedirect(request.getContextPath()
                             + "/payment?month=" + month + "&year=" + year + "&success=paid");
                 } else {
                     response.sendRedirect(request.getContextPath()
                             + "/payment?month=" + month + "&year=" + year + "&error=pay_failed");
                 }
-                return;
             }
-            default:
-                response.sendRedirect(request.getContextPath()
-                        + "/payment?month=" + month + "&year=" + year);
+            default -> response.sendRedirect(request.getContextPath()
+                    + "/payment?month=" + month + "&year=" + year);
         }
+    }
+
+    private void exportBankSchedule(HttpServletResponse response, List<Payroll> payrollList, int month, int year)
+            throws IOException {
+        response.setContentType("text/csv; charset=UTF-8");
+        response.setCharacterEncoding("UTF-8");
+        String fileName = "bang_ke_chi_luong_ngan_hang_T" + String.format("%02d", month) + "_" + year + ".csv";
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+
+        PrintWriter writer = response.getWriter();
+        writer.write('\uFEFF'); // UTF-8 BOM
+
+        // Header CSV chuẩn ngân hàng Napas 247 / Vietcombank / Techcombank
+        writer.write("STT,Mã Nhân Viên,Họ và Tên,Số Tài Khoản Thụ Hưởng,Ngân Hàng,Chi Nhánh,Số Tiền Thực Lĩnh (VNĐ),Trạng Thái,Nội Dung Chi Tiền\n");
+
+        int stt = 1;
+        for (Payroll p : payrollList) {
+            StringBuilder row = new StringBuilder();
+            row.append(stt++).append(",");
+            row.append(escapeCsv(p.getEmployeeCode())).append(",");
+            row.append(escapeCsv(p.getEmployeeName())).append(",");
+            row.append(escapeCsv(p.getBankAccount() != null ? p.getBankAccount() : "Chưa cập nhật")).append(",");
+            row.append(escapeCsv(p.getBankName() != null ? p.getBankName() : "Napas 247")).append(",");
+            row.append(escapeCsv("Hội sở chính")).append(",");
+            row.append(p.getNetSalary() != null ? p.getNetSalary().toPlainString() : "0").append(",");
+            row.append(escapeCsv("PAID".equals(p.getStatus()) ? "Đã chi trả" : "Chờ giải ngân")).append(",");
+            row.append(escapeCsv("MIXIMOI chi luong T" + String.format("%02d", month) + "/" + year + " - " + p.getEmployeeCode()));
+            row.append("\n");
+            writer.write(row.toString());
+        }
+        writer.flush();
+    }
+
+    private String escapeCsv(String val) {
+        if (val == null) return "";
+        if (val.contains(",") || val.contains("\"") || val.contains("\n")) {
+            return "\"" + val.replace("\"", "\"\"") + "\"";
+        }
+        return val;
     }
 
     private boolean checkAuth(HttpServletRequest request, HttpServletResponse response)

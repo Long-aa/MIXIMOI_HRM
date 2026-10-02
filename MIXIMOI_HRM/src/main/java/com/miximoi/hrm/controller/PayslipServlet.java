@@ -2,10 +2,11 @@ package com.miximoi.hrm.controller;
 
 import com.miximoi.hrm.dao.ContractDAO;
 import com.miximoi.hrm.dao.EmployeeDAO;
-import com.miximoi.hrm.dao.OvertimeDAO;
+import com.miximoi.hrm.dao.PaymentDAO;
 import com.miximoi.hrm.dao.PayrollDAO;
 import com.miximoi.hrm.model.Contract;
 import com.miximoi.hrm.model.Employee;
+import com.miximoi.hrm.model.Payment;
 import com.miximoi.hrm.model.Payroll;
 import com.miximoi.hrm.model.User;
 import jakarta.servlet.ServletException;
@@ -31,7 +32,7 @@ public class PayslipServlet extends HttpServlet {
     private final PayrollDAO  payrollDAO  = new PayrollDAO();
     private final EmployeeDAO employeeDAO = new EmployeeDAO();
     private final ContractDAO contractDAO = new ContractDAO();
-    private final OvertimeDAO overtimeDAO = new OvertimeDAO();
+    private final PaymentDAO  paymentDAO  = new PaymentDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -54,7 +55,7 @@ public class PayslipServlet extends HttpServlet {
         int year  = (yStr != null && !yStr.isEmpty()) ? Integer.parseInt(yStr) : now.getYear();
 
         List<Payroll> payrollList;
-        if ("EMPLOYEE".equals(user.getRole())) {
+        if ("EMPLOYEE".equalsIgnoreCase(user.getRole())) {
             Payroll pr = payrollDAO.findByEmployeeAndPeriod(user.getEmployeeId(), month, year);
             payrollList = pr != null ? List.of(pr) : List.of();
         } else {
@@ -86,7 +87,7 @@ public class PayslipServlet extends HttpServlet {
         Payroll payroll = null;
         String idStr = request.getParameter("id");
         if (idStr != null && !idStr.isEmpty()) {
-            try { payroll = payrollDAO.findById(Integer.parseInt(idStr)); } catch (Exception ignored) {}
+            try { payroll = payrollDAO.findById(Integer.parseInt(idStr)); } catch (NumberFormatException ignored) {}
         }
         if (payroll == null && "EMPLOYEE".equalsIgnoreCase(user.getRole())) {
             LocalDate now = LocalDate.now();
@@ -94,17 +95,11 @@ public class PayslipServlet extends HttpServlet {
                     now.getMonthValue(), now.getYear());
         }
 
-        // BẢO MẬT: Chặn nhân viên xem trộm phiếu lương của người khác qua ID
-        if (payroll != null && "EMPLOYEE".equalsIgnoreCase(user.getRole())) {
-            if (payroll.getEmployeeId() != user.getEmployeeId()) {
-                Payroll ownPayroll = payrollDAO.findByEmployeeAndPeriod(user.getEmployeeId(),
-                        payroll.getPayMonth(), payroll.getPayYear());
-                if (ownPayroll != null) {
-                    payroll = ownPayroll;
-                } else {
-                    response.sendRedirect(request.getContextPath() + "/payslip?error=access_denied");
-                    return;
-                }
+        // BẢO MẬT (IDOR Protection): Chặn nhân viên xem phiếu lương của người khác
+        if ("EMPLOYEE".equalsIgnoreCase(user.getRole())) {
+            if (payroll == null || payroll.getEmployeeId() != user.getEmployeeId()) {
+                response.sendRedirect(request.getContextPath() + "/payslip?error=access_denied");
+                return;
             }
         }
 
@@ -116,20 +111,47 @@ public class PayslipServlet extends HttpServlet {
             contract = contractDAO.findLatestByEmployee(payroll.getEmployeeId());
         }
 
-        // Tính toán breakdown BHXH/BHYT/BHTN từ lương cơ bản của payroll
+        // Tính toán breakdown lương theo ngày công, BHXH/BHYT/BHTN, thuế TNCN từ payroll
+        BigDecimal earnedSalary = BigDecimal.ZERO;
         BigDecimal bhxh = BigDecimal.ZERO;
         BigDecimal bhyt = BigDecimal.ZERO;
         BigDecimal bhtn = BigDecimal.ZERO;
+        BigDecimal tncn = BigDecimal.ZERO;
         BigDecimal grossIncome = BigDecimal.ZERO;
-        if (payroll != null && payroll.getBaseSalary() != null) {
-            BigDecimal base = payroll.getBaseSalary();
-            bhxh = base.multiply(BigDecimal.valueOf(0.08)).setScale(0, RoundingMode.HALF_UP);
-            bhyt = base.multiply(BigDecimal.valueOf(0.015)).setScale(0, RoundingMode.HALF_UP);
-            bhtn = base.multiply(BigDecimal.valueOf(0.01)).setScale(0, RoundingMode.HALF_UP);
-            grossIncome = base
-                    .add(payroll.getOvertimeAmount() != null ? payroll.getOvertimeAmount() : BigDecimal.ZERO)
-                    .add(payroll.getAllowance() != null ? payroll.getAllowance() : BigDecimal.ZERO)
-                    .add(payroll.getBonus() != null ? payroll.getBonus() : BigDecimal.ZERO);
+
+        if (payroll != null) {
+            BigDecimal base = payroll.getBaseSalary() != null ? payroll.getBaseSalary() : BigDecimal.ZERO;
+            double workDays = payroll.getWorkingDays();
+            double stdDays  = payroll.getStandardDays() > 0 ? payroll.getStandardDays() : 22.0;
+
+            earnedSalary = stdDays > 0
+                    ? base.multiply(BigDecimal.valueOf(workDays)).divide(BigDecimal.valueOf(stdDays), 0, RoundingMode.HALF_UP)
+                    : base;
+
+            BigDecimal otAmt = payroll.getOvertimeAmount() != null ? payroll.getOvertimeAmount() : BigDecimal.ZERO;
+            BigDecimal alwAmt = payroll.getAllowance() != null ? payroll.getAllowance() : BigDecimal.ZERO;
+            BigDecimal bonAmt = payroll.getBonus() != null ? payroll.getBonus() : BigDecimal.ZERO;
+
+            grossIncome = earnedSalary.add(otAmt).add(alwAmt).add(bonAmt);
+
+            // Bảo hiểm trích nộp theo lương cơ bản (trần tối đa 46.8tr)
+            BigDecimal insuranceCeiling = new BigDecimal("46800000");
+            BigDecimal bhBase = base.min(insuranceCeiling);
+            bhxh = bhBase.multiply(BigDecimal.valueOf(0.08)).setScale(0, RoundingMode.HALF_UP);
+            bhyt = bhBase.multiply(BigDecimal.valueOf(0.015)).setScale(0, RoundingMode.HALF_UP);
+            bhtn = bhBase.multiply(BigDecimal.valueOf(0.01)).setScale(0, RoundingMode.HALF_UP);
+            BigDecimal totalInsurance = bhxh.add(bhyt).add(bhtn);
+
+            BigDecimal totalDeduction = payroll.getDeduction() != null ? payroll.getDeduction() : BigDecimal.ZERO;
+            if (totalDeduction.compareTo(totalInsurance) > 0) {
+                tncn = totalDeduction.subtract(totalInsurance);
+            }
+        }
+
+        // Lấy thông tin thanh toán (nếu đã chi trả)
+        Payment payment = null;
+        if (payroll != null) {
+            payment = paymentDAO.findByPayrollId(payroll.getId());
         }
 
         // Mã phiếu lương: dạng PL-YYYYMM-id
@@ -137,15 +159,18 @@ public class PayslipServlet extends HttpServlet {
                 ? String.format("PL-%d%02d-%03d", payroll.getPayYear(), payroll.getPayMonth(), payroll.getId())
                 : "PL-000000-000";
 
-        request.setAttribute("activeMenu",  "payslip");
-        request.setAttribute("payroll",     payroll);
-        request.setAttribute("employee",    emp);
-        request.setAttribute("contract",    contract);
-        request.setAttribute("bhxh",        bhxh);
-        request.setAttribute("bhyt",        bhyt);
-        request.setAttribute("bhtn",        bhtn);
-        request.setAttribute("grossIncome", grossIncome);
-        request.setAttribute("slipCode",    slipCode);
+        request.setAttribute("activeMenu",   "payslip");
+        request.setAttribute("payroll",      payroll);
+        request.setAttribute("payment",      payment);
+        request.setAttribute("employee",     emp);
+        request.setAttribute("contract",     contract);
+        request.setAttribute("earnedSalary", earnedSalary);
+        request.setAttribute("bhxh",         bhxh);
+        request.setAttribute("bhyt",         bhyt);
+        request.setAttribute("bhtn",         bhtn);
+        request.setAttribute("tncn",         tncn);
+        request.setAttribute("grossIncome",  grossIncome);
+        request.setAttribute("slipCode",     slipCode);
         request.getRequestDispatcher("/WEB-INF/views/payroll/payslip-detail.jsp")
                .forward(request, response);
     }

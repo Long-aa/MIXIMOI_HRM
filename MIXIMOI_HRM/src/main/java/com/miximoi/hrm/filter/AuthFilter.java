@@ -43,8 +43,8 @@ public class AuthFilter implements Filter {
         // Kiểm tra phân quyền truy cập theo URL
         String role = currentUser.getRole() != null ? currentUser.getRole().toUpperCase() : "EMPLOYEE";
 
-        // Chỉ ADMIN được vào /users và /settings
-        if (path.startsWith("/users") || path.startsWith("/settings")) {
+        // 1. Chỉ ADMIN được vào /users, /settings và /audit-logs
+        if (path.startsWith("/users") || path.startsWith("/settings") || path.startsWith("/audit-logs")) {
             if (!"ADMIN".equals(role)) {
                 response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
                 return;
@@ -68,27 +68,38 @@ public class AuthFilter implements Filter {
             }
         }
 
-        // Chỉ ADMIN và HR được vào /positions, /contracts
-        if (path.startsWith("/positions") || path.startsWith("/contracts")) {
+        // 2. Chỉ ADMIN và HR được vào /positions, /contracts, /departments, /disciplines
+        if (path.startsWith("/positions") || path.startsWith("/contracts") 
+                || path.startsWith("/departments") || path.startsWith("/disciplines")) {
             if (!"ADMIN".equals(role) && !"HR".equals(role)) {
                 response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
                 return;
             }
         }
 
-        // Chỉ ADMIN, HR, MANAGER được vào /employees
-        if (path.startsWith("/employees")) {
+        // 3. Quản lý hồ sơ nhân sự, KPI & Đánh giá hiệu suất: ADMIN, HR, MANAGER
+        if (path.startsWith("/employees") || path.startsWith("/performance") 
+                || path.startsWith("/kpi") || path.startsWith("/evaluations")
+                || path.startsWith("/performance-evaluations")) {
             if (!"ADMIN".equals(role) && !"HR".equals(role) && !"MANAGER".equals(role)) {
                 response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
                 return;
             }
         }
 
-        // Chỉ ADMIN và ACCOUNTANT được vào các trang quản lý lương công ty
+        // 4. Tài chính, Lương, Phụ cấp, Thưởng, Khấu trừ, Lệnh chi: Chỉ ADMIN và ACCOUNTANT
         if (path.startsWith("/salary-config") || path.startsWith("/payroll")
                 || path.startsWith("/allowances") || path.startsWith("/bonuses")
                 || path.startsWith("/deductions") || path.startsWith("/payment")) {
             if (!"ADMIN".equals(role) && !"ACCOUNTANT".equals(role)) {
+                response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
+                return;
+            }
+        }
+
+        // 5. Nhân viên thông thường (EMPLOYEE): Chặn các quyền quản trị công ty
+        if ("EMPLOYEE".equals(role)) {
+            if (path.startsWith("/reports")) {
                 response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
                 return;
             }

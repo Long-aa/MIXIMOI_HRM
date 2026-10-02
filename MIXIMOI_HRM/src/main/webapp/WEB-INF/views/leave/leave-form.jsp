@@ -42,10 +42,10 @@
             </div>
 
             <!-- Error Alert -->
-            <c:if test="${not empty error}">
+            <c:if test="${not empty error or not empty param.error}">
                 <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
                     <i class="bi bi-exclamation-circle-fill me-2 text-danger"></i>
-                    <strong>Không thể gửi đơn:</strong> ${error}
+                    <strong>Không thể gửi đơn:</strong> <c:out value="${not empty error ? error : param.error}"/>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             </c:if>
@@ -94,30 +94,78 @@
                                         <label class="form-label-custom">
                                             Loại nghỉ phép <span class="required-mark">*</span>
                                         </label>
-                                        <select class="form-select form-select-custom" name="leaveType" required>
+                                        <select class="form-select form-select-custom" name="leaveType" id="leaveTypeSelect" required onchange="calculateLeaveDays()">
                                             <option value="ANNUAL">Nghỉ phép năm (Hưởng nguyên lương theo quy định)</option>
                                             <option value="SICK">Nghỉ ốm đau / Bệnh viện (Có giấy chứng nhận y tế)</option>
                                             <option value="PERSONAL">Việc riêng (Hiếu, hỉ, giải quyết thủ tục cá nhân)</option>
                                             <option value="MATERNITY">Nghỉ thai sản (Theo chế độ BHXH)</option>
                                             <option value="UNPAID">Nghỉ không hưởng lương</option>
                                         </select>
+                                        <c:if test="${not empty availableLeaveDays}">
+                                            <div class="mt-2 p-2 px-3 rounded-2 d-flex align-items-center gap-2" style="background:#ecfdf5; border:1px solid #a7f3d0; font-size:0.83rem; color:#065f46;">
+                                                <i class="bi bi-wallet2 text-success fs-6"></i>
+                                                <span>Số dư phép năm khả dụng hiện tại: <strong id="userAvailDaysBadge" data-avail="${availableLeaveDays}">${availableLeaveDays} ngày</strong>.</span>
+                                            </div>
+                                        </c:if>
                                     </div>
 
-                                    <div class="col-md-6">
+                                    <!-- Hình thức nghỉ: Cả ngày vs Nửa ngày -->
+                                    <div class="col-12">
                                         <label class="form-label-custom">
-                                            Bắt đầu nghỉ từ ngày <span class="required-mark">*</span>
+                                            Thời lượng nghỉ <span class="required-mark">*</span>
+                                        </label>
+                                        <div class="d-flex gap-4 p-3 bg-light rounded-3 border">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="leaveDuration" id="durationFull" value="FULL_DAY" checked onchange="toggleDurationMode()">
+                                                <label class="form-check-label fw-bold text-dark" for="durationFull" style="cursor:pointer;">
+                                                    <i class="bi bi-calendar-check text-primary me-1"></i> Nghỉ cả ngày
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="leaveDuration" id="durationHalf" value="HALF_DAY" onchange="toggleDurationMode()">
+                                                <label class="form-check-label fw-bold text-dark" for="durationHalf" style="cursor:pointer;">
+                                                    <i class="bi bi-clock-half text-warning me-1"></i> Nghỉ nửa ngày (0.5 ngày - 4 giờ)
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Chọn buổi nghỉ (chỉ hiển thị khi chọn Nửa ngày) -->
+                                    <div class="col-12 d-none" id="sessionSelectBlock">
+                                        <label class="form-label-custom">
+                                            Chọn buổi nghỉ trong ngày <span class="required-mark">*</span>
+                                        </label>
+                                        <div class="d-flex gap-4 p-3 rounded-3" style="background:#fffbeb; border:1px dashed #fde68a;">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="leaveSession" id="sessionMorning" value="MORNING" checked onchange="calculateLeaveDays()">
+                                                <label class="form-check-label text-dark" for="sessionMorning" style="cursor:pointer;">
+                                                    <strong>Buổi sáng:</strong> 08:00 – 12:00 (Check-in chiều 13:30)
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="leaveSession" id="sessionAfternoon" value="AFTERNOON" onchange="calculateLeaveDays()">
+                                                <label class="form-check-label text-dark" for="sessionAfternoon" style="cursor:pointer;">
+                                                    <strong>Buổi chiều:</strong> 13:30 – 17:30 (Check-out trưa 12:00)
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6" id="startDateCol">
+                                        <label class="form-label-custom">
+                                            <span id="startDateLabel">Bắt đầu nghỉ từ ngày</span> <span class="required-mark">*</span>
                                         </label>
                                         <input type="date" class="form-control form-control-custom" 
-                                               name="startDate" id="leaveStartDate" required>
+                                               name="startDate" id="leaveStartDate" required onchange="handleStartDateChange()">
                                         <div class="invalid-feedback" style="font-size:0.75rem">Vui lòng chọn ngày bắt đầu nghỉ.</div>
                                     </div>
 
-                                    <div class="col-md-6">
+                                    <div class="col-md-6" id="endDateCol">
                                         <label class="form-label-custom">
                                             Đến hết ngày <span class="required-mark">*</span>
                                         </label>
                                         <input type="date" class="form-control form-control-custom" 
-                                               name="endDate" id="leaveEndDate" required>
+                                               name="endDate" id="leaveEndDate" required onchange="calculateLeaveDays()">
                                         <div class="invalid-feedback" style="font-size:0.75rem">Vui lòng chọn ngày kết thúc nghỉ.</div>
                                     </div>
 
@@ -125,10 +173,21 @@
 
                                     <div class="col-12">
                                         <div class="p-3 bg-light rounded-3 d-flex justify-content-between align-items-center border">
-                                            <span class="text-secondary fw-semibold" style="font-size:0.86rem">
-                                                <i class="bi bi-clock-history text-primary me-1"></i> Ước tính số ngày nghỉ:
-                                            </span>
+                                            <div>
+                                                <span class="text-secondary fw-semibold" style="font-size:0.86rem">
+                                                    <i class="bi bi-clock-history text-primary me-1"></i> Ước tính số ngày nghỉ làm việc:
+                                                </span>
+                                                <small class="text-muted d-block" style="font-size:0.76rem;">(Đã tự động loại trừ Thứ 7, Chủ Nhật và 11 Ngày Lễ Quốc Gia năm 2026)</small>
+                                            </div>
                                             <span id="estimatedDays" class="badge bg-primary fs-6 px-3 py-2 font-monospace">1 ngày</span>
+                                        </div>
+                                        <div id="weekendNotice" class="alert alert-warning border-0 mt-2 py-2 d-none" style="font-size:0.82rem;">
+                                            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> 
+                                            Ngày bạn chọn rơi vào ngày nghỉ cuối tuần (Thứ 7 / Chủ Nhật). Vui lòng chọn ngày làm việc trong tuần.
+                                        </div>
+                                        <div id="quotaExceededNotice" class="alert alert-danger border-0 mt-2 py-2 d-none" style="font-size:0.82rem;">
+                                            <i class="bi bi-exclamation-circle-fill text-danger me-1"></i> 
+                                            Số ngày nghỉ phép năm vượt quá số dư khả dụng! Vui lòng giảm số ngày hoặc chuyển sang <strong>Nghỉ không hưởng lương (UNPAID)</strong>.
                                         </div>
                                     </div>
 
@@ -139,6 +198,15 @@
                                         <input type="text" class="form-control form-control-custom" name="handoverPerson" required
                                                placeholder="Họ tên người nhận bàn giao công việc — Số điện thoại liên hệ...">
                                         <div class="invalid-feedback" style="font-size:0.75rem">Vui lòng nhập người nhận bàn giao công việc.</div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label-custom">
+                                            <i class="bi bi-paperclip me-1 text-primary"></i>Tài liệu đính kèm minh chứng (Chứng từ y tế / Thiệp cưới / Giấy tờ liên quan)
+                                        </label>
+                                        <input type="text" class="form-control form-control-custom" name="attachmentUrl"
+                                               placeholder="Đường dẫn file hoặc URL chứng từ minh chứng (VD: /uploads/giay_ra_vien.pdf)...">
+                                        <small class="text-muted" style="font-size:0.75rem;">Bắt buộc đối với Nghỉ ốm đau/Bệnh viện (giấy ra viện) hoặc Thai sản</small>
                                     </div>
 
                                     <div class="col-12">

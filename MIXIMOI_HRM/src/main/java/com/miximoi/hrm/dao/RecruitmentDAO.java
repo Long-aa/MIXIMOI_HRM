@@ -11,9 +11,7 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Data Access Object phụ trách toàn bộ nghiệp vụ Tuyển dụng & Phễu nhân tài.
@@ -57,7 +55,6 @@ public class RecruitmentDAO {
                     int totalReqs = rs.getInt("total_reqs");
                     int openReqs = rs.getInt("open_reqs");
                     int openDepts = rs.getInt("open_depts");
-                    int totalTarget = rs.getInt("total_target");
                     int urgentReqs = rs.getInt("urgent_reqs");
                     int expiringReqs = rs.getInt("expiring_reqs");
 
@@ -303,7 +300,6 @@ public class RecruitmentDAO {
                 + "LEFT JOIN positions p ON r.position_id = p.id "
                 + "LEFT JOIN employees e ON r.assignee_id = e.id "
                 + "WHERE r.id = ?";
-
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);

@@ -9,6 +9,34 @@
         (${not empty payroll ? payroll.employeeCode : ''}) — MIXIMOI HRM
     </title>
     <%@ include file="/WEB-INF/views/common/head.jsp" %>
+    <style>
+        @media print {
+            .app-sidebar, .app-topbar, .payslip-action-topbar, .app-footer, .sidebar-backdrop, .alert, .btn {
+                display: none !important;
+            }
+            body, .app-container, .app-main, .app-content {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+            }
+            .payslip-a4-wrapper {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .payslip-a4-sheet, .payslip-paper-card {
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+                margin: 0 auto !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 10mm 15mm !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 10mm;
+            }
+        }
+    </style>
 </head>
 <body>
 <div class="app-container">
@@ -58,12 +86,17 @@
                                             <i class="bi bi-patch-check-fill"></i> Đã chi trả thành công
                                         </span>
                                     </c:when>
+                                    <c:when test="${payroll.status eq 'PROCESSING_PAYMENT'}">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle d-inline-flex align-items-center gap-1">
+                                            <i class="bi bi-arrow-repeat"></i> Đang chi trả Ngân hàng
+                                        </span>
+                                    </c:when>
                                     <c:when test="${payroll.status eq 'APPROVED'}">
                                         <span class="badge bg-info-subtle text-info border border-info-subtle d-inline-flex align-items-center gap-1">
                                             <i class="bi bi-check-circle-fill"></i> Đã phê duyệt — Chờ chi trả
                                         </span>
                                     </c:when>
-                                    <c:when test="${payroll.status eq 'PENDING'}">
+                                    <c:when test="${payroll.status eq 'PENDING' or payroll.status eq 'PENDING_APPROVAL'}">
                                         <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle d-inline-flex align-items-center gap-1">
                                             <i class="bi bi-hourglass-split"></i> Chờ phê duyệt
                                         </span>
@@ -83,10 +116,10 @@
                                 <i class="bi bi-printer"></i>
                                 <span>In phiếu lương</span>
                             </button>
-                            <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
-                                    onclick="alert('Đang tạo và tải xuống file PDF khổ A4 có nhúng chứng thư số HSM...');">
+                            <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm"
+                                    onclick="window.print()" title="In hoặc lưu file dưới dạng PDF (Ctrl+P)">
                                 <i class="bi bi-file-earmark-pdf"></i>
-                                <span>Tải PDF ký số</span>
+                                <span>Xuất PDF / In A4</span>
                             </button>
                             <c:if test="${sessionScope.currentUser.role eq 'ADMIN' or sessionScope.currentUser.role eq 'ACCOUNTANT'}">
                                 <form method="post" action="${pageContext.request.contextPath}/payslip" class="m-0">
@@ -127,6 +160,11 @@
                                         <c:when test="${payroll.status eq 'PAID'}">
                                             <span class="badge bg-success-subtle text-success border border-success-subtle mt-1" style="font-size:0.7rem;">
                                                 <i class="bi bi-check-circle-fill"></i> ĐÃ THANH TOÁN
+                                            </span>
+                                        </c:when>
+                                        <c:when test="${payroll.status eq 'PROCESSING_PAYMENT'}">
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle mt-1" style="font-size:0.7rem;">
+                                                <i class="bi bi-arrow-repeat"></i> ĐANG CHI TRẢ
                                             </span>
                                         </c:when>
                                         <c:when test="${payroll.status eq 'APPROVED'}">
@@ -224,7 +262,23 @@
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td>2. Phụ cấp (ăn trưa, xăng xe, ...)</td>
+                                                <td>
+                                                    2. Lương tính theo ngày công thực tế
+                                                    <small class="text-muted d-block" style="font-size:0.75rem;">
+                                                        (${payroll.workingDays}/${payroll.standardDays} ngày công)
+                                                    </small>
+                                                </td>
+                                                <td class="text-end fw-semibold text-primary">
+                                                    <c:choose>
+                                                        <c:when test="${not empty earnedSalary and earnedSalary > 0}">
+                                                            <fmt:formatNumber value="${earnedSalary}" pattern="#,###"/>
+                                                        </c:when>
+                                                        <c:otherwise><fmt:formatNumber value="${payroll.baseSalary}" pattern="#,###"/></c:otherwise>
+                                                    </c:choose>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>3. Phụ cấp (ăn trưa, xăng xe, ...)</td>
                                                 <td class="text-end fw-semibold">
                                                     <c:choose>
                                                         <c:when test="${not empty payroll.allowance and payroll.allowance > 0}">
@@ -235,7 +289,7 @@
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td>3. Thưởng hiệu suất (KPI/Bonus)</td>
+                                                <td>4. Thưởng hiệu suất (KPI/Bonus)</td>
                                                 <td class="text-end fw-semibold">
                                                     <c:choose>
                                                         <c:when test="${not empty payroll.bonus and payroll.bonus > 0}">
@@ -246,7 +300,7 @@
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td>4. Lương làm thêm giờ (OT)</td>
+                                                <td>5. Lương làm thêm giờ (OT)</td>
                                                 <td class="text-end fw-semibold">
                                                     <c:choose>
                                                         <c:when test="${not empty payroll.overtimeAmount and payroll.overtimeAmount > 0}">
@@ -304,12 +358,13 @@
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td>4. Thuế Thu nhập cá nhân (TNCN)</td>
-                                                <td class="text-end fw-semibold text-muted">0</td>
-                                            </tr>
-                                            <tr>
-                                                <td>5. Tạm ứng lương trong kỳ</td>
-                                                <td class="text-end fw-semibold text-muted">0</td>
+                                                <td>4. Thuế Thu nhập cá nhân (TNCN lũy tiến)</td>
+                                                <td class="text-end fw-semibold text-danger">
+                                                    <c:choose>
+                                                        <c:when test="${tncn > 0}"><fmt:formatNumber value="${tncn}" pattern="#,###"/></c:when>
+                                                        <c:otherwise>0</c:otherwise>
+                                                    </c:choose>
+                                                </td>
                                             </tr>
                                             <tr class="fw-bold bg-light">
                                                 <td class="py-2 text-dark">TỔNG CÁC KHOẢN KHẤU TRỪ</td>
@@ -353,12 +408,22 @@
                                 <i class="bi bi-info-circle-fill text-primary me-1"></i>
                                 <c:choose>
                                     <c:when test="${payroll.status eq 'PAID'}">
-                                        Lương đã được chi trả thành công.
+                                        <strong>ĐÃ CHI TRẢ THÀNH CÔNG:</strong>
+                                        <c:if test="${not empty payment}">
+                                            Hình thức: <strong><c:out value="${payment.paymentMethod eq 'CASH' ? 'Tiền mặt tại quỹ' : 'Chuyển khoản Ngân hàng (Napas 24/7)'}"/></strong>
+                                            • Ngày chi: <strong>${payment.paymentDate}</strong>
+                                            • Mã GD: <span class="font-monospace text-primary">PM-${payment.id}</span>
+                                            <c:if test="${not empty payment.notes}">
+                                                • Ghi chú: <em><c:out value="${payment.notes}"/></em>
+                                            </c:if>
+                                        </c:if>
+                                        <c:if test="${empty payment}">
+                                            Đã hoàn tất thanh toán trên cổng Napas.
+                                        </c:if>
                                         <c:if test="${not empty payroll.approvedAt}">
-                                            Phê duyệt lúc: <fmt:formatDate value="${payroll.approvedAt}" pattern="HH:mm dd/MM/yyyy" type="both"/>.
+                                            (Phê duyệt: <fmt:formatDate value="${payroll.approvedAt}" pattern="HH:mm dd/MM/yyyy" type="both"/>).
                                         </c:if>
                                         Người duyệt: <strong><c:out value="${not empty payroll.approvedByName ? payroll.approvedByName : 'Quản trị viên'}"/></strong>.
-                                        Nếu có thắc mắc, vui lòng phản hồi phòng Nhân sự trong vòng 03 ngày làm việc.
                                     </c:when>
                                     <c:otherwise>
                                         Phiếu lương đang ở trạng thái <strong><c:out value="${payroll.status}"/></strong>.

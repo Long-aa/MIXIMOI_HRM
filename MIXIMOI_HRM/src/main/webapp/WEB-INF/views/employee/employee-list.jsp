@@ -1,6 +1,11 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" import="java.time.LocalDate,java.time.LocalDateTime" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%
+    // Tính ngày 7 ngày trước để check nhân viên mới
+    java.time.LocalDateTime sevenDaysAgo = java.time.LocalDateTime.now().minusDays(7);
+    request.setAttribute("sevenDaysAgo", sevenDaysAgo);
+%>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -92,15 +97,15 @@
 
             <!-- KPI Stats Cards -->
             <div class="emp-stats-grid">
-                <div class="emp-stat-card">
+                <a href="${pageContext.request.contextPath}/employees" class="emp-stat-card text-decoration-none ${empty status ? 'border-primary' : ''}" style="color:inherit; cursor:pointer;" title="Xem tất cả nhân sự">
                     <div class="emp-stat-icon blue"><i class="bi bi-people-fill"></i></div>
                     <div>
                         <div class="emp-stat-label">Tổng nhân sự</div>
                         <div class="emp-stat-value">${statsTotal}</div>
                         <div class="emp-stat-meta">Toàn bộ hồ sơ trong hệ thống</div>
                     </div>
-                </div>
-                <div class="emp-stat-card">
+                </a>
+                <a href="${pageContext.request.contextPath}/employees?status=ACTIVE" class="emp-stat-card text-decoration-none ${status eq 'ACTIVE' ? 'border-primary' : ''}" style="color:inherit; cursor:pointer;" title="Lọc nhân sự đang làm việc">
                     <div class="emp-stat-icon green"><i class="bi bi-person-check-fill"></i></div>
                     <div>
                         <div class="emp-stat-label">Đang làm việc</div>
@@ -115,23 +120,23 @@
                             </c:choose>
                         </div>
                     </div>
-                </div>
-                <div class="emp-stat-card">
+                </a>
+                <a href="${pageContext.request.contextPath}/employees?status=ON_LEAVE" class="emp-stat-card text-decoration-none ${status eq 'ON_LEAVE' ? 'border-primary' : ''}" style="color:inherit; cursor:pointer;" title="Lọc nhân sự đang nghỉ phép">
                     <div class="emp-stat-icon amber"><i class="bi bi-hourglass-split"></i></div>
                     <div>
                         <div class="emp-stat-label">Đang nghỉ phép</div>
                         <div class="emp-stat-value">${statsOnLeave}</div>
                         <div class="emp-stat-meta">Quý hiện tại</div>
                     </div>
-                </div>
-                <div class="emp-stat-card">
+                </a>
+                <a href="${pageContext.request.contextPath}/employees?status=INACTIVE" class="emp-stat-card text-decoration-none ${status eq 'INACTIVE' ? 'border-primary' : ''}" style="color:inherit; cursor:pointer;" title="Lọc nhân sự đã nghỉ việc">
                     <div class="emp-stat-icon slate"><i class="bi bi-person-dash-fill"></i></div>
                     <div>
                         <div class="emp-stat-label">Nghỉ việc / Lưu trữ</div>
                         <div class="emp-stat-value">${statsInactive}</div>
                         <div class="emp-stat-meta">Hồ sơ đã kết thúc</div>
                     </div>
-                </div>
+                </a>
             </div>
 
             <!-- Search & Filter -->
@@ -166,6 +171,7 @@
                             <select class="form-select filter-select" name="status">
                                 <option value="">Tất cả trạng thái</option>
                                 <option value="ACTIVE"   ${status eq 'ACTIVE'   ? 'selected' : ''}>Đang làm việc</option>
+                                <option value="NEW"      ${status eq 'NEW'      ? 'selected' : ''}>Mới tuyển / Gần đây</option>
                                 <option value="ON_LEAVE" ${status eq 'ON_LEAVE' ? 'selected' : ''}>Đang nghỉ phép</option>
                                 <option value="INACTIVE" ${status eq 'INACTIVE' ? 'selected' : ''}>Đã nghỉ việc</option>
                             </select>
@@ -245,7 +251,7 @@
                                                     <div class="emp-avatar ${emp.gender eq 'FEMALE' ? 'avatar-f' : 'avatar-m'}" style="overflow:hidden; display:flex; align-items:center; justify-content:center;">
                                                         <c:choose>
                                                             <c:when test="${not empty emp.avatarUrl}">
-                                                                <img src="${emp.avatarUrl}" alt="<c:out value='${emp.fullName}'/>" style="width:100%; height:100%; object-fit:cover;">
+                                                                <img src="${emp.avatarUrl.startsWith('http') ? emp.avatarUrl : pageContext.request.contextPath += emp.avatarUrl}" alt="<c:out value='${emp.fullName}'/>" style="width:100%; height:100%; object-fit:cover;">
                                                             </c:when>
                                                             <c:when test="${not empty emp.fullName}">
                                                                 ${fn:toUpperCase(fn:substring(fn:trim(emp.fullName), 0, 1))}
@@ -254,7 +260,12 @@
                                                         </c:choose>
                                                     </div>
                                                     <div>
-                                                        <div class="emp-name"><c:out value="${emp.fullName}"/></div>
+                                                        <div class="emp-name" style="display:flex; align-items:center; gap:6px;">
+                                                            <c:out value="${emp.fullName}"/>
+                                                            <c:if test="${not empty emp.createdAt and emp.createdAt.isAfter(sevenDaysAgo)}">
+                                                                <span style="display:inline-flex; align-items:center; gap:3px; background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; font-size:0.6rem; font-weight:800; padding:1px 7px; border-radius:999px; letter-spacing:0.5px; text-transform:uppercase; animation:pulse 2s infinite;">✦ NEW</span>
+                                                            </c:if>
+                                                        </div>
                                                         <c:if test="${not empty emp.employeeTypeName}">
                                                             <span class="emp-type-badge"><c:out value="${emp.employeeTypeName}"/></span>
                                                         </c:if>

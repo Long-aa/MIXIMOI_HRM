@@ -452,27 +452,29 @@ Tính tiền OT
 ```
 KỲ LƯƠNG
     ↓
-Tổng hợp danh sách nhân viên trong kỳ
+Tổng hợp danh sách nhân viên trong kỳ (Active)
     ↓
-Tổng hợp bảng công (ngày công thực tế)
+Đồng bộ dữ liệu chấm công & Tổng hợp bảng công
     ↓
-Cộng tiền tăng ca (OT)
+Khóa chốt bảng công kỳ quyết toán (Timesheet Lock Gate)
+    ↓
+Cộng tiền tăng ca (OT đã duyệt)
     ↓
 Cộng phụ cấp
     ↓
 Cộng thưởng
     ↓
-Trừ các khoản khấu trừ
+Trừ các khoản khấu trừ (BHXH 8%, BHYT 1.5%, BHTN 1%, TNCN)
     ↓
-TÍNH LƯƠNG THỰC NHẬN
+TÍNH LƯƠNG THỰC NHẬN (Net Salary)
     ↓
-KIỂM TRA & SOÁT XÉT
+KIỂM TRA & SOÁT XÉT (Kế toán)
     ↓
 PHÊ DUYỆT (Manager / Admin)
     ↓
-THANH TOÁN
+THANH TOÁN (Chuyển khoản / Tiền mặt)
     ↓
-PHIẾU LƯƠNG
+PHIẾU LƯƠNG ĐIỆN TỬ (Payslip)
 ```
 
 ---

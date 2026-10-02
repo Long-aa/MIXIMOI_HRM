@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -82,6 +83,9 @@ public class BiometricAndContractTest {
         assertEquals("Nguyễn Văn An", saved.getSignerName());
         assertEquals("Trụ sở Landmark 81, TP.HCM", saved.getWorkLocation());
         assertEquals("001095012345", saved.getIdentityNumber());
+
+        // Dọn dẹp bản ghi kiểm thử để không làm rác CSDL thực tế của Nguyễn Văn An
+        contractDAO.delete(saved.getId());
     }
 
     @Test
@@ -96,5 +100,19 @@ public class BiometricAndContractTest {
             assertNotNull(d.getName());
             assertTrue(d.getId() > 0);
         }
+    }
+
+    @Test
+    @DisplayName("Kiểm tra kiểm soát tuân thủ Điều 20 Bộ luật Lao động 2019 (tối đa 2 lần HĐ có thời hạn)")
+    public void testLaborCode2019FixedTermCompliance() {
+        int testEmpId = 3;
+        int initialFixedCount = contractDAO.countFixedTermContracts(testEmpId);
+        assertTrue(initialFixedCount >= 0, "Số lần ký HĐ có thời hạn phải không âm");
+
+        Map<Integer, Integer> map = contractDAO.countFixedTermMap();
+        assertNotNull(map, "Bảng map thống kê HĐ có thời hạn không được null");
+
+        boolean canSign = contractDAO.canSignFixedTerm(testEmpId);
+        assertEquals(initialFixedCount < 2, canSign, "Kiểm tra điều kiện ký tiếp HĐ có thời hạn phải chuẩn Điều 20 BLLĐ 2019");
     }
 }

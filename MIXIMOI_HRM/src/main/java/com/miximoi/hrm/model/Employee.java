@@ -21,12 +21,17 @@ public class Employee {
     private String tempAddress;       // Địa chỉ tạm trú
     private String nationality;       // Quốc tịch
     private String ethnicity;         // Dân tộc
+    private String religion;          // Tôn giáo
+    private String maritalStatus;     // Tình trạng hôn nhân: SINGLE | MARRIED | OTHER
     private String avatarUrl;         // URL ảnh đại diện
 
     // ===== CCCD / Giấy tờ tuỳ thân =====
     private String identityNumber;    // Số CCCD/CMND
     private LocalDate identityDate;   // Ngày cấp
     private String identityPlace;     // Nơi cấp
+    private String idCardFrontUrl;    // Ảnh mặt trước CCCD
+    private String idCardBackUrl;     // Ảnh mặt sau CCCD
+    private String resumeUrl;         // File CV / Sơ yếu lý lịch
 
     // ===== Tổ chức =====
     private int departmentId;
@@ -52,6 +57,13 @@ public class Employee {
     private String emergencyContactName;
     private String emergencyContactPhone;
     private String emergencyContactRelation;
+    private String secondaryPhone;
+
+    // ===== Bổ sung cấu trúc công việc & Level =====
+    private String workLocation;
+    private String employeeLevel;
+    private String lineManager;
+    private String mentorName;
 
     // ===== Hệ thống =====
     private LocalDateTime createdAt;
@@ -93,6 +105,12 @@ public class Employee {
 
     public String getEthnicity() { return ethnicity; }
     public void setEthnicity(String ethnicity) { this.ethnicity = ethnicity; }
+
+    public String getReligion() { return religion; }
+    public void setReligion(String religion) { this.religion = religion; }
+
+    public String getMaritalStatus() { return maritalStatus; }
+    public void setMaritalStatus(String maritalStatus) { this.maritalStatus = maritalStatus; }
 
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
@@ -168,6 +186,39 @@ public class Employee {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getIdCardFrontUrl() { return idCardFrontUrl; }
+    public void setIdCardFrontUrl(String idCardFrontUrl) { this.idCardFrontUrl = idCardFrontUrl; }
+
+    public String getIdCardBackUrl() { return idCardBackUrl; }
+    public void setIdCardBackUrl(String idCardBackUrl) { this.idCardBackUrl = idCardBackUrl; }
+
+    public String getResumeUrl() { return resumeUrl; }
+    public void setResumeUrl(String resumeUrl) { this.resumeUrl = resumeUrl; }
+
+    public String getSecondaryPhone() { return secondaryPhone; }
+    public void setSecondaryPhone(String secondaryPhone) { this.secondaryPhone = secondaryPhone; }
+
+    public String getWorkLocation() { return workLocation; }
+    public void setWorkLocation(String workLocation) { this.workLocation = workLocation; }
+
+    public String getEmployeeLevel() { return employeeLevel; }
+    public void setEmployeeLevel(String employeeLevel) { this.employeeLevel = employeeLevel; }
+
+    public String getLineManager() { return lineManager; }
+    public void setLineManager(String lineManager) { this.lineManager = lineManager; }
+
+    public String getMentorName() { return mentorName; }
+    public void setMentorName(String mentorName) { this.mentorName = mentorName; }
+
+    /**
+     * Kiểm tra nhân viên mới gia nhập (trong vòng 30 ngày) để hiển thị tag NEW
+     */
+    public boolean isNewEmployee() {
+        LocalDate now = LocalDate.now();
+        return (createdAt != null && createdAt.toLocalDate().isAfter(now.minusDays(30)))
+                || (startDate != null && startDate.isAfter(now.minusDays(30)));
+    }
 
     @Override
     public String toString() {

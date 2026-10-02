@@ -8,71 +8,7 @@
     <%@ include file="/WEB-INF/views/common/head.jsp" %>
     <!-- Chart.js 4.4 for high-performance interactive analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-    <style>
-        .filter-date-item {
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-        }
-        .filter-date-label {
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: #475569;
-            white-space: nowrap;
-            margin-bottom: 0;
-        }
-        .filter-input-date {
-            height: 38px;
-            padding: 0.35rem 0.65rem;
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: #1e293b;
-            background-color: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            outline: none;
-            transition: all 0.15s ease;
-        }
-        .filter-input-date:hover {
-            border-color: #94a3b8;
-        }
-        .filter-input-date:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-        }
-        .filter-select {
-            -webkit-appearance: none !important;
-            -moz-appearance: none !important;
-            appearance: none !important;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
-            background-repeat: no-repeat !important;
-            background-position: right 0.75rem center !important;
-            background-size: 12px 10px !important;
-            padding-right: 2.2rem !important;
-        }
-        .filter-select::-ms-expand {
-            display: none !important;
-        }
-        .btn-filter-submit {
-            height: 38px;
-            padding: 0.35rem 1.15rem;
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: #ffffff;
-            background: #2563eb;
-            border: none;
-            border-radius: 10px;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        .btn-filter-submit:hover {
-            background: #1d4ed8;
-            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
-        }
-    </style>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/dashboard.css">
 </head>
 <body>
 
@@ -181,98 +117,110 @@
             <div class="row g-3 mb-3">
                 <!-- KPI 1: Tổng nhân viên -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Tổng nhân viên</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value">${kpiStats.totalEmployees}</span>
-                                    <span class="kpi-unit">nhân sự</span>
+                    <a href="${pageContext.request.contextPath}/employees<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">?departmentId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Xem danh sách toàn bộ nhân viên">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Tổng nhân viên</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value">${kpiStats.totalEmployees}</span>
+                                        <span class="kpi-unit">nhân sự</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box blue">
+                                    <i class="bi bi-people-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box blue">
-                                <i class="bi bi-people-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="trend-badge positive">
+                                    <i class="bi bi-shield-check"></i> Toàn hệ thống
+                                </span>
+                                <span class="text-muted">Nhân sự hiện hữu <i class="bi bi-arrow-right-short ms-1 text-primary"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="trend-badge positive">
-                                <i class="bi bi-shield-check"></i> Toàn hệ thống
-                            </span>
-                            <span class="text-muted">Nhân sự hiện hữu</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- KPI 2: Nhân viên đang làm việc -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Nhân viên đang làm việc</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value">${kpiStats.activeEmployees}</span>
-                                    <span class="kpi-unit">nhân sự</span>
+                    <a href="${pageContext.request.contextPath}/employees?status=ACTIVE<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">&departmentId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Lọc danh sách nhân viên đang làm việc (ACTIVE)">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Nhân viên đang làm việc</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value">${kpiStats.activeEmployees}</span>
+                                        <span class="kpi-unit">nhân sự</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box green">
+                                    <i class="bi bi-person-check-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box green">
-                                <i class="bi bi-person-check-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="trend-badge positive">
+                                    <i class="bi bi-check-circle"></i> Đang hoạt động
+                                </span>
+                                <span class="text-muted">Trạng thái ACTIVE <i class="bi bi-arrow-right-short ms-1 text-success"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="trend-badge positive">
-                                <i class="bi bi-check-circle"></i> Đang hoạt động
-                            </span>
-                            <span class="text-muted">Trạng thái ACTIVE</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- KPI 3: Nhân viên mới -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Nhân viên mới</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value">${kpiStats.newHires}</span>
-                                    <span class="kpi-unit">tuyển mới</span>
+                    <a href="${pageContext.request.contextPath}/employees?status=NEW<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">&departmentId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Lọc danh sách nhân viên mới gia nhập gần đây">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Nhân viên mới</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value">${kpiStats.newHires}</span>
+                                        <span class="kpi-unit">tuyển mới</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box purple">
+                                    <i class="bi bi-person-plus-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box purple">
-                                <i class="bi bi-person-plus-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="trend-badge" style="background:#eff6ff; color:#2563eb;">
+                                    <i class="bi bi-calendar-event"></i> Trong kỳ lọc
+                                </span>
+                                <span class="text-muted">Gia nhập gần đây <i class="bi bi-arrow-right-short ms-1 text-primary"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="trend-badge" style="background:#eff6ff; color:#2563eb;">
-                                <i class="bi bi-calendar-event"></i> Trong kỳ lọc
-                            </span>
-                            <span class="text-muted">Gia nhập gần đây</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- KPI 4: Nhân viên nghỉ việc -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Nhân viên nghỉ việc</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value">${kpiStats.inactiveEmployees}</span>
-                                    <span class="kpi-unit">nghỉ việc</span>
+                    <a href="${pageContext.request.contextPath}/employees?status=INACTIVE<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">&departmentId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Lọc danh sách nhân viên đã thôi việc (INACTIVE)">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Nhân viên nghỉ việc</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value">${kpiStats.inactiveEmployees}</span>
+                                        <span class="kpi-unit">nghỉ việc</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box coral">
+                                    <i class="bi bi-person-dash-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box coral">
-                                <i class="bi bi-person-dash-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="trend-badge text-secondary" style="background:#f1f5f9;">
+                                    <i class="bi bi-person-x"></i> Đã thôi việc
+                                </span>
+                                <span class="text-muted">Trạng thái INACTIVE <i class="bi bi-arrow-right-short ms-1 text-secondary"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="trend-badge text-secondary" style="background:#f1f5f9;">
-                                <i class="bi bi-person-x"></i> Đã thôi việc
-                            </span>
-                            <span class="text-muted">Trạng thái INACTIVE</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
             </div>
 
@@ -280,98 +228,110 @@
             <div class="row g-3 mb-4">
                 <!-- KPI 5: Phòng ban -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Phòng ban</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value">${kpiStats.departmentCount}</span>
-                                    <span class="kpi-unit">đơn vị</span>
+                    <a href="${pageContext.request.contextPath}/departments" 
+                       class="kpi-card-link" title="Xem danh sách cơ cấu phòng ban">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Phòng ban</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value">${kpiStats.departmentCount}</span>
+                                        <span class="kpi-unit">đơn vị</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box cyan">
+                                    <i class="bi bi-buildings-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box cyan">
-                                <i class="bi bi-buildings-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="kpi-chip-soft">Đang vận hành</span>
+                                <span class="text-muted">Cơ cấu tổ chức <i class="bi bi-arrow-right-short ms-1 text-info"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="kpi-chip-soft">Đang vận hành</span>
-                            <span class="text-muted">Cơ cấu tổ chức</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- KPI 6: Tổng quỹ lương -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Tổng quỹ lương</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value text-primary">
-                                        <fmt:formatNumber value="${payrollSummary.totalNet}" type="number" groupingUsed="true"/>
-                                    </span>
-                                    <span class="kpi-unit text-primary fw-bold">đ</span>
+                    <a href="${pageContext.request.contextPath}/payroll?month=${currentMonth}&year=${currentYear}<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">&deptId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Xem bảng lương chi tiết kỳ tháng ${currentMonth}/${currentYear}">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Tổng quỹ lương</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value text-primary">
+                                            <fmt:formatNumber value="${payrollSummary.totalNet}" type="number" groupingUsed="true"/>
+                                        </span>
+                                        <span class="kpi-unit text-primary fw-bold">đ</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box blue">
+                                    <i class="bi bi-wallet2"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box blue">
-                                <i class="bi bi-wallet2"></i>
+                            <div class="kpi-footer">
+                                <span class="trend-badge" style="background:#eff6ff; color:#2563eb;">
+                                    <i class="bi bi-cash-stack"></i> Thực chi trả
+                                </span>
+                                <span class="text-muted">Theo kỳ lọc <i class="bi bi-arrow-right-short ms-1 text-primary"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="trend-badge" style="background:#eff6ff; color:#2563eb;">
-                                <i class="bi bi-cash-stack"></i> Thực chi trả
-                            </span>
-                            <span class="text-muted">Theo kỳ lọc</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- KPI 7: Hợp đồng sắp hết hạn -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Hợp đồng sắp hết hạn</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value text-warning" style="color: #ea580c !important;">
-                                        <fmt:formatNumber value="${kpiStats.expiringContracts}" minIntegerDigits="2"/>
-                                    </span>
-                                    <span class="kpi-unit">hợp đồng</span>
+                    <a href="${pageContext.request.contextPath}/contracts?status=EXPIRING_SOON<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">&departmentId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Xem danh sách hợp đồng sắp hết hạn trong 30 ngày">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Hợp đồng sắp hết hạn</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value text-warning" style="color: #ea580c !important;">
+                                            <fmt:formatNumber value="${kpiStats.expiringContracts}" minIntegerDigits="2"/>
+                                        </span>
+                                        <span class="kpi-unit">hợp đồng</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box amber">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box amber">
-                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="kpi-chip-warning">
+                                    <i class="bi bi-dot fs-5 p-0"></i> Cần rà soát
+                                </span>
+                                <span class="text-muted">Trong 30 ngày tới <i class="bi bi-arrow-right-short ms-1 text-warning"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="kpi-chip-warning">
-                                <i class="bi bi-dot fs-5 p-0"></i> Cần rà soát
-                            </span>
-                            <span class="text-muted">Trong 30 ngày tới</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- KPI 8: Đơn nghỉ phép chờ duyệt -->
                 <div class="col-xl-3 col-md-6">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div>
-                                <div class="kpi-label">Đơn nghỉ phép chờ duyệt</div>
-                                <div class="kpi-value-row">
-                                    <span class="kpi-value text-primary">${kpiStats.pendingLeaves}</span>
-                                    <span class="kpi-unit">yêu cầu</span>
+                    <a href="${pageContext.request.contextPath}/leave?status=PENDING<c:if test="${not empty selectedDepartmentId and selectedDepartmentId ne 'all' and selectedDepartmentId ne '0'}">&departmentId=${selectedDepartmentId}</c:if>" 
+                       class="kpi-card-link" title="Xem danh sách đơn nghỉ phép chờ phê duyệt">
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div>
+                                    <div class="kpi-label">Đơn nghỉ phép chờ duyệt</div>
+                                    <div class="kpi-value-row">
+                                        <span class="kpi-value text-primary">${kpiStats.pendingLeaves}</span>
+                                        <span class="kpi-unit">yêu cầu</span>
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box blue">
+                                    <i class="bi bi-clipboard2-check-fill"></i>
                                 </div>
                             </div>
-                            <div class="kpi-icon-box blue">
-                                <i class="bi bi-clipboard2-check-fill"></i>
+                            <div class="kpi-footer">
+                                <span class="kpi-chip-soft">Chờ duyệt</span>
+                                <span class="text-danger fw-semibold">Cần xử lý <i class="bi bi-arrow-right-short ms-1"></i></span>
                             </div>
                         </div>
-                        <div class="kpi-footer">
-                            <span class="kpi-chip-soft">Chờ duyệt</span>
-                            <span class="text-danger fw-semibold">Cần xử lý</span>
-                        </div>
-                    </div>
+                    </a>
                 </div>
             </div>
 
@@ -390,8 +350,20 @@
                             </div>
 
                             <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <!-- Metric Switcher Pills -->
+                                <div class="card-filter-pills" id="trendMetricPills">
+                                    <button type="button" class="filter-pill active" id="btnTrendHeadcount" onclick="switchTrendMetric('headcount')">
+                                        <i class="bi bi-people-fill me-1"></i>Quy mô nhân sự
+                                    </button>
+                                    <button type="button" class="filter-pill" id="btnTrendSalary" onclick="switchTrendMetric('salary')">
+                                        <i class="bi bi-cash-stack me-1"></i>Biến động lương
+                                    </button>
+                                    <button type="button" class="filter-pill" id="btnTrendAttendance" onclick="switchTrendMetric('attendance')">
+                                        <i class="bi bi-clock-history me-1"></i>Tỷ lệ đúng giờ
+                                    </button>
+                                </div>
                                 <!-- Legend Indicators -->
-                                <div class="chart-header-badges">
+                                <div class="chart-header-badges d-none d-md-flex" id="trendBadgesContainer">
                                     <span><span class="badge-dot-indicator" style="background-color: #2563eb;"></span>Tổng NS (${kpiStats.totalEmployees})</span>
                                     <span><span class="badge-dot-indicator" style="background-color: #10b981;"></span>Mới (+${kpiStats.newHires})</span>
                                     <span><span class="badge-dot-indicator" style="background-color: #ef4444;"></span>Nghỉ (-${kpiStats.inactiveEmployees})</span>
@@ -438,7 +410,7 @@
                             <c:forEach items="${personnelStructure.deptList}" var="dept">
                                 <div class="donut-legend-item">
                                     <span class="legend-label">
-                                        <span class="color-square" style="background-color: ${dept.color};"></span>
+                                        <span class="color-square" data-bg="${dept.color}"></span>
                                         ${dept.name}
                                     </span>
                                     <span class="legend-val">${dept.percent}% <span class="text-muted fw-normal">(${dept.count})</span></span>
@@ -467,10 +439,10 @@
 
                             <!-- Stacked Progress Bar -->
                             <div class="attendance-stacked-bar">
-                                <div class="attendance-stacked-segment" style="width: ${attendanceSummary.onTimePct}%; background-color: #10b981;" title="Đúng giờ: ${attendanceSummary.onTimePct}%"></div>
-                                <div class="attendance-stacked-segment" style="width: ${attendanceSummary.latePct}%; background-color: #f59e0b;" title="Đi muộn/Về sớm: ${attendanceSummary.latePct}%"></div>
-                                <div class="attendance-stacked-segment" style="width: ${attendanceSummary.onLeavePct}%; background-color: #3b82f6;" title="Nghỉ phép: ${attendanceSummary.onLeavePct}%"></div>
-                                <div class="attendance-stacked-segment" style="width: ${attendanceSummary.absentPct}%; background-color: #ef4444;" title="Vắng không phép: ${attendanceSummary.absentPct}%"></div>
+                                <div class="attendance-stacked-segment" data-progress="${attendanceSummary.onTimePct}" data-bg="#10b981" title="Đúng giờ: ${attendanceSummary.onTimePct}%"></div>
+                                <div class="attendance-stacked-segment" data-progress="${attendanceSummary.latePct}" data-bg="#f59e0b" title="Đi muộn/Về sớm: ${attendanceSummary.latePct}%"></div>
+                                <div class="attendance-stacked-segment" data-progress="${attendanceSummary.onLeavePct}" data-bg="#3b82f6" title="Nghỉ phép: ${attendanceSummary.onLeavePct}%"></div>
+                                <div class="attendance-stacked-segment" data-progress="${attendanceSummary.absentPct}" data-bg="#ef4444" title="Vắng không phép: ${attendanceSummary.absentPct}%"></div>
                             </div>
 
                             <!-- Breakdown Items -->
@@ -531,8 +503,8 @@
 
                             <!-- Dual Bar & Labels -->
                             <div class="leave-dual-bar">
-                                <div class="leave-bar-used" style="width: ${leaveSummary.usedPct}%;"></div>
-                                <div class="leave-bar-remain" style="width: ${leaveSummary.remainPct}%;"></div>
+                                <div class="leave-bar-used" data-progress="${leaveSummary.usedPct}"></div>
+                                <div class="leave-bar-remain" data-progress="${leaveSummary.remainPct}"></div>
                             </div>
                             <div class="leave-dual-labels">
                                 <span>Đã dùng: <strong>${leaveSummary.totalDaysUsed}</strong> ngày (${leaveSummary.usedPct}%)</span>
@@ -591,7 +563,7 @@
                                             <span class="urgent-task-sub">Trong 30 ngày tới</span>
                                         </div>
                                     </div>
-                                    <a href="${pageContext.request.contextPath}/contracts" class="urgent-action-btn">
+                                    <a href="${pageContext.request.contextPath}/contracts?status=EXPIRING_SOON" class="urgent-action-btn" title="Xem danh sách hợp đồng sắp hết hạn">
                                         Xem danh sách <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </div>
@@ -605,7 +577,7 @@
                                             <span class="urgent-task-sub">Chờ phê duyệt</span>
                                         </div>
                                     </div>
-                                    <a href="${pageContext.request.contextPath}/leave" class="urgent-action-btn">
+                                    <a href="${pageContext.request.contextPath}/leave?status=PENDING" class="urgent-action-btn" title="Duyệt đơn nghỉ phép đang chờ">
                                         Duyệt ngay <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </div>
@@ -619,7 +591,7 @@
                                             <span class="urgent-task-sub">Thiếu CCCD, MST hoặc Ngân hàng</span>
                                         </div>
                                     </div>
-                                    <a href="${pageContext.request.contextPath}/employees" class="urgent-action-btn">
+                                    <a href="${pageContext.request.contextPath}/employees" class="urgent-action-btn" title="Kiểm tra danh sách nhân sự">
                                         Kiểm tra <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </div>
@@ -633,7 +605,7 @@
                                             <span class="urgent-task-sub">Đang tìm kiếm ứng viên</span>
                                         </div>
                                     </div>
-                                    <a href="${pageContext.request.contextPath}/recruitment" class="urgent-action-btn">
+                                    <a href="${pageContext.request.contextPath}/recruitment" class="urgent-action-btn" title="Xem yêu cầu tuyển dụng">
                                         Xem yêu cầu <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </div>
@@ -647,7 +619,7 @@
                                             <span class="urgent-task-sub">Đăng ký ca OT gần đây</span>
                                         </div>
                                     </div>
-                                    <a href="${pageContext.request.contextPath}/attendance" class="urgent-action-btn">
+                                    <a href="${pageContext.request.contextPath}/overtime?status=PENDING" class="urgent-action-btn" title="Duyệt tăng ca đang chờ">
                                         Kiểm tra <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </div>
@@ -722,7 +694,7 @@
                                             </span>
                                         </div>
                                         <div class="dept-progress">
-                                            <div class="dept-progress-bar" style="width: ${dp.percent}%; background-color: #2563eb;"></div>
+                                            <div class="dept-progress-bar" data-progress="${dp.percent}" data-bg="#2563eb"></div>
                                         </div>
                                     </div>
                                 </c:forEach>
@@ -784,31 +756,31 @@
                                 <div class="funnel-row">
                                     <span class="funnel-stage-name">Ứng viên mới</span>
                                     <div class="funnel-bar-container">
-                                        <div class="funnel-bar-fill" style="width: ${recruitmentStats.newPct}%; background-color: #6366f1;">${recruitmentStats.newCount} hồ sơ</div>
+                                        <div class="funnel-bar-fill" data-progress="${recruitmentStats.newPct}" data-bg="#6366f1">${recruitmentStats.newCount} hồ sơ</div>
                                     </div>
                                 </div>
                                 <div class="funnel-row">
                                     <span class="funnel-stage-name">Đã sàng lọc</span>
                                     <div class="funnel-bar-container">
-                                        <div class="funnel-bar-fill" style="width: ${recruitmentStats.screeningPct}%; background-color: #3b82f6;">${recruitmentStats.screeningCount} hồ sơ</div>
+                                        <div class="funnel-bar-fill" data-progress="${recruitmentStats.screeningPct}" data-bg="#3b82f6">${recruitmentStats.screeningCount} hồ sơ</div>
                                     </div>
                                 </div>
                                 <div class="funnel-row">
                                     <span class="funnel-stage-name">Phỏng vấn</span>
                                     <div class="funnel-bar-container">
-                                        <div class="funnel-bar-fill" style="width: ${recruitmentStats.interviewPct}%; background-color: #f59e0b;">${recruitmentStats.interviewCount} ứng viên</div>
+                                        <div class="funnel-bar-fill" data-progress="${recruitmentStats.interviewPct}" data-bg="#f59e0b">${recruitmentStats.interviewCount} ứng viên</div>
                                     </div>
                                 </div>
                                 <div class="funnel-row">
                                     <span class="funnel-stage-name">Đề xuất tuyển</span>
                                     <div class="funnel-bar-container">
-                                        <div class="funnel-bar-fill" style="width: ${recruitmentStats.offerPct}%; background-color: #06b6d4;">${recruitmentStats.offerCount}</div>
+                                        <div class="funnel-bar-fill" data-progress="${recruitmentStats.offerPct}" data-bg="#06b6d4">${recruitmentStats.offerCount}</div>
                                     </div>
                                 </div>
                                 <div class="funnel-row">
                                     <span class="funnel-stage-name">Đã tuyển dụng</span>
                                     <div class="funnel-bar-container">
-                                        <div class="funnel-bar-fill" style="width: ${recruitmentStats.onboardedPct}%; background-color: #10b981;">${recruitmentStats.onboardedCount}</div>
+                                        <div class="funnel-bar-fill" data-progress="${recruitmentStats.onboardedPct}" data-bg="#10b981">${recruitmentStats.onboardedCount}</div>
                                     </div>
                                 </div>
                             </div>
@@ -855,7 +827,7 @@
                                             </div>
                                         </div>
                                         <div class="kpi-progress-bar-bg">
-                                            <div class="kpi-progress-fill ${kpi.color}" style="width: ${kpi.rate}%;"></div>
+                                            <div class="kpi-progress-fill ${kpi.color}" data-progress="${kpi.rate}"></div>
                                         </div>
                                     </div>
                                 </c:forEach>
@@ -902,7 +874,7 @@
                                             <span class="age-dist-val">${personnelStructure.ageUnder25Pct}% <span class="text-muted fw-normal">(${personnelStructure.ageUnder25} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.ageUnder25Pct}%;"></div>
+                                            <div class="age-dist-bar-fill" data-progress="${personnelStructure.ageUnder25Pct}"></div>
                                         </div>
                                     </div>
 
@@ -912,7 +884,7 @@
                                             <span class="age-dist-val text-primary">${personnelStructure.age25to35Pct}% <span class="text-muted fw-normal">(${personnelStructure.age25to35} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill highlight" style="width: ${personnelStructure.age25to35Pct}%;"></div>
+                                            <div class="age-dist-bar-fill highlight" data-progress="${personnelStructure.age25to35Pct}"></div>
                                         </div>
                                     </div>
 
@@ -922,7 +894,7 @@
                                             <span class="age-dist-val">${personnelStructure.age35to45Pct}% <span class="text-muted fw-normal">(${personnelStructure.age35to45} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.age35to45Pct}%;"></div>
+                                            <div class="age-dist-bar-fill" data-progress="${personnelStructure.age35to45Pct}"></div>
                                         </div>
                                     </div>
 
@@ -932,7 +904,7 @@
                                             <span class="age-dist-val">${personnelStructure.age45to55Pct}% <span class="text-muted fw-normal">(${personnelStructure.age45to55} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.age45to55Pct}%;"></div>
+                                            <div class="age-dist-bar-fill" data-progress="${personnelStructure.age45to55Pct}"></div>
                                         </div>
                                     </div>
 
@@ -942,7 +914,7 @@
                                             <span class="age-dist-val">${personnelStructure.ageOver55Pct}% <span class="text-muted fw-normal">(${personnelStructure.ageOver55} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.ageOver55Pct}%;"></div>
+                                            <div class="age-dist-bar-fill" data-progress="${personnelStructure.ageOver55Pct}"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -962,8 +934,8 @@
                                             </span>
                                         </div>
                                         <div class="gender-dual-bar" style="height: 10px; border-radius: 9999px;">
-                                            <div class="gender-bar-male" style="width: ${personnelStructure.malePct}%;"></div>
-                                            <div class="gender-bar-female" style="width: ${personnelStructure.femalePct}%;"></div>
+                                            <div class="gender-bar-male" data-progress="${personnelStructure.malePct}"></div>
+                                            <div class="gender-bar-female" data-progress="${personnelStructure.femalePct}"></div>
                                         </div>
                                     </div>
 
@@ -978,7 +950,7 @@
                                                     </span>
                                                 </div>
                                                 <div class="gender-dual-bar" style="height: 7px; border-radius: 9999px;">
-                                                    <div class="gender-bar-male" style="width: ${dept.percent}%; background-color: ${dept.color};"></div>
+                                                    <div class="gender-bar-male" data-progress="${dept.percent}" data-bg="${dept.color}"></div>
                                                 </div>
                                             </div>
                                         </c:forEach>
@@ -995,7 +967,7 @@
                                             <span class="age-dist-val">${personnelStructure.senUnder1Pct}% <span class="text-muted fw-normal">(${personnelStructure.senUnder1} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.senUnder1Pct}%; background: #38bdf8;"></div>
+                                            <div class="age-dist-bar-fill" data-progress="${personnelStructure.senUnder1Pct}" data-bg="#38bdf8"></div>
                                         </div>
                                     </div>
 
@@ -1005,7 +977,7 @@
                                             <span class="age-dist-val text-primary">${personnelStructure.sen1to3Pct}% <span class="text-muted fw-normal">(${personnelStructure.sen1to3} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill highlight" style="width: ${personnelStructure.sen1to3Pct}%;"></div>
+                                            <div class="age-dist-bar-fill highlight" data-progress="${personnelStructure.sen1to3Pct}"></div>
                                         </div>
                                     </div>
 
@@ -1015,7 +987,7 @@
                                             <span class="age-dist-val">${personnelStructure.sen3to5Pct}% <span class="text-muted fw-normal">(${personnelStructure.sen3to5} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.sen3to5Pct}%; background: #6366f1;"></div>
+                                            <div class="age-dist-bar-fill" data-progress="${personnelStructure.sen3to5Pct}" data-bg="#6366f1"></div>
                                         </div>
                                     </div>
 
@@ -1025,7 +997,7 @@
                                             <span class="age-dist-val text-success">${personnelStructure.senOver5Pct}% <span class="text-muted fw-normal">(${personnelStructure.senOver5} nhân sự)</span></span>
                                         </div>
                                         <div class="age-dist-bar-bg">
-                                            <div class="age-dist-bar-fill" style="width: ${personnelStructure.senOver5Pct}%; background: #10b981;"></div>
+                                            <div class="age-dist-bar-fill" data-progress="${personnelStructure.senOver5Pct}" data-bg="#10b981"></div>
                                         </div>
                                     </div>
 
@@ -1254,7 +1226,7 @@
                                     <c:forEach items="${recentActivities}" var="act">
                                         <div class="activity-item-clean">
                                             <div class="activity-left-side">
-                                                <div class="activity-icon-round" style="background: ${act.iconBg}; color: ${act.iconColor};">
+                                                <div class="activity-icon-round" data-bg="${act.iconBg}" data-color="${act.iconColor}">
                                                     <i class="bi ${act.icon}"></i>
                                                 </div>
                                                 <div class="activity-desc-wrapper">
@@ -1295,57 +1267,81 @@
 <!-- Shared JavaScript dependencies -->
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
 
-<!-- Dữ liệu thực tế từ PostgreSQL cho Chart.js -->
-<script>
-window.dashboardChartData = {
-    growthTrend: {
-        labels: [
+<!-- Dữ liệu thực tế từ PostgreSQL cho Chart.js đóng gói an toàn JSON -->
+<script id="dashboardChartDataRaw" type="application/json">
+{
+    "growthTrend": {
+        "labels": [
             <c:forEach items="${monthlyGrowthTrend.labels}" var="l" varStatus="loop">
                 "${l}"${!loop.last ? ',' : ''}
             </c:forEach>
         ],
-        data: [
+        "data": [
             <c:forEach items="${monthlyGrowthTrend.data}" var="d" varStatus="loop">
                 ${d}${!loop.last ? ',' : ''}
             </c:forEach>
         ]
     },
-    donut: {
-        dept: {
-            labels: [
+    "payrollTrend": {
+        "labels": [
+            <c:forEach items="${monthlyPayrollTrend.labels}" var="l" varStatus="loop">
+                "${l}"${!loop.last ? ',' : ''}
+            </c:forEach>
+        ],
+        "data": [
+            <c:forEach items="${monthlyPayrollTrend.data}" var="d" varStatus="loop">
+                ${d}${!loop.last ? ',' : ''}
+            </c:forEach>
+        ]
+    },
+    "attendanceRateTrend": {
+        "labels": [
+            <c:forEach items="${attendanceRateTrend.labels}" var="l" varStatus="loop">
+                "${l}"${!loop.last ? ',' : ''}
+            </c:forEach>
+        ],
+        "data": [
+            <c:forEach items="${attendanceRateTrend.data}" var="d" varStatus="loop">
+                ${d}${!loop.last ? ',' : ''}
+            </c:forEach>
+        ]
+    },
+    "donut": {
+        "dept": {
+            "labels": [
                 <c:forEach items="${personnelStructure.deptList}" var="dept" varStatus="loop">
                     "${dept.name}"${!loop.last ? ',' : ''}
                 </c:forEach>
             ],
-            data: [
+            "data": [
                 <c:forEach items="${personnelStructure.deptList}" var="dept" varStatus="loop">
                     ${dept.count}${!loop.last ? ',' : ''}
                 </c:forEach>
             ],
-            colors: [
+            "colors": [
                 <c:forEach items="${personnelStructure.deptList}" var="dept" varStatus="loop">
                     "${dept.color}"${!loop.last ? ',' : ''}
                 </c:forEach>
             ]
         },
-        gender: {
-            labels: ['Nam', 'Nữ'],
-            data: [${personnelStructure.maleCount != null ? personnelStructure.maleCount : 0}, ${personnelStructure.femaleCount != null ? personnelStructure.femaleCount : 0}],
-            colors: ['#2563eb', '#ec4899']
+        "gender": {
+            "labels": ["Nam", "Nữ"],
+            "data": [${personnelStructure.maleCount != null ? personnelStructure.maleCount : 0}, ${personnelStructure.femaleCount != null ? personnelStructure.femaleCount : 0}],
+            "colors": ["#2563eb", "#ec4899"]
         },
-        age: {
-            labels: ['18 - 25 tuổi', '25 - 35 tuổi', '35 - 45 tuổi', '45 - 55 tuổi', 'Trên 55'],
-            data: [
+        "age": {
+            "labels": ["18 - 25 tuổi", "25 - 35 tuổi", "35 - 45 tuổi", "45 - 55 tuổi", "Trên 55"],
+            "data": [
                 ${personnelStructure.ageUnder25 != null ? personnelStructure.ageUnder25 : 0},
                 ${personnelStructure.age25to35 != null ? personnelStructure.age25to35 : 0},
                 ${personnelStructure.age35to45 != null ? personnelStructure.age35to45 : 0},
                 ${personnelStructure.age45to55 != null ? personnelStructure.age45to55 : 0},
                 ${personnelStructure.ageOver55 != null ? personnelStructure.ageOver55 : 0}
             ],
-            colors: ['#38bdf8', '#2563eb', '#6366f1', '#f59e0b', '#94a3b8']
+            "colors": ["#38bdf8", "#2563eb", "#6366f1", "#f59e0b", "#94a3b8"]
         }
     }
-};
+}
 </script>
 
 <!-- Specific Dashboard Charts & Interactions Script -->

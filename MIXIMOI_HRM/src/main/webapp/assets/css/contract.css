@@ -261,3 +261,59 @@
 
 @media (max-width: 1024px) { .contract-stats-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 600px)  { .contract-stats-grid { grid-template-columns: 1fr; } }
+
+/* Statutory Compliance Badges (Điều 20 BLLĐ 2019) */
+.law-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.2px;
+}
+.law-badge.term-1 {
+    background: #ecfeff;
+    color: #0e7490;
+    border: 1px solid #a5f3fc;
+}
+.law-badge.term-2 {
+    background: #fefce8;
+    color: #a16207;
+    border: 1px solid #fef08a;
+}
+.law-badge.term-limit {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    animation: pulseBorder 2s infinite;
+}
+.law-badge.indefinite {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+@keyframes pulseBorder {
+    0%, 100% { border-color: #fecaca; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); }
+    50% { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); }
+}
+
+.action-btn.probation {
+    color: #0284c7;
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+.action-btn.probation:hover {
+    background: #e0f2fe;
+    color: #0369a1;
+    border-color: #7dd3fc;
+}
+
+/* Glassmorphism Stat Cards enhancement */
+.glass-stat-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}

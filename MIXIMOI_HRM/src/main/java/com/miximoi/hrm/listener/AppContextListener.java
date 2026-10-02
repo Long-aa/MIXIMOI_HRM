@@ -24,6 +24,8 @@ public class AppContextListener implements ServletContextListener {
 
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
+        // Dong HikariCP pool khi ung dung shutdown de giai phong connection den PostgreSQL
+        com.miximoi.hrm.util.DBConnection.closePool();
         System.out.println("[AppContextListener] Ứng dụng MIXIMOI HRM đã tắt.");
     }
 }

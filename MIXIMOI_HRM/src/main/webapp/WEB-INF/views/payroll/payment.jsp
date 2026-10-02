@@ -59,7 +59,12 @@
                         <a href="${pageContext.request.contextPath}/payment?month=${selectedMonth < 12 ? selectedMonth + 1 : 1}&year=${selectedMonth < 12 ? selectedYear : selectedYear + 1}"
                            class="period-picker-btn"><i class="bi bi-chevron-right"></i></a>
                     </div>
-                    <button type="button" class="btn-action-light" onclick="alert('Lịch sử giao dịch thanh toán đang được tải...')">
+                    <a href="${pageContext.request.contextPath}/payment?action=export_unc&month=${selectedMonth}&year=${selectedYear}"
+                       class="btn-action-light text-decoration-none" title="Xuất bảng kê chi lương định dạng Napas/Vietcombank">
+                        <i class="bi bi-file-earmark-excel text-success"></i>
+                        <span>Xuất UNC Ngân Hàng</span>
+                    </a>
+                    <button type="button" class="btn-action-light" data-bs-toggle="modal" data-bs-target="#modalPaymentHistory">
                         <i class="bi bi-clock-history"></i>
                         <span>Lịch sử GD</span>
                     </button>
@@ -115,8 +120,20 @@
                                 </c:choose>
                             </span>
                         </div>
-                        <div class="progress" style="height:7px;">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: 40.6%"></div>
+                        <c:set var="disbursedPct" value="${totalCount > 0 ? (countPaid * 100.0 / totalCount) : 0}" />
+                        <div class="progress" style="height:8px; border-radius: 6px;">
+                            <div class="progress-bar ${countPaid eq totalCount and totalCount > 0 ? 'bg-success' : 'bg-primary'} progress-bar-striped progress-bar-animated"
+                                 role="progressbar" id="disbursementBar" aria-valuenow="${disbursedPct}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <script>
+                            (function() {
+                                var bar = document.getElementById('disbursementBar');
+                                if (bar) bar.style.width = '${disbursedPct}%';
+                            })();
+                        </script>
+                        <div class="d-flex justify-content-between mt-1 text-muted" style="font-size:0.75rem;">
+                            <span>Tiến độ chi: <strong>${countPaid}/${totalCount}</strong> nhân sự (<fmt:formatNumber value="${disbursedPct}" maxFractionDigits="1"/>%)</span>
+                            <span>Trạng thái: <span class="badge ${countPaid eq totalCount and totalCount > 0 ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'} fw-bold">${countPaid eq totalCount and totalCount > 0 ? 'Hoàn tất' : 'Đang xử lý'}</span></span>
                         </div>
                     </div>
                 </div>
@@ -299,16 +316,16 @@
                                                         <i class="bi bi-eye"></i>
                                                     </a>
                                                     <c:if test="${pr.status eq 'APPROVED' and (sessionScope.currentUser.role eq 'ADMIN' or sessionScope.currentUser.role eq 'ACCOUNTANT')}">
-                                                        <form method="post" action="${pageContext.request.contextPath}/payment" class="m-0">
-                                                            <input type="hidden" name="action" value="pay_single">
-                                                            <input type="hidden" name="id" value="${pr.id}">
-                                                            <input type="hidden" name="month" value="${selectedMonth}">
-                                                            <input type="hidden" name="year" value="${selectedYear}">
-                                                            <button type="submit" class="btn btn-sm btn-success py-1 px-2" title="Chi trả ngay"
-                                                                    onclick="return confirm('Xác nhận chi trả cho ${pr.employeeName}?');">
-                                                                <i class="bi bi-send-check"></i>
-                                                            </button>
-                                                        </form>
+                                                        <button type="button" class="btn btn-sm btn-success py-1 px-2 btn-open-pay-modal" title="Lập lệnh chi trả"
+                                                                data-bs-toggle="modal" data-bs-target="#modalPaySingle"
+                                                                data-id="${pr.id}"
+                                                                data-name="<c:out value='${pr.employeeName}'/>"
+                                                                data-code="<c:out value='${pr.employeeCode}'/>"
+                                                                data-amount="<fmt:formatNumber value='${pr.netSalary}' pattern='#,###'/> đ"
+                                                                data-bank="<c:out value='${not empty pr.bankName ? pr.bankName : \"Techcombank\"}'/>"
+                                                                data-account="<c:out value='${not empty pr.bankAccount ? pr.bankAccount : \"Chưa cập nhật\"}'/>">
+                                                            <i class="bi bi-send-check"></i>
+                                                        </button>
                                                     </c:if>
                                                 </div>
                                             </td>
@@ -375,11 +392,159 @@
     </main>
 </div>
 
+<%-- Modal Chi trả đơn lẻ --%>
+<div class="modal fade" id="modalPaySingle" tabindex="-1" aria-labelledby="modalPaySingleLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" action="${pageContext.request.contextPath}/payment">
+                <input type="hidden" name="action" value="pay_single">
+                <input type="hidden" name="id" id="payModalId" value="">
+                <input type="hidden" name="month" value="${selectedMonth}">
+                <input type="hidden" name="year" value="${selectedYear}">
+                
+                <div class="modal-header border-bottom py-3">
+                    <h5 class="modal-title fw-bold text-dark fs-6" id="modalPaySingleLabel">
+                        <i class="bi bi-send-check text-success me-1"></i> Lập lệnh chi trả lương
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body p-4">
+                    <div class="p-3 bg-light rounded-3 mb-3 border">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Người thụ hưởng:</span>
+                            <strong class="text-dark" id="payModalEmpName">—</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Mã nhân viên:</span>
+                            <span class="badge bg-secondary-subtle text-secondary" id="payModalEmpCode">—</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Tài khoản ngân hàng:</span>
+                            <span class="fw-semibold text-dark font-monospace" id="payModalBankInfo">—</span>
+                        </div>
+                        <hr class="my-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-dark">Số tiền thực nhận:</span>
+                            <span class="fs-5 fw-bold text-success font-monospace" id="payModalAmount">0 đ</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Hình thức chi trả <span class="text-danger">*</span></label>
+                        <select name="paymentMethod" class="form-select form-select-sm" required>
+                            <option value="BANK_TRANSFER" selected>Chuyển khoản Ngân hàng (Cổng H2H / Napas 24/7)</option>
+                            <option value="CASH">Tiền mặt tại quỹ kế toán</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Nội dung lệnh chi / Ghi chú</label>
+                        <input type="text" name="notes" id="payModalNotes" class="form-control form-control-sm"
+                               value="MIXIMOI chi luong T${selectedMonth}/${selectedYear}">
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top py-2 px-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-sm btn-success d-flex align-items-center gap-1">
+                        <i class="bi bi-shield-check"></i> Xác nhận chi trả
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%-- Modal Lịch sử giao dịch chi lương --%>
+<div class="modal fade" id="modalPaymentHistory" tabindex="-1" aria-labelledby="modalPaymentHistoryLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3">
+                <h5 class="modal-title fw-bold text-dark fs-6" id="modalPaymentHistoryLabel">
+                    <i class="bi bi-clock-history text-primary me-1"></i> Lịch sử giao dịch thanh toán — Kỳ T${selectedMonth}/${selectedYear}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <c:choose>
+                    <c:when test="${not empty paymentHistory}">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" style="font-size:0.875rem;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">MÃ GIAO DỊCH</th>
+                                        <th>NHÂN VIÊN</th>
+                                        <th class="text-end">SỐ TIỀN</th>
+                                        <th>HÌNH THỨC</th>
+                                        <th>NGÀY CHI</th>
+                                        <th class="text-center">TRẠNG THÁI</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <c:forEach var="pm" items="${paymentHistory}">
+                                        <tr>
+                                            <td class="ps-3 fw-bold font-monospace text-primary">PM-${pm.id}</td>
+                                            <td>
+                                                <div class="fw-semibold text-dark"><c:out value="${pm.employeeName}"/></div>
+                                                <small class="text-muted"><c:out value="${pm.employeeCode}"/></small>
+                                            </td>
+                                            <td class="text-end fw-bold text-success font-monospace">
+                                                <fmt:formatNumber value="${pm.amount}" pattern="#,###"/> đ
+                                            </td>
+                                            <td>
+                                                <c:choose>
+                                                    <c:when test="${pm.paymentMethod eq 'CASH'}">
+                                                        <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-cash"></i> Tiền mặt</span>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <span class="badge bg-primary-subtle text-primary"><i class="bi bi-bank"></i> Chuyển khoản</span>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="text-muted small">${pm.paymentDate}</td>
+                                            <td class="text-center">
+                                                <span class="badge bg-success-subtle text-success fw-semibold">
+                                                    <i class="bi bi-check-circle-fill"></i> Hoàn tất
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </tbody>
+                            </table>
+                        </div>
+                    </c:when>
+                    <c:otherwise>
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-receipt fs-2 d-block mb-2"></i>
+                            Chưa có giao dịch chi trả nào được hoàn tất trong kỳ T${selectedMonth}/${selectedYear}.
+                        </div>
+                    </c:otherwise>
+                </c:choose>
+            </div>
+            <div class="modal-footer border-top py-2 px-3">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
 
 <script>
     document.getElementById('checkAll')?.addEventListener('change', function() {
         document.querySelectorAll('.tx-check').forEach(cb => cb.checked = this.checked);
+    });
+
+    document.querySelectorAll('.btn-open-pay-modal').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('payModalId').value = this.dataset.id;
+            document.getElementById('payModalEmpName').textContent = this.dataset.name;
+            document.getElementById('payModalEmpCode').textContent = this.dataset.code;
+            document.getElementById('payModalAmount').textContent = this.dataset.amount;
+            document.getElementById('payModalBankInfo').textContent = this.dataset.bank + " - " + this.dataset.account;
+            document.getElementById('payModalNotes').value = "MIXIMOI chi luong T" + "${selectedMonth}/${selectedYear} - " + this.dataset.code;
+        });
     });
 </script>
 </body>

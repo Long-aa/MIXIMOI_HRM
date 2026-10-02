@@ -287,6 +287,12 @@
                     <i class="bi bi-gear-wide-connected"></i>
                     <span>Cài đặt hệ thống</span>
                 </a>
+
+                <a href="${pageContext.request.contextPath}/audit-logs"
+                   class="sidebar-nav-link ${activeMenu eq 'audit_logs' ? 'active' : ''}">
+                    <i class="bi bi-journal-text"></i>
+                    <span>Nhật ký kiểm toán</span>
+                </a>
             </div>
         </c:if>
     </div>

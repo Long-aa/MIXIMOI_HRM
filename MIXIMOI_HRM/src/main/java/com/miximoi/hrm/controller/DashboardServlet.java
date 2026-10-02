@@ -19,9 +19,9 @@ import java.util.Map;
 
 /**
  * Servlet hiển thị Dashboard tổng quan và xử lý bộ lọc dữ liệu thời gian thực.
- * URL: /dashboard
+ * URL: /dashboard, /reports
  */
-@WebServlet("/dashboard")
+@WebServlet({"/dashboard", "/reports"})
 public class DashboardServlet extends HttpServlet {
 
     private final DashboardDAO dashboardDAO = new DashboardDAO();
@@ -80,7 +80,7 @@ public class DashboardServlet extends HttpServlet {
         String deptParam = request.getParameter("departmentId");
         if (deptParam != null && !deptParam.trim().isEmpty() && !"all".equalsIgnoreCase(deptParam)) {
             try {
-                departmentId = Integer.parseInt(deptParam.trim());
+                departmentId = Integer.valueOf(deptParam.trim());
             } catch (NumberFormatException ignored) {}
         }
 
@@ -102,6 +102,8 @@ public class DashboardServlet extends HttpServlet {
         Map<String, Object> recruitmentStats = dashboardDAO.getRecruitmentStats(startDate, endDate, departmentId);
         Map<String, Object> personnelStructure = dashboardDAO.getPersonnelStructure(departmentId);
         Map<String, Object> monthlyGrowthTrend = dashboardDAO.getMonthlyGrowthTrend();
+        Map<String, Object> monthlyPayrollTrend = dashboardDAO.getMonthlyPayrollTrend();
+        Map<String, Object> attendanceRateTrend = dashboardDAO.getAttendanceRateTrend();
         List<Map<String, Object>> departmentKpis = dashboardDAO.getDepartmentKpis(departmentId);
         List<Map<String, Object>> recentActivities = dashboardDAO.getRecentActivities();
 
@@ -119,6 +121,8 @@ public class DashboardServlet extends HttpServlet {
         request.setAttribute("recruitmentStats", recruitmentStats);
         request.setAttribute("personnelStructure", personnelStructure);
         request.setAttribute("monthlyGrowthTrend", monthlyGrowthTrend);
+        request.setAttribute("monthlyPayrollTrend", monthlyPayrollTrend);
+        request.setAttribute("attendanceRateTrend", attendanceRateTrend);
         request.setAttribute("departmentKpis", departmentKpis);
         request.setAttribute("recentActivities", recentActivities);
 

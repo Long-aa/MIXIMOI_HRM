@@ -130,7 +130,7 @@ public class PayrollDAO {
     public int approveAll(int month, int year, int approvedById) {
         String sql = "UPDATE payroll SET status='APPROVED', approved_by_id=?, "
                    + "approved_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP "
-                   + "WHERE pay_month=? AND pay_year=? AND status IN ('DRAFT', 'PENDING')";
+                   + "WHERE pay_month=? AND pay_year=? AND status IN ('DRAFT', 'PENDING', 'PENDING_APPROVAL')";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, approvedById);
@@ -139,6 +139,24 @@ public class PayrollDAO {
             return ps.executeUpdate();
         } catch (SQLException e) {
             System.err.println("PayrollDAO.approveAll lỗi: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public int updateStatusByPeriod(int month, int year, String fromStatus, String toStatus, int updatedById) {
+        String sql = "UPDATE payroll SET status=?, approved_by_id=?, "
+                   + "updated_at=CURRENT_TIMESTAMP "
+                   + "WHERE pay_month=? AND pay_year=? AND status=?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, toStatus);
+            ps.setInt(2, updatedById);
+            ps.setInt(3, month);
+            ps.setInt(4, year);
+            ps.setString(5, fromStatus);
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("PayrollDAO.updateStatusByPeriod lỗi: " + e.getMessage());
         }
         return 0;
     }

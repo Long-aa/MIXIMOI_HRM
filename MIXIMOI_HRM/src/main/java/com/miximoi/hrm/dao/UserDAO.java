@@ -63,6 +63,30 @@ public class UserDAO {
     }
 
     /**
+     * Tìm user theo Employee ID.
+     */
+    public User findByEmployeeId(int employeeId) {
+        String sql = "SELECT u.id, u.username, u.password, u.role, u.employee_id, u.active, "
+                   + "u.created_at, u.updated_at, e.full_name, e.email, e.employee_code, "
+                   + "p.name AS pos_name, d.name AS dept_name "
+                   + "FROM users u "
+                   + "LEFT JOIN employees e ON u.employee_id = e.id "
+                   + "LEFT JOIN positions p ON e.position_id = p.id "
+                   + "LEFT JOIN departments d ON e.department_id = d.id "
+                   + "WHERE u.employee_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return mapRow(rs);
+            }
+        } catch (SQLException e) {
+            System.err.println("UserDAO.findByEmployeeId lỗi: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
      * Tìm kiếm và lọc danh sách tài khoản theo điều kiện.
      */
     public List<User> findAllFiltered(String keyword, String role, Integer deptId, String status) {

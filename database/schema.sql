@@ -75,11 +75,40 @@ CREATE TABLE IF NOT EXISTS employees (
     phone            VARCHAR(20),
     email            VARCHAR(150),
     address          TEXT,
+    temp_address     VARCHAR(500),
+    nationality      VARCHAR(100) DEFAULT 'Việt Nam',
+    ethnicity        VARCHAR(100),
+    religion         VARCHAR(50),
+    marital_status   VARCHAR(20),
+    avatar_url       VARCHAR(500),
+    identity_number  VARCHAR(20),
+    identity_date    DATE,
+    identity_place   VARCHAR(200),
+    id_card_front_url VARCHAR(500),
+    id_card_back_url VARCHAR(500),
+    resume_url       VARCHAR(500),
     department_id    INTEGER REFERENCES departments(id),
     position_id      INTEGER REFERENCES positions(id),
     employee_type_id INTEGER REFERENCES employee_types(id),
+    default_shift_id INTEGER REFERENCES work_shifts(id),
     start_date       DATE,
+    end_date         DATE,
+    termination_reason TEXT,
     status           VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',  -- ACTIVE | INACTIVE | ON_LEAVE
+    base_salary      NUMERIC(15,0) DEFAULT 0,
+    bank_account     VARCHAR(30),
+    bank_name        VARCHAR(150),
+    bank_branch      VARCHAR(200),
+    tax_code         VARCHAR(20),
+    insurance_number VARCHAR(20),
+    emergency_contact_name VARCHAR(150),
+    emergency_contact_phone VARCHAR(20),
+    emergency_contact_relation VARCHAR(50),
+    work_location    VARCHAR(100),
+    employee_level   VARCHAR(50),
+    secondary_phone  VARCHAR(20),
+    line_manager     VARCHAR(150),
+    mentor_name      VARCHAR(150),
     created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP
 );
@@ -153,6 +182,7 @@ CREATE TABLE IF NOT EXISTS attendance (
     check_out_method    VARCHAR(50),                       -- Phương thức check-out
     face_image_url      VARCHAR(255),                      -- URL ảnh khuôn mặt chụp khi chấm công
     confidence_score    NUMERIC(5,2),                      -- Độ chính xác nhận dạng (0-100%)
+    shift_id            INTEGER REFERENCES work_shifts(id), -- Ca làm việc
     -- ==============================
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (employee_id, work_date)
@@ -162,28 +192,87 @@ CREATE INDEX IF NOT EXISTS idx_attendance_employee  ON attendance(employee_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_work_date ON attendance(work_date);
 
 -- =============================================================
+-- 9.0 YÊU CẦU GIẢI TRÌNH CHẤM CÔNG
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS attendance_explain_requests (
+    id            SERIAL PRIMARY KEY,
+    attendance_id INTEGER NOT NULL REFERENCES attendance(id) ON DELETE CASCADE,
+    employee_id   INTEGER NOT NULL REFERENCES employees(id),
+    reason        TEXT    NOT NULL,
+    status        VARCHAR(20) NOT NULL DEFAULT 'PENDING', -- PENDING | APPROVED | REJECTED
+    reviewed_by   INTEGER REFERENCES users(id),
+    reviewed_at   TIMESTAMP,
+    created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (attendance_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_explain_status ON attendance_explain_requests(status);
+CREATE INDEX IF NOT EXISTS idx_explain_emp ON attendance_explain_requests(employee_id);
+
+-- =============================================================
+-- 9.1 KHÓA BẢNG CÔNG THÁNG (TIMESHEET LOCKS)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS timesheet_locks (
+    id SERIAL PRIMARY KEY,
+    pay_month INTEGER NOT NULL,
+    pay_year INTEGER NOT NULL,
+    is_locked BOOLEAN NOT NULL DEFAULT FALSE,
+    locked_by INTEGER REFERENCES employees(id),
+    locked_at TIMESTAMP,
+    unlocked_by INTEGER REFERENCES employees(id),
+    unlocked_at TIMESTAMP,
+    note TEXT,
+    CONSTRAINT uq_timesheet_month_year UNIQUE(pay_month, pay_year)
+);
+
+-- =============================================================
 -- 10. ĐƠN NGHỈ PHÉP
 -- =============================================================
 
 CREATE TABLE IF NOT EXISTS leave_requests (
-    id             SERIAL PRIMARY KEY,
-    leave_code     VARCHAR(50) NOT NULL UNIQUE,
-    employee_id    INTEGER     NOT NULL REFERENCES employees(id),
-    leave_type     VARCHAR(50) NOT NULL,  -- ANNUAL | SICK | PERSONAL | MATERNITY | UNPAID
-    start_date     DATE        NOT NULL,
-    end_date       DATE        NOT NULL,
-    total_days     INTEGER     NOT NULL DEFAULT 1,
-    reason         TEXT,
-    status         VARCHAR(20) NOT NULL DEFAULT 'PENDING',  -- PENDING | APPROVED | REJECTED | CANCELLED
-    approved_by_id INTEGER REFERENCES employees(id),
-    approved_at    TIMESTAMP,
-    reject_reason  TEXT,
-    created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at     TIMESTAMP
+    id                  SERIAL PRIMARY KEY,
+    leave_code          VARCHAR(50) NOT NULL UNIQUE,
+    employee_id         INTEGER     NOT NULL REFERENCES employees(id),
+    leave_type          VARCHAR(50) NOT NULL,  -- ANNUAL | SICK | PERSONAL | MATERNITY | UNPAID
+    start_date          DATE        NOT NULL,
+    end_date            DATE        NOT NULL,
+    total_days          NUMERIC(4,1) NOT NULL DEFAULT 1.0,
+    reason              TEXT,
+    status              VARCHAR(30) NOT NULL DEFAULT 'PENDING',  -- PENDING | MANAGER_APPROVED | APPROVED | REJECTED | CANCELLED
+    approved_by_id      INTEGER REFERENCES employees(id),
+    approved_at         TIMESTAMP,
+    reject_reason       TEXT,
+    -- ===== QUY TRÌNH PHÊ DUYỆT 2 CẤP (TP -> HR) & CHỨNG TỪ =====
+    manager_id          INTEGER REFERENCES employees(id),
+    manager_approved_at TIMESTAMP,
+    manager_note        TEXT,
+    hr_id               INTEGER REFERENCES employees(id),
+    hr_approved_at      TIMESTAMP,
+    attachment_url      VARCHAR(255),                            -- File ảnh / scan giấy ra viện, C65-HD, kết hôn...
+    -- ============================================================
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_leave_employee ON leave_requests(employee_id);
 CREATE INDEX IF NOT EXISTS idx_leave_status   ON leave_requests(status);
+
+-- =============================================================
+-- 10.1 NGÀY NGHỈ LỄ/TẾT QUỐC GIA (HOLIDAYS)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS holidays (
+    id           SERIAL PRIMARY KEY,
+    holiday_date DATE NOT NULL UNIQUE,
+    name         VARCHAR(150) NOT NULL,
+    year         INTEGER NOT NULL,
+    coefficient  NUMERIC(3,1) NOT NULL DEFAULT 3.0 -- Hệ số tính lương nếu làm việc vào ngày Lễ (300%)
+);
+
+CREATE INDEX IF NOT EXISTS idx_holidays_date ON holidays(holiday_date);
+CREATE INDEX IF NOT EXISTS idx_holidays_year ON holidays(year);
 
 -- =============================================================
 -- 11. TĂNG CA
@@ -268,6 +357,19 @@ CREATE INDEX IF NOT EXISTS idx_payroll_employee ON payroll(employee_id);
 CREATE INDEX IF NOT EXISTS idx_payroll_period   ON payroll(pay_month, pay_year);
 CREATE INDEX IF NOT EXISTS idx_payroll_status   ON payroll(status);
 
+-- Snapshot chi tiết lương
+CREATE TABLE IF NOT EXISTS payroll_details (
+    id              SERIAL PRIMARY KEY,
+    payroll_id      INTEGER       NOT NULL REFERENCES payroll(id) ON DELETE CASCADE,
+    component_name  VARCHAR(150)  NOT NULL,
+    component_type  VARCHAR(50)   NOT NULL, -- INCOME | DEDUCTION | SUMMARY | RESULT
+    amount          NUMERIC(15,0) NOT NULL DEFAULT 0,
+    note            TEXT,
+    created_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_payroll_details_pid ON payroll_details(payroll_id);
+
 -- =============================================================
 -- 15. THANH TOÁN
 -- =============================================================
@@ -302,24 +404,27 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user   ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, is_read);
 
 -- =============================================================
--- 17. NHẬT KÝ HOẠT ĐỘNG (Audit Log)
+-- 17. NHẬT KÝ HOẠT ĐỘNG VÀ KIỂM TOÁN (Audit Logs)
 -- =============================================================
 
 CREATE TABLE IF NOT EXISTS audit_logs (
     id          SERIAL PRIMARY KEY,
     user_id     INTEGER      REFERENCES users(id),
-    username    VARCHAR(100),
-    action      VARCHAR(50)  NOT NULL,  -- CREATE | UPDATE | DELETE | APPROVE | REJECT | LOGIN | LOGOUT
-    module      VARCHAR(100),           -- EMPLOYEE | PAYROLL | LEAVE...
-    object_id   INTEGER,
-    description TEXT,
+    username    VARCHAR(100) NOT NULL,
+    user_role   VARCHAR(50)  NOT NULL DEFAULT 'ANONYMOUS',
+    action      VARCHAR(100) NOT NULL,  -- CREATE | UPDATE | DELETE | APPROVE | REJECT | LOGIN | LOGOUT...
+    module      VARCHAR(50)  NOT NULL,  -- EMPLOYEE | PAYROLL | LEAVE | ATTENDANCE...
+    record_id   INTEGER,
+    details     TEXT,
     ip_address  VARCHAR(50),
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_audit_user   ON audit_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_audit_module ON audit_logs(module);
-CREATE INDEX IF NOT EXISTS idx_audit_time   ON audit_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_user    ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_module  ON audit_logs(module);
+CREATE INDEX IF NOT EXISTS idx_audit_action  ON audit_logs(action);
+
 
 -- =============================================================
 -- 18. THIẾT BỊ CHẤM CÔNG SINH TRẮC HỌC
@@ -610,3 +715,6 @@ CREATE TABLE IF NOT EXISTS system_settings (
     description    VARCHAR(255),
     updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+
+

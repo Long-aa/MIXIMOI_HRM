@@ -56,7 +56,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.bulkDelete = function() {
         const checkedBoxes = document.querySelectorAll('.row-check:checked');
         if (checkedBoxes.length === 0) {
-            alert('Vui lòng chọn ít nhất một hợp đồng.');
+            if (window.MixiToast) MixiToast.warning('Vui lòng chọn ít nhất một hợp đồng.');
+            else alert('Vui lòng chọn ít nhất một hợp đồng.');
             return;
         }
         if (!confirm('Bạn có chắc chắn muốn xóa ' + checkedBoxes.length + ' hợp đồng đã chọn không? Thao tác này không thể hoàn tác.')) {
@@ -87,9 +88,11 @@ document.addEventListener('DOMContentLoaded', function() {
     window.bulkExport = function() {
         const checkedBoxes = document.querySelectorAll('.row-check:checked');
         if (checkedBoxes.length === 0) {
-            alert('Vui lòng chọn ít nhất một hợp đồng.');
+            if (window.MixiToast) MixiToast.warning('Vui lòng chọn ít nhất một hợp đồng.');
+            else alert('Vui lòng chọn ít nhất một hợp đồng.');
             return;
         }
+        if (window.MixiToast) MixiToast.info('Đang xuất danh sách ' + checkedBoxes.length + ' hợp đồng...');
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = window.location.pathname;
@@ -278,7 +281,61 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // 6. Form Validation
+    // 6. Open Renew Contract Modal
+    window.openRenewModal = function(btn) {
+        const id = btn.getAttribute('data-id');
+        const code = btn.getAttribute('data-code');
+        const end = btn.getAttribute('data-end');
+        const salary = btn.getAttribute('data-salary');
+
+        const renewId = document.getElementById('renewContractId');
+        const renewCode = document.getElementById('renewContractCode');
+        const renewEndDate = document.getElementById('renewEndDate');
+        const renewSalary = document.getElementById('renewSalary');
+
+        if (renewId) renewId.value = id || '';
+        if (renewCode) renewCode.textContent = code || '';
+        if (renewEndDate) {
+            if (end) {
+                const parts = end.split('-');
+                if (parts.length === 3) {
+                    const nextYear = parseInt(parts[0], 10) + 1;
+                    renewEndDate.value = nextYear + '-' + parts[1] + '-' + parts[2];
+                } else {
+                    renewEndDate.value = end;
+                }
+            } else {
+                renewEndDate.value = '';
+            }
+        }
+        if (renewSalary) renewSalary.value = salary || '';
+
+        const modalEl = document.getElementById('renewContractModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    };
+
+    // 7. Open Terminate Contract Modal
+    window.openTerminateModal = function(btn) {
+        const id = btn.getAttribute('data-id');
+        const code = btn.getAttribute('data-code');
+
+        const termId = document.getElementById('terminateContractId');
+        const termCode = document.getElementById('terminateContractCode');
+
+        if (termId) termId.value = id || '';
+        if (termCode) termCode.textContent = code || '';
+
+        const modalEl = document.getElementById('terminateContractModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    };
+
+    // 8. Form Validation
     const forms = document.querySelectorAll('.needs-validation');
     Array.prototype.slice.call(forms).forEach(function(form) {
         form.addEventListener('submit', function(event) {
@@ -289,4 +346,72 @@ document.addEventListener('DOMContentLoaded', function() {
             form.classList.add('was-validated');
         }, false);
     });
+
+    // 9. Open Transition Probation Contract Modal
+    window.openTransitionProbationModal = function(btn) {
+        const id = btn.getAttribute('data-id');
+        const code = btn.getAttribute('data-code');
+        const name = btn.getAttribute('data-name');
+        const salary = btn.getAttribute('data-salary');
+
+        const transId = document.getElementById('transProbationId');
+        const transCode = document.getElementById('transProbationCode');
+        const transName = document.getElementById('transProbationName');
+        const transSalary = document.getElementById('transProbationSalary');
+
+        if (transId) transId.value = id || '';
+        if (transCode) transCode.textContent = code || '';
+        if (transName) transName.textContent = name || '';
+        if (transSalary) {
+            let numSalary = parseFloat(salary) || 0;
+            if (numSalary > 0) {
+                let fullSalary = Math.round(numSalary / 0.85);
+                transSalary.value = fullSalary;
+            } else {
+                transSalary.value = salary || '15000000';
+            }
+        }
+
+        const modalEl = document.getElementById('transitionProbationModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    };
+
+    // 10. Dynamic feedback for Điều 20 BLLĐ 2019 in New Contract Modal
+    const newEmpSelect = document.getElementById('newContractEmpSelect');
+    const lawAlertBox = document.getElementById('newContractLawAlert');
+    const newContractType = document.getElementById('contractTypeSelect');
+
+    if (newEmpSelect) {
+        newEmpSelect.addEventListener('change', function() {
+            const opt = this.options[this.selectedIndex];
+            const fixedCount = parseInt(opt ? opt.getAttribute('data-fixed-count') || '0' : '0', 10);
+            
+            if (lawAlertBox) {
+                if (!this.value) {
+                    lawAlertBox.classList.add('d-none');
+                } else if (fixedCount >= 2) {
+                    lawAlertBox.className = 'alert alert-danger py-2 px-3 mb-3 d-flex align-items-center gap-2';
+                    lawAlertBox.innerHTML = '<i class="bi bi-exclamation-triangle-fill fs-5 text-danger flex-shrink-0"></i>' +
+                        '<div><strong>Tuân thủ Điều 20 BLLĐ 2019:</strong> Nhân viên này đã ký <strong>' + fixedCount + '/2</strong> hợp đồng xác định thời hạn. ' +
+                        'Theo luật định, hợp đồng tiếp theo <strong class="text-danger">bắt buộc là Không xác định thời hạn</strong> (Hệ thống đã tự động chuyển đổi).</div>';
+                    if (newContractType) {
+                        newContractType.value = 'INDEFINITE';
+                        toggleEndDate('INDEFINITE', '');
+                    }
+                } else if (fixedCount === 1) {
+                    lawAlertBox.className = 'alert alert-warning py-2 px-3 mb-3 d-flex align-items-center gap-2';
+                    lawAlertBox.innerHTML = '<i class="bi bi-info-circle-fill fs-5 text-warning flex-shrink-0"></i>' +
+                        '<div><strong>Lưu ý Điều 20 BLLĐ 2019:</strong> Nhân viên đã ký <strong>1/2</strong> hợp đồng xác định thời hạn. ' +
+                        'Đây là lần ký HĐ xác định thời hạn cuối cùng cho phép trước khi bắt buộc chuyển sang Không thời hạn.</div>';
+                } else {
+                    lawAlertBox.className = 'alert alert-success py-2 px-3 mb-3 d-flex align-items-center gap-2';
+                    lawAlertBox.innerHTML = '<i class="bi bi-check-circle-fill fs-5 text-success flex-shrink-0"></i>' +
+                        '<div>Nhân viên chưa từng ký HĐ xác định thời hạn (Lần 1/2). Đủ điều kiện ký mọi loại hợp đồng theo luật định.</div>';
+                }
+            }
+        });
+    }
 });

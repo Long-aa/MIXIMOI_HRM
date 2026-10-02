@@ -58,6 +58,12 @@ public class DatabaseInitializer {
             // 9. Nạp khấu trừ & tạm ứng mẫu nếu trống
             seedSalaryDeductionsIfEmpty(conn);
 
+            // 9.5 Dọn dẹp mock data hợp đồng tự sinh trùng lặp (chỉ giữ hợp đồng chuẩn thực tế trong CSDL)
+            cleanupMockContracts(conn);
+
+            // 9.6 Dọn dẹp các bản ghi chấm công tương lai bất hợp lý (> ngày hiện tại)
+            cleanupMockAttendance(conn);
+
             // 10. Nạp bảng lương & lệnh chi mẫu nếu trống
             seedPayrollAndPaymentsIfEmpty(conn);
 
@@ -153,6 +159,8 @@ public class DatabaseInitializer {
             // Quốc tịch / dân tộc
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS nationality VARCHAR(100) DEFAULT 'Việt Nam'",
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS ethnicity VARCHAR(100)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS religion VARCHAR(50)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS marital_status VARCHAR(20)",
             // Ảnh đại diện
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)",
             // Lương cơ bản (đồng bộ với contract/payroll)
@@ -171,6 +179,16 @@ public class DatabaseInitializer {
             // Ngày kết thúc/thôi việc
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS end_date DATE",
             "ALTER TABLE employees ADD COLUMN IF NOT EXISTS termination_reason TEXT",
+            // Giấy tờ tùy thân & Hồ sơ đính kèm
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS id_card_front_url VARCHAR(500)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS id_card_back_url VARCHAR(500)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS resume_url VARCHAR(500)",
+            // Cấu trúc công việc, Level & Quản lý
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS work_location VARCHAR(100)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS employee_level VARCHAR(50)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS secondary_phone VARCHAR(20)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS line_manager VARCHAR(150)",
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS mentor_name VARCHAR(150)",
 
             // Bảng cấu hình lương & quy chế
             "CREATE TABLE IF NOT EXISTS salary_configs ("
@@ -199,6 +217,20 @@ public class DatabaseInitializer {
             + "employee_id INTEGER NOT NULL REFERENCES employees(id), amount NUMERIC(15,0) NOT NULL, "
             + "payment_date DATE NOT NULL, payment_method VARCHAR(50) NOT NULL DEFAULT 'BANK_TRANSFER', "
             + "status VARCHAR(30) NOT NULL DEFAULT 'COMPLETED', notes TEXT, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+
+            // Bảng payroll_details: Lưu snapshot chi tiết các thành phần lương
+            "CREATE TABLE IF NOT EXISTS payroll_details ("
+            + "id SERIAL PRIMARY KEY, payroll_id INTEGER NOT NULL REFERENCES payroll(id) ON DELETE CASCADE, "
+            + "component_name VARCHAR(150) NOT NULL, component_type VARCHAR(50) NOT NULL, "
+            + "amount NUMERIC(15,0) NOT NULL DEFAULT 0, note TEXT, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+            "CREATE INDEX IF NOT EXISTS idx_payroll_details_pid ON payroll_details(payroll_id)",
+
+            // Bảng timesheet_locks: Lưu trạng thái khóa/mở bảng công tháng
+            "CREATE TABLE IF NOT EXISTS timesheet_locks ("
+            + "id SERIAL PRIMARY KEY, pay_month INTEGER NOT NULL, pay_year INTEGER NOT NULL, "
+            + "is_locked BOOLEAN NOT NULL DEFAULT FALSE, locked_by INTEGER REFERENCES employees(id), "
+            + "locked_at TIMESTAMP, unlocked_by INTEGER REFERENCES employees(id), unlocked_at TIMESTAMP, "
+            + "note TEXT, CONSTRAINT uq_timesheet_month_year UNIQUE(pay_month, pay_year))",
 
             // ===== Module Tuyển Dụng =====
             // Bảng recruitment_requests
@@ -283,18 +315,7 @@ public class DatabaseInitializer {
             + "status VARCHAR(30) NOT NULL DEFAULT 'PENDING', feedback TEXT, "
             + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP)",
 
-            "CREATE INDEX IF NOT EXISTS idx_eval_employee ON performance_evaluations(employee_id)",
-            "CREATE INDEX IF NOT EXISTS idx_eval_quarter ON performance_evaluations(quarter)",
-            "CREATE INDEX IF NOT EXISTS idx_eval_status ON performance_evaluations(status)",
-
-            // Bảng overtime: overtime_code
-            "ALTER TABLE overtime ADD COLUMN IF NOT EXISTS overtime_code VARCHAR(50)",
-            "CREATE UNIQUE INDEX IF NOT EXISTS idx_overtime_code ON overtime(overtime_code) WHERE overtime_code IS NOT NULL",
-
-            // Bảng work_shifts: unique index
-            "CREATE UNIQUE INDEX IF NOT EXISTS idx_work_shifts_name ON work_shifts(name)",
-
-            // Bảng notifications: hỗ trợ thông báo chung toàn công ty & link chuyển hướng
+            "CREATE INDEX IF NOT EXISTS idx_ev            // Bảng notifications: hỗ trợ thông báo chung toàn công ty & link chuyển hướng
             "CREATE TABLE IF NOT EXISTS notifications ("
             + "id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), "
             + "title VARCHAR(255) NOT NULL, message TEXT, type VARCHAR(50) NOT NULL DEFAULT 'INFO', "
@@ -325,7 +346,62 @@ public class DatabaseInitializer {
             // Cập nhật định dạng CV mẫu và nội dung trích xuất cho các ứng viên (Word, PDF, Bản chữ viết tay quét OCR)
             "UPDATE candidates SET cv_type = 'WORD', cv_text = 'BẢN WORD (.DOCX) - CV Ứng viên: ' || full_name || '. Kỹ năng chuyên môn: Java, Spring Boot, Microservices, Docker, Kubernetes, PostgreSQL, Kafka, Redis. Kinh nghiệm 4+ năm phát triển hệ thống tài chính phân tán, tối ưu hóa database truy vấn cao tải. Ngoại ngữ: Tiếng Anh giao tiếp lưu loát.' WHERE id % 3 = 1",
             "UPDATE candidates SET cv_type = 'HANDWRITTEN', cv_text = '[BẢN CHỮ VIẾT TAY - QUÉT NHẬN DẠNG OCR TỰ ĐỘNG] Trích xuất từ tài liệu viết tay của ứng viên: ' || full_name || '. Kinh nghiệm thực chiến: Quản lý khách hàng doanh nghiệp B2B, đàm phán hợp đồng, thuyết trình, chăm sóc đối tác, kỹ năng giao tiếp tốt. Ghi chú phỏng vấn: Chữ viết rõ ràng, tư duy phản biện sắc bén.' WHERE id % 3 = 2",
-            "UPDATE candidates SET cv_type = 'PDF', cv_text = 'FILE PDF (.PDF) - CURRICULUM VITAE: ' || full_name || '. Chuyên ngành: Thiết kế UI/UX & Frontend Developer. Kỹ năng: Figma, Design System, React, VueJS, TypeScript, TailwindCSS, HTML5/CSS3. Đã tham gia triển khai 10+ dự án Web App và Mobile App. Khả năng làm việc độc lập và nhóm xuất sắc.' WHERE id % 3 = 0"
+            "UPDATE candidates SET cv_type = 'PDF', cv_text = 'FILE PDF (.PDF) - CURRICULUM VITAE: ' || full_name || '. Chuyên ngành: Thiết kế UI/UX & Frontend Developer. Kỹ năng: Figma, Design System, React, VueJS, TypeScript, TailwindCSS, HTML5/CSS3. Đã tham gia triển khai 10+ dự án Web App và Mobile App. Khả năng làm việc độc lập và nhóm xuất sắc.' WHERE id % 3 = 0",
+
+            // Bảng audit_logs: Nhật ký kiểm toán cho các thao tác nhạy cảm
+            "CREATE TABLE IF NOT EXISTS audit_logs ("
+            + "id SERIAL PRIMARY KEY, user_id INTEGER, username VARCHAR(100) NOT NULL, "
+            + "user_role VARCHAR(50) NOT NULL, action VARCHAR(100) NOT NULL, module VARCHAR(50) NOT NULL, "
+            + "record_id INTEGER, details TEXT, ip_address VARCHAR(50), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+            "CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_audit_module ON audit_logs(module)",
+
+            // Đồng bộ trừ giờ nghỉ trưa cho các bản ghi về sớm bị lưu nhầm 8.0h
+            "UPDATE attendance SET total_hours = ROUND(GREATEST(0.1, (EXTRACT(EPOCH FROM (check_out - check_in))/60 - CASE WHEN EXTRACT(EPOCH FROM (check_out - check_in))/60 >= 300 THEN 60 ELSE 0 END)/60.0)::numeric, 1) "
+            + "WHERE check_in IS NOT NULL AND check_out IS NOT NULL AND status = 'EARLY_LEAVE' AND total_hours = 8.0",
+
+            // [F1.3] Liên kết nhân viên và chấm công với ca làm việc (work_shifts)
+            "ALTER TABLE employees ADD COLUMN IF NOT EXISTS default_shift_id INT REFERENCES work_shifts(id)",
+            "ALTER TABLE attendance ADD COLUMN IF NOT EXISTS shift_id INT REFERENCES work_shifts(id)",
+
+            // [F2.2] Bảng attendance_explain_requests phục vụ giải trình O(1)
+            "CREATE TABLE IF NOT EXISTS attendance_explain_requests ("
+            + "id SERIAL PRIMARY KEY, "
+            + "attendance_id INTEGER NOT NULL REFERENCES attendance(id) ON DELETE CASCADE, "
+            + "employee_id INTEGER NOT NULL REFERENCES employees(id), "
+            + "reason TEXT NOT NULL, "
+            + "status VARCHAR(20) NOT NULL DEFAULT 'PENDING', "
+            + "reviewed_by INTEGER REFERENCES users(id), "
+            + "reviewed_at TIMESTAMP, "
+            + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, "
+            + "UNIQUE (attendance_id))",
+            "CREATE INDEX IF NOT EXISTS idx_explain_status ON attendance_explain_requests(status)",
+            "CREATE INDEX IF NOT EXISTS idx_explain_emp ON attendance_explain_requests(employee_id)",
+
+            // ===== Enterprise Composite Indexes (Tối ưu hóa hiệu năng truy vấn lớn) =====
+            "CREATE INDEX IF NOT EXISTS idx_attendance_emp_date ON attendance(employee_id, work_date DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_payroll_period_status ON payroll(pay_month, pay_year, status)",
+            "CREATE INDEX IF NOT EXISTS idx_leave_emp_dates ON leave_requests(employee_id, start_date, end_date)",
+            "CREATE INDEX IF NOT EXISTS idx_overtime_emp_date ON overtime(employee_id, overtime_date DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_contracts_emp_status ON contracts(employee_id, status)",
+
+            // Seed mặc định work_shifts nếu chưa có
+            "INSERT INTO work_shifts (name, start_time, end_time, standard_hours, description) VALUES "
+            + "('Ca hành chính', '08:30', '17:30', 8.0, 'Ca làm việc tiêu chuẩn 8h'), "
+            + "('Ca sáng', '07:00', '11:30', 4.5, 'Ca làm việc buổi sáng'), "
+            + "('Ca chiều', '13:00', '17:30', 4.5, 'Ca làm việc buổi chiều') "
+            + "ON CONFLICT (name) DO NOTHING"OT EXISTS idx_attendance_emp_date ON attendance(employee_id, work_date DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_payroll_period_status ON payroll(pay_month, pay_year, status)",
+            "CREATE INDEX IF NOT EXISTS idx_leave_emp_dates ON leave_requests(employee_id, start_date, end_date)",
+            "CREATE INDEX IF NOT EXISTS idx_overtime_emp_date ON overtime(employee_id, overtime_date DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_contracts_emp_status ON contracts(employee_id, status)",
+
+            // Seed mặc định work_shifts nếu chưa có
+            "INSERT INTO work_shifts (name, start_time, end_time, standard_hours, description) VALUES "
+            + "('Ca hành chính', '08:30', '17:30', 8.0, 'Ca làm việc tiêu chuẩn 8h'), "
+            + "('Ca sáng', '07:00', '11:30', 4.5, 'Ca làm việc buổi sáng'), "
+            + "('Ca chiều', '13:00', '17:30', 4.5, 'Ca làm việc buổi chiều') "
+            + "ON CONFLICT (name) DO NOTHING"
         };
 
         for (String sql : alterSqls) {
@@ -353,11 +429,10 @@ public class DatabaseInitializer {
 
         if (empIds.isEmpty()) return;
 
-        int e1 = empIds.get(0);
-        int e2 = empIds.size() > 1 ? empIds.get(1) : e1;
-        int e3 = empIds.size() > 2 ? empIds.get(2) : e1;
-        int e4 = empIds.size() > 3 ? empIds.get(3) : e1;
-        int e5 = empIds.size() > 4 ? empIds.get(4) : e1;
+        int e1 = getSafeEmpId(empIds, 0, 1);
+        int e2 = getSafeEmpId(empIds, 1, e1);
+        int e3 = getSafeEmpId(empIds, 2, e1);
+        int e4 = getSafeEmpId(empIds, 3, e1);
 
         String insertSql = "INSERT INTO overtime (employee_id, overtime_date, start_time, end_time, hours, coefficient, amount, "
                          + "project_name, ot_type, reason, lead_approver_id, lead_status, hr_status, status, created_at) "
@@ -459,8 +534,13 @@ public class DatabaseInitializer {
                          + "VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (employee_id, work_date) DO NOTHING";
 
         try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            boolean isAfterShift = LocalTime.now().isAfter(LocalTime.of(17, 30));
             for (int i = 0; i < empIds.size(); i++) {
                 int empId = empIds.get(i);
+                if (empId == 1) {
+                    // Để trống ngày hôm nay cho nhân viên 1 (tài khoản demo/test) để người dùng tự kiểm tra check-in / check-out thực tế
+                    continue;
+                }
                 String method = (i % 2 == 0) ? "FaceID" : "Fingerprint";
                 String status;
                 LocalTime ci = null, co = null;
@@ -471,22 +551,22 @@ public class DatabaseInitializer {
                 if (mod < 6) {
                     status = "ON_TIME";
                     ci = LocalTime.of(8, 15 + (i % 12));
-                    co = LocalTime.of(17, 30 + (i % 20));
-                    hrs = 9.0;
+                    co = isAfterShift ? LocalTime.of(17, 30 + (i % 20)) : null;
+                    hrs = isAfterShift ? 8.0 : 0.0;
                     notes = "Xác thực qua máy chấm công " + method;
                 } else if (mod < 8) {
                     status = "LATE";
                     int late = 10 + (i * 3) % 30;
                     ci = LocalTime.of(8, 35).plusMinutes(late);
-                    co = LocalTime.of(17, 35);
-                    hrs = 8.0;
+                    co = isAfterShift ? LocalTime.of(17, 35) : null;
+                    hrs = isAfterShift ? 8.0 : 0.0;
                     notes = "Đi muộn " + late + " phút (Máy " + method + ")";
                 } else if (mod == 8) {
                     status = "WFH";
                     method = "GPS";
                     ci = LocalTime.of(8, 5);
-                    co = LocalTime.of(17, 10);
-                    hrs = 8.0;
+                    co = isAfterShift ? LocalTime.of(17, 10) : null;
+                    hrs = isAfterShift ? 8.0 : 0.0;
                     notes = "WFH — GPS Mobile xác thực";
                 } else {
                     status = (i % 2 == 0) ? "ON_LEAVE" : "ABSENT";
@@ -523,14 +603,13 @@ public class DatabaseInitializer {
 
         if (empIds.isEmpty()) return;
 
-        int e1 = empIds.get(0);
-        int e2 = empIds.size() > 1 ? empIds.get(1) : e1;
-        int e3 = empIds.size() > 2 ? empIds.get(2) : e1;
-        int e4 = empIds.size() > 3 ? empIds.get(3) : e1;
-        int e5 = empIds.size() > 4 ? empIds.get(4) : e1;
-        int e6 = empIds.size() > 5 ? empIds.get(5) : e1;
-        int e7 = empIds.size() > 6 ? empIds.get(6) : e1;
-        int e8 = empIds.size() > 7 ? empIds.get(7) : e1;
+        int e1 = getSafeEmpId(empIds, 0, 1);
+        int e2 = getSafeEmpId(empIds, 1, e1);
+        int e4 = getSafeEmpId(empIds, 3, e1);
+        int e5 = getSafeEmpId(empIds, 4, e1);
+        int e6 = getSafeEmpId(empIds, 5, e1);
+        int e7 = getSafeEmpId(empIds, 6, e1);
+        int e8 = getSafeEmpId(empIds, 7, e1);
 
         LocalDate today = LocalDate.now();
 
@@ -836,6 +915,34 @@ public class DatabaseInitializer {
             ps.executeBatch();
             System.out.println("[DatabaseInitializer] Đã nạp danh sách Khấu trừ/Tạm ứng mẫu vào PostgreSQL!");
         }
+    }
+
+    private static void cleanupMockContracts(Connection conn) {
+        try (Statement st = conn.createStatement()) {
+            int deleted = st.executeUpdate("DELETE FROM contracts WHERE notes = 'Hợp đồng lao động tiêu chuẩn Tập đoàn MIXIMOI'");
+            if (deleted > 0) {
+                System.out.println("[DatabaseInitializer] Đã loại bỏ " + deleted + " bản ghi hợp đồng mockdata trùng lặp!");
+            }
+            // Dọn dẹp các hợp đồng trùng lặp sinh ra do test của nhân viên 1 (Nguyễn Văn An), chỉ giữ lại duy nhất HĐ chính thức HD001
+            int deletedTestContracts = st.executeUpdate(
+                "DELETE FROM contracts WHERE employee_id = 1 AND contract_code != 'HD001'"
+            );
+            if (deletedTestContracts > 0) {
+                System.out.println("[DatabaseInitializer] Đã dọn dẹp " + deletedTestContracts + " hợp đồng trùng lặp của Nguyễn Văn An!");
+            }
+            // Đảm bảo nhân viên mới nhất có ngày tạo gần đây để kiểm tra tag NEW
+            st.executeUpdate("UPDATE employees SET created_at = CURRENT_TIMESTAMP, start_date = CURRENT_DATE WHERE employee_code = 'NV015'");
+        } catch (SQLException ignored) {}
+    }
+
+    private static void cleanupMockAttendance(Connection conn) {
+        try (Statement st = conn.createStatement()) {
+            // Loại bỏ các bản ghi chấm công có ngày làm việc trong tương lai (> ngày hiện tại)
+            int deletedFuture = st.executeUpdate("DELETE FROM attendance WHERE work_date > CURRENT_DATE");
+            if (deletedFuture > 0) {
+                System.out.println("[DatabaseInitializer] Đã dọn dẹp " + deletedFuture + " bản ghi chấm công tương lai bất hợp lý!");
+            }
+        } catch (SQLException ignored) {}
     }
 
     private static void seedPayrollAndPaymentsIfEmpty(Connection conn) throws SQLException {
@@ -1377,6 +1484,14 @@ public class DatabaseInitializer {
             ps.executeBatch();
             System.out.println("[DatabaseInitializer] Đã nạp danh sách Thông báo tuyển dụng công ty mẫu vào PostgreSQL!");
         }
+    private static int getSafeEmpId(List<Integer> list, int index, int fallback) {
+        if (list != null && list.size() > index) {
+            Integer val = list.get(index);
+            if (val != null) {
+                return val;
+            }
+        }
+        return fallback;
     }
 }
 
