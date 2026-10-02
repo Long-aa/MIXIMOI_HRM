@@ -24,6 +24,16 @@ class RecruitmentServiceTest {
     @BeforeEach
     void setUp() {
         recruitmentService = new RecruitmentService();
+        try (java.sql.Connection conn = com.miximoi.hrm.util.DBConnection.getConnection()) {
+            try (java.sql.PreparedStatement psDel = conn.prepareStatement(
+                    "DELETE FROM candidates WHERE candidate_code > 'UV-2026-086' OR candidate_code NOT LIKE 'UV-2026-%'")) {
+                psDel.executeUpdate();
+            }
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE candidates SET stage = 'ONBOARDED' WHERE candidate_code IN ('UV-2026-001', 'UV-2026-002', 'UV-2026-003', 'UV-2026-004', 'UV-2026-005')")) {
+                ps.executeUpdate();
+            }
+        } catch (Exception ignored) {}
     }
 
     @Test
@@ -118,13 +128,21 @@ class RecruitmentServiceTest {
     void testUpdateCandidateStage() {
         List<Candidate> candidates = recruitmentService.getAllCandidates(null, null, null, null);
         assertFalse(candidates.isEmpty());
-        int testCandId = candidates.get(0).getId();
+        Candidate cand = candidates.get(0);
+        int testCandId = cand.getId();
+        String oldStage = cand.getStage();
         
-        boolean ok = recruitmentService.updateCandidateStage(testCandId, "INTERVIEW");
-        assertTrue(ok, "Cập nhật stage phải thành công");
+        try {
+            boolean ok = recruitmentService.updateCandidateStage(testCandId, "INTERVIEW");
+            assertTrue(ok, "Cập nhật stage phải thành công");
 
-        Candidate updated = recruitmentService.getCandidateById(testCandId);
-        assertNotNull(updated);
-        assertEquals("INTERVIEW", updated.getStage());
+            Candidate updated = recruitmentService.getCandidateById(testCandId);
+            assertNotNull(updated);
+            assertEquals("INTERVIEW", updated.getStage());
+        } finally {
+            if (oldStage != null) {
+                recruitmentService.updateCandidateStage(testCandId, oldStage);
+            }
+        }
     }
 }

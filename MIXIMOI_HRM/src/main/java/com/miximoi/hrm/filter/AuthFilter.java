@@ -51,8 +51,25 @@ public class AuthFilter implements Filter {
             }
         }
 
-        // Chỉ ADMIN và HR được vào /recruitment, /positions, /contracts
-        if (path.startsWith("/recruitment") || path.startsWith("/positions") || path.startsWith("/contracts")) {
+        // Phân quyền cho Quản lý tuyển dụng
+        if (path.startsWith("/recruitment")) {
+            if (!"ADMIN".equals(role) && !"HR".equals(role)) {
+                String viewParam = request.getParameter("view");
+                String actionParam = request.getParameter("action");
+                boolean isInternalAccess = "internal".equalsIgnoreCase(viewParam)
+                        || "internal_apply".equalsIgnoreCase(actionParam)
+                        || "refer_candidate".equalsIgnoreCase(actionParam);
+
+                if (!isInternalAccess) {
+                    // Nhân viên mọi chức danh được tự do xem tuyển dụng nội bộ & giới thiệu ứng viên
+                    response.sendRedirect(request.getContextPath() + "/recruitment?view=internal");
+                    return;
+                }
+            }
+        }
+
+        // Chỉ ADMIN và HR được vào /positions, /contracts
+        if (path.startsWith("/positions") || path.startsWith("/contracts")) {
             if (!"ADMIN".equals(role) && !"HR".equals(role)) {
                 response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
                 return;

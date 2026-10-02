@@ -669,9 +669,19 @@
                             <label class="form-label small fw-semibold text-muted">Yêu cầu ứng viên (Requirements)</label>
                             <textarea class="form-control form-control-sm" name="requirements" rows="3" placeholder="Số năm kinh nghiệm, kỹ năng chuyên môn, bằng cấp..."></textarea>
                         </div>
-                        <div>
+                        <div class="mb-3">
                             <label class="form-label small fw-semibold text-muted">Quyền lợi & Chế độ đãi ngộ (Benefits)</label>
                             <textarea class="form-control form-control-sm" name="benefits" rows="2" placeholder="Lương thưởng, bảo hiểm, đào tạo, lộ trình thăng tiến..."></textarea>
+                        </div>
+
+                        <div class="form-check form-switch p-3 bg-light rounded-2 border">
+                            <input class="form-check-input ms-0 me-2" type="checkbox" name="postToCompanyNotice" id="postToCompanyNotice" value="true" checked>
+                            <label class="form-check-label fw-bold text-primary small" for="postToCompanyNotice">
+                                <i class="bi bi-megaphone-fill me-1"></i> Tự động đăng thông tin lên Giao diện thông báo của công ty
+                            </label>
+                            <div class="text-muted small ps-4" style="font-size: 0.75rem;">
+                                Hệ thống sẽ phát thông báo lên Bảng tin công ty (Dashboard) & Chuông thông báo để toàn thể nhân viên xem được vị trí vừa mở tuyển.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -826,7 +836,7 @@
                         <small class="text-white text-opacity-75" style="font-size: 0.78rem;">Lên lịch phỏng vấn và gửi thư mời tới ứng viên</small>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-target="#interviewWeekModal" data-bs-toggle="modal" aria-label="Quay lại lịch tuần"></button>
             </div>
 
             <form method="POST" action="${pageContext.request.contextPath}/recruitment">
@@ -885,8 +895,11 @@
                     </div>
                 </div>
 
-                <div class="modal-footer bg-light border-top p-3 px-4">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                <div class="modal-footer bg-light border-top p-3 px-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-1" data-bs-target="#interviewWeekModal" data-bs-toggle="modal">
+                        <i class="bi bi-arrow-left"></i>
+                        <span>Quay lại lịch tuần</span>
+                    </button>
                     <button type="submit" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm">
                         <i class="bi bi-check-lg"></i>
                         <span>Lưu lịch phỏng vấn</span>
@@ -1023,6 +1036,33 @@
             }
         });
     }
+
+    // 4. Quản lý chuyển đổi mượt mà giữa Lịch tuần và Xếp lịch phỏng vấn, ngăn kẹt màn hình / kẹt backdrop đen
+    const scheduleModal = document.getElementById('scheduleInterviewModal');
+    const weekModal = document.getElementById('interviewWeekModal');
+    
+    [scheduleModal, weekModal].forEach(modalEl => {
+        if (!modalEl) return;
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            setTimeout(() => {
+                const openModals = document.querySelectorAll('.modal.show');
+                if (openModals.length === 0) {
+                    document.querySelectorAll('.modal-backdrop').forEach(bd => bd.remove());
+                    document.body.classList.remove('modal-open');
+                    document.body.style.removeProperty('overflow');
+                    document.body.style.removeProperty('padding-right');
+                } else {
+                    document.body.classList.add('modal-open');
+                    if (document.querySelectorAll('.modal-backdrop').length > 1) {
+                        const backdrops = document.querySelectorAll('.modal-backdrop');
+                        for (let i = 1; i < backdrops.length; i++) {
+                            backdrops[i].remove();
+                        }
+                    }
+                }
+            }, 100);
+        });
+    });
 </script>
 </body>
 </html>

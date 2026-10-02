@@ -67,6 +67,9 @@ public class DatabaseInitializer {
             // 12. Nạp dữ liệu Đánh giá KPI & Hiệu suất mẫu nếu trống
             seedPerformanceAndKpiIfEmpty(conn);
 
+            // 13. Nạp dữ liệu Thông báo công ty & Tuyển dụng mẫu nếu trống
+            seedNotificationsIfEmpty(conn);
+
             initialized = true;
             System.out.println("[DatabaseInitializer] Đồng bộ CSDL và dữ liệu mẫu thành công!");
         } catch (SQLException e) {
@@ -289,7 +292,40 @@ public class DatabaseInitializer {
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_overtime_code ON overtime(overtime_code) WHERE overtime_code IS NOT NULL",
 
             // Bảng work_shifts: unique index
-            "CREATE UNIQUE INDEX IF NOT EXISTS idx_work_shifts_name ON work_shifts(name)"
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_work_shifts_name ON work_shifts(name)",
+
+            // Bảng notifications: hỗ trợ thông báo chung toàn công ty & link chuyển hướng
+            "CREATE TABLE IF NOT EXISTS notifications ("
+            + "id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), "
+            + "title VARCHAR(255) NOT NULL, message TEXT, type VARCHAR(50) NOT NULL DEFAULT 'INFO', "
+            + "is_read BOOLEAN NOT NULL DEFAULT FALSE, link_url VARCHAR(255), module VARCHAR(50) DEFAULT 'GENERAL', "
+            + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+            "ALTER TABLE notifications ALTER COLUMN user_id DROP NOT NULL",
+            "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link_url VARCHAR(255)",
+            "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS module VARCHAR(50) DEFAULT 'GENERAL'",
+
+            // Bổ sung các cột phục vụ lọc vị trí theo thành phố, quét từ khóa CV đa định dạng (Word, PDF, Bản chữ viết)
+            "ALTER TABLE recruitment_requests ADD COLUMN IF NOT EXISTS location VARCHAR(150) DEFAULT 'Hà Nội'",
+            "ALTER TABLE recruitment_requests ADD COLUMN IF NOT EXISTS keywords VARCHAR(500)",
+            "ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cv_type VARCHAR(50) DEFAULT 'PDF'",
+            "ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cv_text TEXT",
+
+            // Cập nhật địa điểm mẫu cho các vị trí tuyển dụng
+            "UPDATE recruitment_requests SET location = 'TP. Hồ Chí Minh' WHERE id IN (1, 3, 9, 10)",
+            "UPDATE recruitment_requests SET location = 'Đà Nẵng' WHERE id IN (8)",
+            "UPDATE recruitment_requests SET location = 'Toàn quốc (Remote)' WHERE id IN (6)",
+            "UPDATE recruitment_requests SET location = 'Hà Nội' WHERE id IN (2, 4, 5, 7, 11, 12)",
+            "UPDATE recruitment_requests SET keywords = 'React, Go, Node, Microservices, PostgreSQL, Docker, Tiếng Anh' WHERE id = 1",
+            "UPDATE recruitment_requests SET keywords = 'B2B Sales, Đàm phán, Kỹ năng thuyết trình, CRM, Tiếng Anh, Đại học' WHERE id = 2",
+            "UPDATE recruitment_requests SET keywords = 'Figma, UI/UX, Design System, Wireframe, Prototyping, User Research' WHERE id = 3",
+            "UPDATE recruitment_requests SET keywords = 'SEO, Copywriting, Social Media, Content Marketing, Tiếng Anh' WHERE id = 4",
+            "UPDATE recruitment_requests SET keywords = 'VueJS, NuxtJS, JavaScript, Tailwind, CSS3, REST API, Git' WHERE id = 8",
+            "UPDATE recruitment_requests SET keywords = 'Kubernetes, AWS, Docker, CI/CD, Terraform, Linux, Security' WHERE id = 6",
+
+            // Cập nhật định dạng CV mẫu và nội dung trích xuất cho các ứng viên (Word, PDF, Bản chữ viết tay quét OCR)
+            "UPDATE candidates SET cv_type = 'WORD', cv_text = 'BẢN WORD (.DOCX) - CV Ứng viên: ' || full_name || '. Kỹ năng chuyên môn: Java, Spring Boot, Microservices, Docker, Kubernetes, PostgreSQL, Kafka, Redis. Kinh nghiệm 4+ năm phát triển hệ thống tài chính phân tán, tối ưu hóa database truy vấn cao tải. Ngoại ngữ: Tiếng Anh giao tiếp lưu loát.' WHERE id % 3 = 1",
+            "UPDATE candidates SET cv_type = 'HANDWRITTEN', cv_text = '[BẢN CHỮ VIẾT TAY - QUÉT NHẬN DẠNG OCR TỰ ĐỘNG] Trích xuất từ tài liệu viết tay của ứng viên: ' || full_name || '. Kinh nghiệm thực chiến: Quản lý khách hàng doanh nghiệp B2B, đàm phán hợp đồng, thuyết trình, chăm sóc đối tác, kỹ năng giao tiếp tốt. Ghi chú phỏng vấn: Chữ viết rõ ràng, tư duy phản biện sắc bén.' WHERE id % 3 = 2",
+            "UPDATE candidates SET cv_type = 'PDF', cv_text = 'FILE PDF (.PDF) - CURRICULUM VITAE: ' || full_name || '. Chuyên ngành: Thiết kế UI/UX & Frontend Developer. Kỹ năng: Figma, Design System, React, VueJS, TypeScript, TailwindCSS, HTML5/CSS3. Đã tham gia triển khai 10+ dự án Web App và Mobile App. Khả năng làm việc độc lập và nhóm xuất sắc.' WHERE id % 3 = 0"
         };
 
         for (String sql : alterSqls) {
@@ -1298,6 +1334,49 @@ public class DatabaseInitializer {
             }
         }
         System.out.println("[DatabaseInitializer] Đã nạp dữ liệu Kỳ đánh giá, KPI và Hiệu suất nhân sự mẫu!");
+    }
+
+    private static void seedNotificationsIfEmpty(Connection conn) throws SQLException {
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM notifications")) {
+            if (rs.next() && rs.getInt(1) > 0) return;
+        } catch (SQLException ignored) {}
+
+        String sql = "INSERT INTO notifications (user_id, title, message, type, is_read, link_url, module, created_at) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            LocalDateTime now = LocalDateTime.now();
+            Object[][] seed = {
+                {null, "📢 Vừa mở tuyển dụng: Senior Fullstack Engineer (React/Go)", 
+                 "Công ty MIXIMOI vừa mở tuyển dụng vị trí Senior Fullstack Engineer (React/Go) — Phòng Công nghệ & R&D (Số lượng: 3 nhân sự, Mức lương: 35 - 55 triệu VNĐ, Hạn nộp: 15/10/2026). Nhân viên quan tâm xem chi tiết & ứng tuyển nội bộ.",
+                 "RECRUITMENT", false, "/recruitment?view=internal&jobId=1", "RECRUITMENT", Timestamp.valueOf(now.minusHours(2))},
+                {null, "📢 Vừa mở tuyển dụng: Product Designer (UI/UX Senior)", 
+                 "Công ty MIXIMOI vừa mở tuyển dụng vị trí Product Designer (UI/UX Senior) — Khối Sản phẩm & Thiết kế (Số lượng: 2 nhân sự, Mức lương: 28 - 42 triệu VNĐ, Hạn nộp: 20/10/2026). Khuyến khích nhân sự các phòng ban đăng ký ứng tuyển nội bộ.",
+                 "RECRUITMENT", false, "/recruitment?view=internal&jobId=3", "RECRUITMENT", Timestamp.valueOf(now.minusHours(5))},
+                {null, "🔥 Tuyển gấp: Content Marketing Specialist", 
+                 "Ưu tiên tuyển gấp nhân sự Content Marketing Specialist — Phòng Marketing & Truyền thông (Số lượng: 2 nhân sự, Mức lương: 16 - 24 triệu VNĐ, Hạn nộp: 05/10/2026).",
+                 "RECRUITMENT", false, "/recruitment?view=internal&jobId=4", "RECRUITMENT", Timestamp.valueOf(now.minusDays(1))},
+                {null, "📢 Vừa mở tuyển dụng: Frontend Developer (VueJS / NuxtJS)", 
+                 "Công ty MIXIMOI vừa mở tuyển dụng vị trí Frontend Developer (VueJS / NuxtJS) — Khối Công nghệ (Số lượng: 2 nhân sự, Mức lương: 22 - 32 triệu VNĐ, Hạn nộp: 18/10/2026).",
+                 "RECRUITMENT", false, "/recruitment?view=internal&jobId=8", "RECRUITMENT", Timestamp.valueOf(now.minusDays(2))},
+                {null, "📢 Vừa mở tuyển dụng: Chuyên viên Tuyển dụng Kỹ thuật (Tech Recruiter)", 
+                 "Công ty MIXIMOI vừa mở tuyển dụng vị trí Tech Recruiter — Ban Nhân sự (Số lượng: 1 nhân sự, Mức lương: 16 - 25 triệu VNĐ, Hạn nộp: 08/10/2026).",
+                 "RECRUITMENT", false, "/recruitment?view=internal&jobId=11", "RECRUITMENT", Timestamp.valueOf(now.minusDays(3))}
+            };
+            for (Object[] row : seed) {
+                if (row[0] != null) ps.setInt(1, (Integer) row[0]); else ps.setNull(1, Types.INTEGER);
+                ps.setString(2, (String) row[1]);
+                ps.setString(3, (String) row[2]);
+                ps.setString(4, (String) row[3]);
+                ps.setBoolean(5, (Boolean) row[4]);
+                ps.setString(6, (String) row[5]);
+                ps.setString(7, (String) row[6]);
+                ps.setTimestamp(8, (Timestamp) row[7]);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            System.out.println("[DatabaseInitializer] Đã nạp danh sách Thông báo tuyển dụng công ty mẫu vào PostgreSQL!");
+        }
     }
 }
 

@@ -68,15 +68,101 @@ public class RecruitmentServlet extends HttpServlet {
         // 2. Chuyển hướng các view con
         request.setAttribute("activeMenu", "recruitment");
 
+        HttpSession currentSession = request.getSession(false);
+        com.miximoi.hrm.model.User currentUser = (com.miximoi.hrm.model.User) (currentSession != null ? currentSession.getAttribute("currentUser") : null);
+        boolean isHrOrAdmin = currentUser != null && (currentUser.isAdmin() || currentUser.isHr());
+
+        // View 2.1: Bảng Tin Tuyển Dụng Nội Bộ Toàn Công Ty (Internal Jobs)
+        if ("internal".equalsIgnoreCase(view) || (!isHrOrAdmin && (view == null || view.trim().isEmpty()))) {
+            request.setAttribute("activeSubMenu", "internal");
+
+            Integer deptId = parseInteger(request.getParameter("departmentId"));
+            String priority = request.getParameter("priority");
+            String search = request.getParameter("search");
+            BigDecimal salMin = parseBigDecimal(request.getParameter("salaryMin"));
+            BigDecimal salMax = parseBigDecimal(request.getParameter("salaryMax"));
+
+            // Lấy toàn bộ vị trí đang tuyển công khai / nội bộ
+            List<RecruitmentRequest> internalJobs = recruitmentService.getRequests(null, deptId, "OPEN", null, search, null, priority, salMin, salMax);
+            request.setAttribute("jobs", internalJobs);
+
+            // Nạp danh sách tất cả các vị trí đang mở để phục vụ modal Giới thiệu ứng viên
+            List<RecruitmentRequest> allOpenJobs = recruitmentService.getRequests(null, null, "OPEN", null, null, null);
+            request.setAttribute("allOpenJobs", allOpenJobs);
+
+            // Lấy các vị trí vừa mở tuyển dụng gần đây (Recent open jobs)
+            List<RecruitmentRequest> recentJobs = recruitmentService.getRecentOpenRequests(5);
+            request.setAttribute("recentJobs", recentJobs);
+
+            // Lấy danh sách thông báo tuyển dụng của công ty
+            com.miximoi.hrm.dao.NotificationDAO notifDAO = new com.miximoi.hrm.dao.NotificationDAO();
+            request.setAttribute("recruitmentNotices", notifDAO.findRecentRecruitmentAnnouncements(5));
+
+            request.setAttribute("departments", departmentDAO.findAll());
+            request.setAttribute("selectedDeptId", deptId);
+            request.setAttribute("selectedPriority", priority);
+            request.setAttribute("searchKeyword", search);
+            request.setAttribute("selectedSalaryMin", salMin);
+            request.setAttribute("selectedSalaryMax", salMax);
+
+            // Vị trí đang được chọn xem chi tiết (nếu có jobId)
+            Integer jobId = parseInteger(request.getParameter("jobId"));
+            RecruitmentRequest selectedJob = null;
+            if (jobId != null) {
+                selectedJob = recruitmentService.getRequestById(jobId);
+            }
+            if (selectedJob == null && !internalJobs.isEmpty()) {
+                selectedJob = internalJobs.get(0);
+            }
+            request.setAttribute("selectedJob", selectedJob);
+
+            // Nạp danh sách đơn ứng tuyển nội bộ & đơn Referral cho bộ phận HR và nhân sự theo dõi
+            List<Candidate> allCands = recruitmentService.getAllCandidates(null, null, null, null);
+            List<Candidate> internalApplicants = new java.util.ArrayList<>();
+            List<Candidate> referralCandidates = new java.util.ArrayList<>();
+            for (Candidate c : allCands) {
+                String src = c.getSource() != null ? c.getSource().toLowerCase() : "";
+                String notes = c.getNotes() != null ? c.getNotes().toLowerCase() : "";
+                if (src.contains("ứng tuyển nội bộ") || notes.contains("ứng tuyển nội bộ")) {
+                    internalApplicants.add(c);
+                } else if (src.contains("ref") || src.contains("nội bộ") || notes.contains("referral") || notes.contains("giới thiệu")) {
+                    referralCandidates.add(c);
+                }
+            }
+            request.setAttribute("internalApplicants", internalApplicants);
+            request.setAttribute("referralCandidates", referralCandidates);
+
+            request.getRequestDispatcher("/WEB-INF/views/recruitment/recruitment-internal.jsp")
+                   .forward(request, response);
+            return;
+        }
+
         if ("jobs".equalsIgnoreCase(view)) {
             request.setAttribute("activeSubMenu", "jobs");
 
-            List<RecruitmentRequest> allJobs = recruitmentService.getRequests(null, null, null, null, null, null);
+            String quarter = request.getParameter("quarter");
+            Integer deptId = parseInteger(request.getParameter("departmentId"));
+            String status = request.getParameter("status");
+            String priority = request.getParameter("priority");
+            String search = request.getParameter("search");
+            String pill = request.getParameter("pill");
+            BigDecimal salMin = parseBigDecimal(request.getParameter("salaryMin"));
+            BigDecimal salMax = parseBigDecimal(request.getParameter("salaryMax"));
+
+            List<RecruitmentRequest> allJobs = recruitmentService.getRequests(quarter, deptId, status, null, search, pill, priority, salMin, salMax);
             request.setAttribute("jobs", allJobs);
             request.setAttribute("departments", departmentDAO.findAll());
             request.setAttribute("positions", positionDAO.findAll());
             request.setAttribute("employees", employeeDAO.findAll());
             request.setAttribute("nextRequestCode", recruitmentService.getNextRequestCode());
+
+            // Bind filter parameters for UI preservation
+            request.setAttribute("selectedDeptId", deptId);
+            request.setAttribute("selectedStatus", status);
+            request.setAttribute("selectedPriority", priority);
+            request.setAttribute("selectedSalaryMin", salMin);
+            request.setAttribute("selectedSalaryMax", salMax);
+            request.setAttribute("searchKeyword", search);
 
             // Xác định vị trí được chọn để hiển thị trên Khung Preview (mặc định là vị trí đầu tiên)
             Integer selectedJobId = parseInteger(request.getParameter("jobId"));
@@ -107,9 +193,25 @@ public class RecruitmentServlet extends HttpServlet {
             request.setAttribute("jobsFilledCount", filledCount);
             request.setAttribute("jobsClosedCount", closedCount);
 
-            // Nạp TOP 3 ứng viên AI cho vị trí đang chọn
+            // Nạp danh sách ứng viên và kết quả AI cho vị trí đang chọn
+            List<Candidate> allSystemCandidates = recruitmentService.getAllCandidates(null, null, null, null);
+            request.setAttribute("allSystemCandidates", allSystemCandidates);
+
             if (selectedJob != null) {
-                List<Candidate> topAi = recruitmentService.getTopCandidatesForJob(selectedJob.getId(), 3);
+                List<Candidate> allJobCandidates = recruitmentService.getAllCandidates(selectedJob.getId(), null, null, null);
+                request.setAttribute("jobCandidates", allJobCandidates);
+
+                // Danh sách ứng viên đã được duyệt / phỏng vấn cho vị trí này
+                List<Candidate> approvedJobCandidates = new java.util.ArrayList<>();
+                for (Candidate c : allJobCandidates) {
+                    String st = c.getStage() != null ? c.getStage().toUpperCase() : "NEW";
+                    if (!"REJECTED".equals(st)) {
+                        approvedJobCandidates.add(c);
+                    }
+                }
+                request.setAttribute("approvedJobCandidates", approvedJobCandidates);
+
+                List<Candidate> topAi = recruitmentService.getTopCandidatesForJob(selectedJob.getId(), 5);
                 request.setAttribute("topAiCandidates", topAi);
                 if (!topAi.isEmpty()) {
                     request.setAttribute("aiInterviewQuestions", 
@@ -264,7 +366,13 @@ public class RecruitmentServlet extends HttpServlet {
                 response.getWriter().write("{\"success\":" + ok + "}");
                 return;
             }
-            redirectTarget += "?view=candidates&success=" + (ok ? "stage_updated" : "update_failed");
+            String returnView = request.getParameter("returnView");
+            if ("jobs".equalsIgnoreCase(returnView)) {
+                Integer jobId = parseInteger(request.getParameter("jobId"));
+                redirectTarget += "?view=jobs" + (jobId != null ? "&jobId=" + jobId : "") + "&success=" + (ok ? "stage_updated" : "update_failed");
+            } else {
+                redirectTarget += "?view=candidates&success=" + (ok ? "stage_updated" : "update_failed");
+            }
 
         } else if ("create_request".equalsIgnoreCase(action) || "create_job".equalsIgnoreCase(action)) {
             // Xử lý tạo mới Yêu cầu tuyển dụng / Vị trí
@@ -307,13 +415,181 @@ public class RecruitmentServlet extends HttpServlet {
             req.setRequirements(request.getParameter("requirements"));
             req.setBenefits(request.getParameter("benefits"));
 
+            String locationParam = request.getParameter("location");
+            req.setLocation(locationParam != null && !locationParam.trim().isEmpty() ? locationParam.trim() : "Hà Nội");
+            req.setKeywords(request.getParameter("keywords"));
+
             boolean success = recruitmentService.createRequest(req);
             String viewParam = "create_job".equalsIgnoreCase(action) ? "?view=jobs&" : "?";
             if (success) {
+                // Tự động đăng thông tin lên giao diện thông báo của công ty
+                String postNotice = request.getParameter("postToCompanyNotice");
+                if (postNotice == null || "on".equalsIgnoreCase(postNotice) || "true".equalsIgnoreCase(postNotice)) {
+                    String deptName = "";
+                    if (req.getDepartmentId() != null) {
+                        com.miximoi.hrm.model.Department d = departmentDAO.findById(req.getDepartmentId());
+                        if (d != null) deptName = d.getName();
+                    }
+                    recruitmentService.publishRecruitmentAnnouncement(req, deptName);
+                }
                 redirectTarget += viewParam + "success=job_created";
             } else {
                 redirectTarget += viewParam + "error=create_failed";
             }
+
+        } else if ("internal_apply".equalsIgnoreCase(action)) {
+            // Xử lý nộp đơn ứng tuyển nội bộ (Chuyển bộ phận / Thăng tiến)
+            Candidate c = new Candidate();
+            Integer reqId = parseInteger(request.getParameter("recruitmentRequestId"));
+            if (reqId != null) c.setRecruitmentRequestId(reqId);
+            c.setFullName(request.getParameter("fullName"));
+            c.setEmail(request.getParameter("email"));
+            c.setPhone(request.getParameter("phone"));
+            c.setSource("Ứng tuyển nội bộ");
+            c.setStage("NEW");
+
+            String expStr = request.getParameter("experienceYears");
+            if (expStr != null && !expStr.trim().isEmpty()) {
+                try { c.setExperienceYears(new BigDecimal(expStr.trim())); } catch (Exception ignored) {}
+            }
+            String salStr = request.getParameter("expectedSalary");
+            if (salStr != null && !salStr.trim().isEmpty()) {
+                try { c.setExpectedSalary(new BigDecimal(salStr.replaceAll("[^0-9]", ""))); } catch (Exception ignored) {}
+            }
+            c.setCvUrl(request.getParameter("cvUrl"));
+            String currentDept = request.getParameter("currentDepartment");
+            String reason = request.getParameter("reason");
+            c.setNotes("ỨNG TUYỂN NỘI BỘ (Chuyển bộ phận / Thăng tiến).\nPhòng ban hiện tại: " 
+                    + (currentDept != null ? currentDept : "Không xác định") 
+                    + "\nNguyện vọng: " + (reason != null ? reason : "Ứng tuyển nâng cao chuyên môn"));
+            c.setAppliedDate(LocalDate.now());
+
+            boolean success = recruitmentService.createCandidate(c);
+            redirectTarget = request.getContextPath() + "/recruitment?view=internal" 
+                    + (reqId != null ? "&jobId=" + reqId : "") 
+                    + "&success=" + (success ? "internal_applied" : "apply_failed");
+
+        } else if ("refer_candidate".equalsIgnoreCase(action)) {
+            // Xử lý giới thiệu ứng viên (Referral nhận thưởng)
+            Candidate c = new Candidate();
+            Integer reqId = parseInteger(request.getParameter("recruitmentRequestId"));
+            if (reqId == null || reqId <= 0) {
+                // Tự động tìm vị trí OPEN đầu tiên làm fallback để tránh lỗi DB constraint
+                List<RecruitmentRequest> openList = recruitmentService.getRequests(null, null, "OPEN", null, null, null);
+                if (openList != null && !openList.isEmpty()) {
+                    reqId = openList.get(0).getId();
+                }
+            }
+            if (reqId != null) c.setRecruitmentRequestId(reqId);
+            c.setFullName(request.getParameter("candidateName"));
+            c.setEmail(request.getParameter("candidateEmail"));
+            c.setPhone(request.getParameter("candidatePhone"));
+            c.setSource("Nội bộ (Ref)");
+            c.setStage("NEW");
+
+            String expStr = request.getParameter("experienceYears");
+            if (expStr != null && !expStr.trim().isEmpty()) {
+                try { c.setExperienceYears(new BigDecimal(expStr.trim())); } catch (Exception ignored) {}
+            }
+            String salStr = request.getParameter("expectedSalary");
+            if (salStr != null && !salStr.trim().isEmpty()) {
+                try { c.setExpectedSalary(new BigDecimal(salStr.replaceAll("[^0-9]", ""))); } catch (Exception ignored) {}
+            }
+            c.setCvUrl(request.getParameter("cvUrl"));
+            String referrerName = request.getParameter("referrerName");
+            String notes = request.getParameter("notes");
+            c.setNotes("GIỚI THIỆU ỨNG VIÊN (REFERRAL NHẬN THƯỞNG).\nNgười giới thiệu: " 
+                    + (referrerName != null ? referrerName : "Nhân viên nội bộ") 
+                    + "\nĐánh giá / Ghi chú: " + (notes != null ? notes : ""));
+            c.setAppliedDate(LocalDate.now());
+
+            boolean success = recruitmentService.createCandidate(c);
+            redirectTarget = request.getContextPath() + "/recruitment?view=internal" 
+                    + (reqId != null ? "&jobId=" + reqId : "") 
+                    + (success ? "&success=candidate_referred" : "&error=refer_failed");
+
+        } else if ("hr_update_internal_stage".equalsIgnoreCase(action)) {
+            // HR cập nhật giai đoạn hồ sơ ứng tuyển nội bộ
+            Integer candId = parseInteger(request.getParameter("candidateId"));
+            String stage = request.getParameter("stage");
+            boolean ok = false;
+            if (candId != null && stage != null) {
+                ok = recruitmentService.updateCandidateStage(candId, stage);
+            }
+            redirectTarget = request.getContextPath() + "/recruitment?view=internal&success=" + (ok ? "internal_stage_updated" : "update_failed");
+
+        } else if ("hr_approve_referral_bonus".equalsIgnoreCase(action)) {
+            // HR phê duyệt chi thưởng hoa hồng Referral cho nhân viên giới thiệu theo cấp bậc
+            Integer candId = parseInteger(request.getParameter("candidateId"));
+            String bonusAmount = request.getParameter("bonusAmount");
+            String rankLevel = request.getParameter("rankLevel");
+            String payrollPeriod = request.getParameter("payrollPeriod");
+            String hrNotes = request.getParameter("hrNotes");
+
+            if (bonusAmount == null || bonusAmount.trim().isEmpty()) bonusAmount = "6.000.000 VNĐ";
+            if (rankLevel == null || rankLevel.trim().isEmpty()) rankLevel = "Senior Engineer / Chuyên Viên Cao Cấp";
+            if (payrollPeriod == null || payrollPeriod.trim().isEmpty()) {
+                payrollPeriod = "Kỳ lương Tháng " + LocalDate.now().plusMonths(1).getMonthValue() + "/" + LocalDate.now().plusMonths(1).getYear();
+            }
+            if (hrNotes == null) hrNotes = "";
+
+            boolean ok = false;
+            if (candId != null) {
+                Candidate c = recruitmentService.getCandidateById(candId);
+                if (c != null) {
+                    // Cập nhật trạng thái candidate sang ONBOARDED (Đã tiếp nhận)
+                    recruitmentService.updateCandidateStage(candId, "ONBOARDED");
+
+                    String approveLog = "\n[HR ĐÃ DUYỆT THƯỞNG REFERRAL: " + bonusAmount 
+                            + " | Cấp bậc: " + rankLevel 
+                            + " | Chi trả: " + payrollPeriod 
+                            + (!hrNotes.trim().isEmpty() ? (" | Đánh giá: " + hrNotes.trim()) : "") 
+                            + " - Ngày duyệt: " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + "]";
+                    c.setNotes((c.getNotes() != null ? c.getNotes() : "") + approveLog);
+                    recruitmentService.updateCandidateNotes(candId, c.getNotes());
+
+                    // Trích xuất tên người giới thiệu để ghi nhận khoản thưởng vào bảng bonuses (Payroll)
+                    try {
+                        String notes = c.getNotes();
+                        String refName = null;
+                        if (notes != null && notes.contains("Người giới thiệu:")) {
+                            String after = notes.substring(notes.indexOf("Người giới thiệu:") + "Người giới thiệu:".length()).trim();
+                            refName = after.split("\n")[0].trim();
+                        }
+                        if (refName != null && !refName.isEmpty()) {
+                            List<com.miximoi.hrm.model.Employee> emps = employeeDAO.findAll();
+                            com.miximoi.hrm.model.Employee referrerEmp = null;
+                            for (com.miximoi.hrm.model.Employee emp : emps) {
+                                if (emp.getFullName() != null && emp.getFullName().trim().equalsIgnoreCase(refName)) {
+                                    referrerEmp = emp;
+                                    break;
+                                }
+                            }
+                            if (referrerEmp != null) {
+                                String cleanNum = bonusAmount.replaceAll("[^0-9]", "");
+                                if (!cleanNum.isEmpty()) {
+                                    BigDecimal amountNumeric = new BigDecimal(cleanNum);
+                                    com.miximoi.hrm.model.Bonus bonus = new com.miximoi.hrm.model.Bonus();
+                                    bonus.setEmployeeId(referrerEmp.getId());
+                                    bonus.setName("Thưởng Referral tuyển dụng: " + c.getFullName() + " (" + rankLevel + ")");
+                                    bonus.setAmount(amountNumeric);
+                                    bonus.setBonusDate(LocalDate.now());
+                                    bonus.setPayMonth(LocalDate.now().plusMonths(1).getMonthValue());
+                                    bonus.setPayYear(LocalDate.now().plusMonths(1).getYear());
+                                    bonus.setNotes("Phê duyệt hoa hồng giới thiệu ứng viên đạt thử việc. Ghi chú HR: " + hrNotes);
+                                    com.miximoi.hrm.dao.BonusDAO bDao = new com.miximoi.hrm.dao.BonusDAO();
+                                    bDao.insert(bonus);
+                                }
+                            }
+                        }
+                    } catch (Exception ex) {
+                        System.err.println("Ghi nhận thưởng Referral vào BonusDAO: " + ex.getMessage());
+                    }
+
+                    ok = true;
+                }
+            }
+            redirectTarget = request.getContextPath() + "/recruitment?view=internal&success=" + (ok ? "referral_bonus_approved" : "update_failed");
 
         } else if ("add_candidate".equalsIgnoreCase(action)) {
             Candidate c = new Candidate();
@@ -322,7 +598,7 @@ public class RecruitmentServlet extends HttpServlet {
             c.setPhone(request.getParameter("phone"));
             Integer rId = parseInteger(request.getParameter("recruitmentRequestId"));
             if (rId != null) c.setRecruitmentRequestId(rId);
-            c.setSource(request.getParameter("source"));
+            c.setSource(request.getParameter("source") != null ? request.getParameter("source") : "Ứng tuyển trực tuyến");
             c.setStage("NEW");
 
             String expStr = request.getParameter("experienceYears");
@@ -339,11 +615,21 @@ public class RecruitmentServlet extends HttpServlet {
             c.setNotes(request.getParameter("notes"));
             c.setAppliedDate(LocalDate.now());
 
+            String cvTypeParam = request.getParameter("cvType");
+            if (cvTypeParam != null && !cvTypeParam.trim().isEmpty()) {
+                c.setCvType(cvTypeParam.trim());
+            }
+            String cvTextParam = request.getParameter("cvText");
+            if (cvTextParam != null && !cvTextParam.trim().isEmpty()) {
+                c.setCvText(cvTextParam.trim());
+            }
+
             boolean success = recruitmentService.createCandidate(c);
-            if (success) {
-                redirectTarget += "?view=candidates&success=candidate_added";
+            String returnView = request.getParameter("returnView");
+            if ("jobs".equalsIgnoreCase(returnView)) {
+                redirectTarget += "?view=jobs&jobId=" + (rId != null ? rId : "") + "&success=" + (success ? "candidate_added" : "add_candidate_failed");
             } else {
-                redirectTarget += "?view=candidates&error=add_candidate_failed";
+                redirectTarget += "?view=candidates&success=" + (success ? "candidate_added" : "add_candidate_failed");
             }
 
         } else if ("ai_batch_promote".equalsIgnoreCase(action)) {
@@ -405,6 +691,15 @@ public class RecruitmentServlet extends HttpServlet {
         }
 
         response.sendRedirect(redirectTarget);
+    }
+
+    private BigDecimal parseBigDecimal(String val) {
+        if (val == null || val.trim().isEmpty()) return null;
+        try {
+            return new BigDecimal(val.replaceAll("[^0-9.]", ""));
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private Integer parseInteger(String val) {

@@ -1113,6 +1113,123 @@
                 </div>
             </div>
 
+            <!-- 7.5. Bảng Thông Báo Công Ty: Các Vị Trí Tuyển Dụng Vừa Mở Tuyển -->
+            <div class="row g-3 mb-3">
+                <div class="col-12">
+                    <div class="app-card border-0 shadow-sm rounded-3 p-4" style="background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%); border-left: 5px solid #2563eb !important;">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3 pb-3 border-bottom">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge rounded-pill bg-primary px-3 py-1 fw-bold" style="font-size: 0.75rem;">
+                                        <i class="bi bi-megaphone-fill me-1"></i> BẢNG TIN THÔNG BÁO CÔNG TY
+                                    </span>
+                                    <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-semibold" style="font-size: 0.72rem;">
+                                        🔥 Vừa mở tuyển dụng
+                                    </span>
+                                </div>
+                                <h4 class="fw-bold text-dark mb-1">Các Vị Trí Tuyển Dụng Công Ty Vừa Mở Tuyển</h4>
+                                <p class="text-muted mb-0" style="font-size: 0.86rem;">
+                                    Thông báo nhu cầu tuyển dụng mới nhất toàn hệ thống. Ưu tiên xét tuyển thăng tiến / chuyển ban nội bộ và chính sách thưởng giới thiệu ứng viên (Referral Bonus) lên tới <strong>10.000.000đ</strong>.
+                                </p>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="${pageContext.request.contextPath}/recruitment?view=internal" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm">
+                                    <i class="bi bi-briefcase-fill"></i>
+                                    <span>Xem Tuyển Dụng Nội Bộ</span>
+                                </a>
+                                <c:if test="${sessionScope.currentUser.admin or sessionScope.currentUser.hr}">
+                                    <a href="${pageContext.request.contextPath}/recruitment?view=jobs" class="btn btn-outline-primary d-flex align-items-center gap-2">
+                                        <i class="bi bi-plus-circle"></i>
+                                        <span>Quản Lý Tuyển Dụng</span>
+                                    </a>
+                                </c:if>
+                            </div>
+                        </div>
+
+                        <!-- Danh sách các vị trí vừa được tạo nhu cầu tuyển dụng -->
+                        <div class="row g-3">
+                            <c:choose>
+                                <c:when test="${not empty recentJobs}">
+                                    <c:forEach items="${recentJobs}" var="job">
+                                        <div class="col-12 col-md-6 col-xl-3">
+                                            <div class="card h-100 border shadow-sm rounded-3 p-3 bg-white d-flex flex-column justify-content-between position-relative hover-shadow-sm transition-all">
+                                                <div>
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <span class="badge bg-primary-subtle text-primary fw-bold" style="font-size: 0.7rem;">
+                                                            ${not empty job.departmentName ? job.departmentName : 'Khối Chung'}
+                                                        </span>
+                                                        <c:choose>
+                                                            <c:when test="${job.priority eq 'HOT' or job.priority eq 'URGENT'}">
+                                                                <span class="badge bg-danger text-white fw-bold" style="font-size: 0.68rem;">🔥 Tuyển gấp</span>
+                                                            </c:when>
+                                                            <c:otherwise>
+                                                                <span class="badge bg-success-subtle text-success fw-bold" style="font-size: 0.68rem;">✨ Vừa mở tuyển</span>
+                                                            </c:otherwise>
+                                                        </c:choose>
+                                                    </div>
+
+                                                    <h6 class="fw-bold text-dark mb-1 text-truncate" title="${job.title}">
+                                                        <a href="${pageContext.request.contextPath}/recruitment?view=internal&jobId=${job.id}" class="text-dark text-decoration-none hover-primary">
+                                                            ${job.title}
+                                                        </a>
+                                                    </h6>
+                                                    <div class="text-muted small mb-2 font-monospace" style="font-size: 0.75rem;">
+                                                        Mã: ${job.requestCode}
+                                                    </div>
+
+                                                    <div class="p-2 rounded-2 mb-2" style="background: #f8fafc; font-size: 0.8rem;">
+                                                        <div class="d-flex justify-content-between text-muted mb-1">
+                                                            <span><i class="bi bi-cash-stack text-success me-1"></i>Mức lương:</span>
+                                                            <strong class="text-dark">
+                                                                <c:choose>
+                                                                    <c:when test="${job.salaryNegotiable}">Thỏa thuận</c:when>
+                                                                    <c:otherwise>${job.salaryMinFormatted} - ${job.salaryMaxFormatted} tr</c:otherwise>
+                                                                </c:choose>
+                                                            </strong>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between text-muted mb-1">
+                                                            <span><i class="bi bi-people text-primary me-1"></i>Số lượng:</span>
+                                                            <span class="fw-semibold text-primary">Cần tuyển ${job.targetHeadcount} NS</span>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between text-muted">
+                                                            <span><i class="bi bi-calendar-event text-warning me-1"></i>Hạn nộp:</span>
+                                                            <span class="fw-semibold">${job.deadline}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="pt-2 border-top d-flex gap-2">
+                                                    <a href="${pageContext.request.contextPath}/recruitment?view=internal&jobId=${job.id}" class="btn btn-sm btn-outline-primary w-100 fw-semibold" style="font-size: 0.78rem;">
+                                                        <i class="bi bi-send me-1"></i> Ứng tuyển ngay
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </c:forEach>
+                                </c:when>
+                                <c:otherwise>
+                                    <div class="col-12 text-center py-4 text-muted">
+                                        <i class="bi bi-briefcase fs-2 text-muted d-block mb-2"></i>
+                                        Hiện tại công ty chưa có vị trí tuyển dụng mới nào mở tuyển trong tuần.
+                                    </div>
+                                </c:otherwise>
+                            </c:choose>
+                        </div>
+
+                        <!-- Thanh thông báo nhanh dưới chân widget -->
+                        <div class="mt-3 pt-3 border-top d-flex flex-column flex-md-row justify-content-between align-items-center gap-2" style="font-size: 0.82rem;">
+                            <div class="text-muted d-flex align-items-center gap-2">
+                                <i class="bi bi-info-circle-fill text-primary"></i>
+                                <span>Nhân viên có ứng viên phù hợp? Giới thiệu ngay tại cổng Tuyển Dụng Nội Bộ để nhận hoa hồng giới thiệu nhân tài theo chính sách công ty.</span>
+                            </div>
+                            <a href="${pageContext.request.contextPath}/recruitment?view=internal" class="text-primary fw-bold text-decoration-none text-nowrap">
+                                Xem chi tiết tất cả vị trí & chính sách thưởng →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 8. Full Width: Hoạt động gần đây -->
             <div class="row g-3">
                 <div class="col-12">

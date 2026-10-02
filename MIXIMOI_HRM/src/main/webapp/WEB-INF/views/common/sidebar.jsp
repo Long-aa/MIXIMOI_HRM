@@ -201,7 +201,7 @@
 
                 <a href="${pageContext.request.contextPath}/recruitment"
                    class="sidebar-nav-link ${activeMenu eq 'recruitment' and (empty activeSubMenu or activeSubMenu eq 'overview') and empty param.view ? 'active' : ''}">
-                    <i class="bi bi-person-lines-fill"></i>
+                    <i class="bi bi-pie-chart-fill"></i>
                     <span>Tuyển dụng</span>
                 </a>
 
@@ -214,7 +214,27 @@
                 <a href="${pageContext.request.contextPath}/recruitment?view=candidates"
                    class="sidebar-nav-link ${activeMenu eq 'recruitment' and (activeSubMenu eq 'candidates' or param.view eq 'candidates') ? 'active' : ''}">
                     <i class="bi bi-person-bounding-box"></i>
-                    <span>Ứng viên</span>
+                    <span>Ứng viên ATS</span>
+                </a>
+
+                <a href="${pageContext.request.contextPath}/recruitment?view=internal"
+                   class="sidebar-nav-link ${activeMenu eq 'recruitment' and (activeSubMenu eq 'internal' or param.view eq 'internal') ? 'active' : ''}">
+                    <i class="bi bi-megaphone-fill"></i>
+                    <span>Tuyển dụng nội bộ</span>
+                </a>
+            </div>
+        </c:if>
+
+        <%-- Với các vai trò nhân viên khác (EMPLOYEE, MANAGER, ACCOUNTANT): Xem Bảng Tin Tuyển Dụng Nội Bộ --%>
+        <c:if test="${not sessionScope.currentUser.admin and not sessionScope.currentUser.hr}">
+            <div class="menu-section">
+                <div class="menu-section-label">Cơ hội nghề nghiệp</div>
+
+                <a href="${pageContext.request.contextPath}/recruitment?view=internal"
+                   class="sidebar-nav-link ${activeMenu eq 'recruitment' or param.view eq 'internal' ? 'active' : ''}">
+                    <i class="bi bi-briefcase-fill text-primary"></i>
+                    <span>Tuyển dụng nội bộ</span>
+                    <span class="badge bg-danger ms-auto" style="font-size: 0.65rem;">Mới</span>
                 </a>
             </div>
         </c:if>

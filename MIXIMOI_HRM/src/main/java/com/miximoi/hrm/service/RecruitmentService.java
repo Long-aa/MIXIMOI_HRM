@@ -6,6 +6,7 @@ import com.miximoi.hrm.model.Interview;
 import com.miximoi.hrm.model.RecruitmentDashboardStats;
 import com.miximoi.hrm.model.RecruitmentRequest;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -27,6 +28,12 @@ public class RecruitmentService {
         return recruitmentDAO.findRequests(quarter, deptId, status, assigneeId, search, pill);
     }
 
+    public List<RecruitmentRequest> getRequests(String quarter, Integer deptId, String status, Integer assigneeId, String search, String pill, String priority, BigDecimal salMin, BigDecimal salMax) {
+        return recruitmentDAO.findRequests(quarter, deptId, status, assigneeId, search, pill, priority, salMin, salMax);
+    }
+
+    private final com.miximoi.hrm.dao.NotificationDAO notificationDAO = new com.miximoi.hrm.dao.NotificationDAO();
+
     public boolean createRequest(RecruitmentRequest req) {
         if (req.getRequestCode() == null || req.getRequestCode().trim().isEmpty()) {
             req.setRequestCode(recruitmentDAO.generateNextRequestCode());
@@ -38,6 +45,49 @@ public class RecruitmentService {
             req.setDeadline(LocalDate.now().plusDays(30));
         }
         return recruitmentDAO.insertRequest(req);
+    }
+
+    public List<RecruitmentRequest> getRecentOpenRequests(int limit) {
+        return recruitmentDAO.findRecentOpenRequests(limit);
+    }
+
+    public RecruitmentRequest getRequestById(int id) {
+        return recruitmentDAO.findRequestById(id);
+    }
+
+    /**
+     * Tự động đăng thông tin lên giao diện thông báo của công ty khi tạo nhu cầu tuyển dụng mới
+     */
+    public boolean publishRecruitmentAnnouncement(RecruitmentRequest req, String deptName) {
+        if (req == null) return false;
+        String title = "📢 Vừa mở tuyển dụng: " + req.getTitle();
+        if (deptName != null && !deptName.trim().isEmpty()) {
+            title += " — " + deptName;
+        }
+
+        String salaryStr = req.isSalaryNegotiable() ? "Thỏa thuận theo năng lực" :
+                (req.getSalaryMinFormatted() + " - " + req.getSalaryMaxFormatted() + " triệu VNĐ / tháng");
+
+        String deadlineStr = (req.getDeadline() != null) ? 
+                req.getDeadline().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "Trong 30 ngày";
+
+        String message = String.format("Công ty MIXIMOI vừa mở tuyển dụng vị trí %s%s. Số lượng: %d nhân sự, Mức lương: %s, Hạn nộp: %s. Nhân viên nội bộ có nhu cầu chuyển ban hoặc giới thiệu ứng viên nhận thưởng có thể xem chi tiết và ứng tuyển ngay!",
+                req.getTitle(),
+                (deptName != null && !deptName.trim().isEmpty() ? " (" + deptName + ")" : ""),
+                req.getTargetHeadcount(),
+                salaryStr,
+                deadlineStr
+        );
+
+        com.miximoi.hrm.model.Notification notif = new com.miximoi.hrm.model.Notification(
+                null,
+                title,
+                message,
+                "RECRUITMENT",
+                "/recruitment?view=internal&jobId=" + req.getId(),
+                "RECRUITMENT"
+        );
+        return notificationDAO.broadcast(notif);
     }
 
     public List<Interview> getTodayInterviews() {
@@ -99,6 +149,11 @@ public class RecruitmentService {
     public boolean updateCandidateStage(int candidateId, String stage) {
         if (candidateId <= 0 || stage == null || stage.trim().isEmpty()) return false;
         return recruitmentDAO.updateCandidateStage(candidateId, stage);
+    }
+
+    public boolean updateCandidateNotes(int candidateId, String notes) {
+        if (candidateId <= 0) return false;
+        return recruitmentDAO.updateCandidateNotes(candidateId, notes);
     }
 
     public List<Candidate> getTopCandidatesForJob(int jobId, int limit) {

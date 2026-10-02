@@ -28,6 +28,8 @@ public class RecruitmentRequest {
     private String benefits;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String location = "Hà Nội";
+    private String keywords;
 
     // Các trường liên kết (JOIN) để hiển thị giao diện
     private String departmentName;
@@ -133,6 +135,12 @@ public class RecruitmentRequest {
         long millions = salaryMin.longValue() / 1000000;
         return String.valueOf(millions);
     }
+
+    public String getLocation() { return location != null ? location : "Hà Nội"; }
+    public void setLocation(String location) { this.location = location; }
+
+    public String getKeywords() { return keywords; }
+    public void setKeywords(String keywords) { this.keywords = keywords; }
 
     public String getSalaryMaxFormatted() {
         if (salaryMax == null || salaryMax.compareTo(BigDecimal.ZERO) <= 0) return "0";

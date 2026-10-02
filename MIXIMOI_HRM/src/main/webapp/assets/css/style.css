@@ -3198,9 +3198,12 @@ a {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-  padding: 1.5rem;
+  padding: 1.1rem;
   position: sticky;
   top: 80px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 .candidate-score-badge {
   display: inline-flex;
@@ -3485,10 +3488,13 @@ a {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1.1rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   position: sticky;
   top: 80px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .job-salary-highlight {

@@ -61,12 +61,12 @@ public class RecruitmentDAO {
                     int urgentReqs = rs.getInt("urgent_reqs");
                     int expiringReqs = rs.getInt("expiring_reqs");
 
-                    stats.setTotalRequestsCount(totalReqs > 0 ? totalReqs : 12);
-                    stats.setOpenPositionsCount(openReqs > 0 ? openReqs : 12);
-                    stats.setOpenRequestsCount(openReqs > 0 ? openReqs : 8);
-                    stats.setOpenDepartmentsCount(openDepts > 0 ? openDepts : 8);
-                    stats.setUrgentRequestsCount(urgentReqs > 0 ? urgentReqs : 3);
-                    stats.setExpiringRequestsCount(expiringReqs > 0 ? expiringReqs : 2);
+                    stats.setTotalRequestsCount(totalReqs);
+                    stats.setOpenPositionsCount(openReqs);
+                    stats.setOpenRequestsCount(openReqs);
+                    stats.setOpenDepartmentsCount(openDepts);
+                    stats.setUrgentRequestsCount(urgentReqs);
+                    stats.setExpiringRequestsCount(expiringReqs);
                 }
             }
         } catch (SQLException e) {
@@ -131,7 +131,7 @@ public class RecruitmentDAO {
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sqlSource);
              ResultSet rs = ps.executeQuery()) {
-            int total = stats.getTotalCandidates() > 0 ? stats.getTotalCandidates() : 86;
+            int total = Math.max(1, stats.getTotalCandidates());
             while (rs.next()) {
                 String source = rs.getString("source");
                 int count = rs.getInt("count_num");
@@ -178,6 +178,10 @@ public class RecruitmentDAO {
      * Lấy danh sách Yêu cầu tuyển dụng kèm tìm kiếm và các bộ lọc
      */
     public List<RecruitmentRequest> findRequests(String quarter, Integer deptId, String status, Integer assigneeId, String search, String pill) {
+        return findRequests(quarter, deptId, status, assigneeId, search, pill, null, null, null);
+    }
+
+    public List<RecruitmentRequest> findRequests(String quarter, Integer deptId, String status, Integer assigneeId, String search, String pill, String priority, BigDecimal salMin, BigDecimal salMax) {
         List<RecruitmentRequest> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT r.*, "
                 + "d.name AS dept_name, "
@@ -208,6 +212,18 @@ public class RecruitmentDAO {
         if (assigneeId != null && assigneeId > 0) {
             sql.append("AND r.assignee_id = ? ");
             params.add(assigneeId);
+        }
+        if (priority != null && !priority.trim().isEmpty() && !"ALL".equalsIgnoreCase(priority)) {
+            sql.append("AND r.priority = ? ");
+            params.add(priority.trim());
+        }
+        if (salMin != null) {
+            sql.append("AND r.salary_min >= ? ");
+            params.add(salMin);
+        }
+        if (salMax != null) {
+            sql.append("AND r.salary_max <= ? ");
+            params.add(salMax);
         }
         if (search != null && !search.trim().isEmpty()) {
             sql.append("AND (LOWER(r.title) LIKE ? OR LOWER(r.request_code) LIKE ?) ");
@@ -245,14 +261,72 @@ public class RecruitmentDAO {
     }
 
     /**
+     * Lấy các vị trí đang tuyển mới nhất để hiển thị lên Giao diện thông báo của công ty
+     */
+    public List<RecruitmentRequest> findRecentOpenRequests(int limit) {
+        List<RecruitmentRequest> list = new ArrayList<>();
+        String sql = "SELECT r.*, "
+                + "d.name AS dept_name, p.name AS pos_name, e.full_name AS assignee_name, "
+                + "(SELECT COUNT(*) FROM candidates c WHERE c.recruitment_request_id = r.id) AS cand_count, "
+                + "(SELECT COUNT(*) FROM interviews i WHERE i.recruitment_request_id = r.id) AS int_count "
+                + "FROM recruitment_requests r "
+                + "LEFT JOIN departments d ON r.department_id = d.id "
+                + "LEFT JOIN positions p ON r.position_id = p.id "
+                + "LEFT JOIN employees e ON r.assignee_id = e.id "
+                + "WHERE r.status = 'OPEN' "
+                + "ORDER BY r.created_at DESC, r.id DESC LIMIT ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, limit > 0 ? limit : 5);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRequestRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("RecruitmentDAO.findRecentOpenRequests error: " + e.getMessage());
+        }
+        return list;
+    }
+
+    /**
+     * Tìm một yêu cầu tuyển dụng theo ID đầy đủ thông tin
+     */
+    public RecruitmentRequest findRequestById(int id) {
+        String sql = "SELECT r.*, "
+                + "d.name AS dept_name, p.name AS pos_name, e.full_name AS assignee_name, "
+                + "(SELECT COUNT(*) FROM candidates c WHERE c.recruitment_request_id = r.id) AS cand_count, "
+                + "(SELECT COUNT(*) FROM interviews i WHERE i.recruitment_request_id = r.id) AS int_count "
+                + "FROM recruitment_requests r "
+                + "LEFT JOIN departments d ON r.department_id = d.id "
+                + "LEFT JOIN positions p ON r.position_id = p.id "
+                + "LEFT JOIN employees e ON r.assignee_id = e.id "
+                + "WHERE r.id = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRequestRow(rs);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("RecruitmentDAO.findRequestById error: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
      * Thêm mới yêu cầu tuyển dụng
      */
     public boolean insertRequest(RecruitmentRequest req) {
         String sql = "INSERT INTO recruitment_requests "
                 + "(request_code, title, department_id, position_id, target_headcount, hired_count, "
                 + "salary_min, salary_max, salary_negotiable, deadline, priority, status, quarter, "
-                + "assignee_id, description, requirements, benefits) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "assignee_id, description, requirements, benefits, location, keywords) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -273,6 +347,8 @@ public class RecruitmentDAO {
             ps.setString(15, req.getDescription());
             ps.setString(16, req.getRequirements());
             ps.setString(17, req.getBenefits());
+            ps.setString(18, req.getLocation() != null ? req.getLocation() : "Hà Nội");
+            ps.setString(19, req.getKeywords());
 
             int rows = ps.executeUpdate();
             if (rows > 0) {
@@ -489,6 +565,16 @@ public class RecruitmentDAO {
             r.setAssigneeAvatarInitials("HR");
         }
 
+        try {
+            String loc = rs.getString("location");
+            if (loc != null && !loc.trim().isEmpty()) r.setLocation(loc);
+        } catch (SQLException ignored) {}
+
+        try {
+            String kw = rs.getString("keywords");
+            if (kw != null) r.setKeywords(kw);
+        } catch (SQLException ignored) {}
+
         return r;
     }
 
@@ -574,39 +660,87 @@ public class RecruitmentDAO {
      * Thêm mới một hồ sơ ứng viên vào hệ thống
      */
     public boolean insertCandidate(Candidate c) {
-        String sql = "INSERT INTO candidates "
+        if (c.getCandidateCode() == null || c.getCandidateCode().trim().isEmpty()) {
+            c.setCandidateCode(generateNextCandidateCode());
+        }
+
+        String sqlFull = "INSERT INTO candidates "
+                + "(candidate_code, full_name, email, phone, recruitment_request_id, source, stage, experience_years, expected_salary, cv_url, notes, applied_date, cv_type, cv_text) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        String sqlFallback = "INSERT INTO candidates "
                 + "(candidate_code, full_name, email, phone, recruitment_request_id, source, stage, experience_years, expected_salary, cv_url, notes, applied_date) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            if (c.getCandidateCode() == null || c.getCandidateCode().trim().isEmpty()) {
-                c.setCandidateCode(generateNextCandidateCode());
-            }
-            ps.setString(1, c.getCandidateCode());
-            ps.setString(2, c.getFullName());
-            ps.setString(3, c.getEmail());
-            ps.setString(4, c.getPhone());
-            ps.setInt(5, c.getRecruitmentRequestId());
-            ps.setString(6, c.getSource() != null ? c.getSource() : "LinkedIn");
-            ps.setString(7, c.getStage() != null ? c.getStage() : "NEW");
-            ps.setBigDecimal(8, c.getExperienceYears() != null ? c.getExperienceYears() : BigDecimal.valueOf(3.0));
-            ps.setBigDecimal(9, c.getExpectedSalary() != null ? c.getExpectedSalary() : BigDecimal.valueOf(25000000));
-            ps.setString(10, c.getCvUrl());
-            ps.setString(11, c.getNotes());
-            ps.setDate(12, c.getAppliedDate() != null ? Date.valueOf(c.getAppliedDate()) : Date.valueOf(LocalDate.now()));
+        try (Connection conn = DBConnection.getConnection()) {
+            ensureCandidateCvColumns(conn);
+            try (PreparedStatement ps = conn.prepareStatement(sqlFull, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, c.getCandidateCode());
+                ps.setString(2, c.getFullName());
+                ps.setString(3, c.getEmail());
+                ps.setString(4, c.getPhone());
+                ps.setInt(5, c.getRecruitmentRequestId());
+                ps.setString(6, c.getSource() != null ? c.getSource() : "LinkedIn");
+                ps.setString(7, c.getStage() != null ? c.getStage() : "NEW");
+                ps.setBigDecimal(8, c.getExperienceYears() != null ? c.getExperienceYears() : BigDecimal.valueOf(3.0));
+                ps.setBigDecimal(9, c.getExpectedSalary() != null ? c.getExpectedSalary() : BigDecimal.valueOf(25000000));
+                ps.setString(10, c.getCvUrl());
+                ps.setString(11, c.getNotes());
+                ps.setDate(12, c.getAppliedDate() != null ? Date.valueOf(c.getAppliedDate()) : Date.valueOf(LocalDate.now()));
+                ps.setString(13, c.getCvType() != null ? c.getCvType() : "PDF");
+                ps.setString(14, c.getCvText());
 
-            int rows = ps.executeUpdate();
-            if (rows > 0) {
-                try (ResultSet rs = ps.getGeneratedKeys()) {
-                    if (rs.next()) c.setId(rs.getInt(1));
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    try (ResultSet rs = ps.getGeneratedKeys()) {
+                        if (rs.next()) c.setId(rs.getInt(1));
+                    }
+                    return true;
                 }
-                return true;
+            } catch (SQLException e1) {
+                // Fallback nếu bảng chưa có cột cv_type hoặc cv_text
+                try (PreparedStatement ps = conn.prepareStatement(sqlFallback, Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setString(1, c.getCandidateCode());
+                    ps.setString(2, c.getFullName());
+                    ps.setString(3, c.getEmail());
+                    ps.setString(4, c.getPhone());
+                    ps.setInt(5, c.getRecruitmentRequestId());
+                    ps.setString(6, c.getSource() != null ? c.getSource() : "LinkedIn");
+                    ps.setString(7, c.getStage() != null ? c.getStage() : "NEW");
+                    ps.setBigDecimal(8, c.getExperienceYears() != null ? c.getExperienceYears() : BigDecimal.valueOf(3.0));
+                    ps.setBigDecimal(9, c.getExpectedSalary() != null ? c.getExpectedSalary() : BigDecimal.valueOf(25000000));
+                    ps.setString(10, c.getCvUrl());
+                    ps.setString(11, c.getNotes());
+                    ps.setDate(12, c.getAppliedDate() != null ? Date.valueOf(c.getAppliedDate()) : Date.valueOf(LocalDate.now()));
+
+                    int rows = ps.executeUpdate();
+                    if (rows > 0) {
+                        try (ResultSet rs = ps.getGeneratedKeys()) {
+                            if (rs.next()) c.setId(rs.getInt(1));
+                        }
+                        return true;
+                    }
+                }
             }
         } catch (SQLException e) {
             System.err.println("RecruitmentDAO.insertCandidate error: " + e.getMessage());
         }
         return false;
+    }
+
+    private static volatile boolean cvColumnsEnsured = false;
+    private static void ensureCandidateCvColumns(Connection conn) {
+        if (!cvColumnsEnsured) {
+            synchronized (RecruitmentDAO.class) {
+                if (!cvColumnsEnsured) {
+                    try (Statement st = conn.createStatement()) {
+                        st.executeUpdate("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cv_type VARCHAR(50)");
+                        st.executeUpdate("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cv_text TEXT");
+                    } catch (SQLException ignored) {}
+                    cvColumnsEnsured = true;
+                }
+            }
+        }
     }
 
     /**
@@ -621,6 +755,19 @@ public class RecruitmentDAO {
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("RecruitmentDAO.updateCandidateStage error: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean updateCandidateNotes(int candidateId, String notes) {
+        String sql = "UPDATE candidates SET notes = ? WHERE id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, notes);
+            ps.setInt(2, candidateId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("RecruitmentDAO.updateCandidateNotes error: " + e.getMessage());
         }
         return false;
     }
@@ -663,6 +810,16 @@ public class RecruitmentDAO {
 
         c.setJobTitle(rs.getString("job_title"));
         c.setDepartmentName(rs.getString("dept_name"));
+
+        try {
+            String ct = rs.getString("cv_type");
+            if (ct != null && !ct.trim().isEmpty()) c.setCvType(ct);
+        } catch (SQLException ignored) {}
+
+        try {
+            String txt = rs.getString("cv_text");
+            if (txt != null) c.setCvText(txt);
+        } catch (SQLException ignored) {}
 
         return c;
     }

@@ -156,46 +156,81 @@
 
     <!-- Right Side Actions & User Profile -->
     <div class="topbar-actions">
+<%
+    if (request.getAttribute("topbarNotifications") == null) {
+        try {
+            com.miximoi.hrm.dao.NotificationDAO nDao = new com.miximoi.hrm.dao.NotificationDAO();
+            com.miximoi.hrm.model.User cu = (com.miximoi.hrm.model.User) session.getAttribute("currentUser");
+            Integer uid = cu != null ? cu.getId() : null;
+            request.setAttribute("topbarNotifications", nDao.findRecent(uid, 6));
+            request.setAttribute("topbarUnreadCount", nDao.countUnread(uid));
+        } catch (Exception ignored) {}
+    }
+%>
         <!-- Notification Bell -->
         <div class="dropdown">
-            <button class="topbar-btn position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo">
+            <button class="topbar-btn position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo hệ thống & Tuyển dụng">
                 <i class="bi bi-bell"></i>
-                <span class="topbar-badge-dot"></span>
+                <c:if test="${not empty topbarUnreadCount and topbarUnreadCount > 0}">
+                    <span class="topbar-badge-dot"></span>
+                </c:if>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="width: 320px; font-size: 0.85rem;">
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="width: 360px; font-size: 0.85rem;">
                 <li class="px-2 py-1 fw-bold text-dark border-bottom pb-2 mb-2 d-flex justify-content-between align-items-center">
-                    <span>Thông báo hệ thống</span>
-                    <span class="badge bg-primary-subtle text-primary">3 chưa đọc</span>
+                    <span>Thông báo công ty</span>
+                    <c:choose>
+                        <c:when test="${not empty topbarUnreadCount and topbarUnreadCount > 0}">
+                            <span class="badge bg-danger">${topbarUnreadCount} mới</span>
+                        </c:when>
+                        <c:otherwise>
+                            <span class="badge bg-primary-subtle text-primary">Đã cập nhật</span>
+                        </c:otherwise>
+                    </c:choose>
                 </li>
-                <li>
-                    <a class="dropdown-item py-2 rounded d-flex gap-2 align-items-start" href="#">
-                        <i class="bi bi-person-plus text-primary fs-6 mt-1"></i>
-                        <div>
-                            <div class="fw-semibold">Nguyễn Văn An được tiếp nhận</div>
-                            <small class="text-muted">3 phút trước</small>
-                        </div>
+
+                <c:choose>
+                    <c:when test="${not empty topbarNotifications}">
+                        <c:forEach items="${topbarNotifications}" var="n">
+                            <li>
+                                <a class="dropdown-item py-2 px-2 rounded d-flex gap-2 align-items-start border-bottom-subtle" 
+                                   href="${pageContext.request.contextPath}${not empty n.linkUrl ? n.linkUrl : '/recruitment?view=internal'}">
+                                    <c:choose>
+                                        <c:when test="${n.recruitment}">
+                                            <i class="bi bi-megaphone-fill text-danger fs-6 mt-1 flex-shrink-0"></i>
+                                        </c:when>
+                                        <c:when test="${n.type eq 'SUCCESS'}">
+                                            <i class="bi bi-check-circle-fill text-success fs-6 mt-1 flex-shrink-0"></i>
+                                        </c:when>
+                                        <c:when test="${n.type eq 'WARNING'}">
+                                            <i class="bi bi-exclamation-circle-fill text-warning fs-6 mt-1 flex-shrink-0"></i>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <i class="bi bi-bell-fill text-primary fs-6 mt-1 flex-shrink-0"></i>
+                                        </c:otherwise>
+                                    </c:choose>
+                                    <div class="flex-grow-1" style="min-width: 0;">
+                                        <div class="fw-semibold text-truncate text-dark" style="font-size: 0.82rem;" title="${n.title}">${n.title}</div>
+                                        <p class="text-muted mb-0 small text-truncate" style="font-size: 0.74rem;">${n.message}</p>
+                                        <small class="text-primary fw-medium" style="font-size: 0.7rem;">${n.timeAgo}</small>
+                                    </div>
+                                </a>
+                            </li>
+                        </c:forEach>
+                    </c:when>
+                    <c:otherwise>
+                        <li class="py-3 text-center text-muted small">
+                            Không có thông báo mới
+                        </li>
+                    </c:otherwise>
+                </c:choose>
+
+                <li class="border-top pt-2 mt-2 text-center d-flex justify-content-between px-2">
+                    <a href="${pageContext.request.contextPath}/recruitment?view=internal" class="text-primary text-decoration-none fw-semibold" style="font-size: 0.78rem;">
+                        <i class="bi bi-briefcase me-1"></i>Tuyển dụng nội bộ
                     </a>
-                </li>
-                <li>
-                    <a class="dropdown-item py-2 rounded d-flex gap-2 align-items-start" href="#">
-                        <i class="bi bi-cash-stack text-success fs-6 mt-1"></i>
-                        <div>
-                            <div class="fw-semibold">Bảng lương T09 đã được tạo</div>
-                            <small class="text-muted">30 phút trước</small>
-                        </div>
+                    <a href="${pageContext.request.contextPath}/dashboard" class="text-muted text-decoration-none" style="font-size: 0.78rem;">
+                        Bảng tin công ty
                     </a>
-                </li>
-                <li>
-                    <a class="dropdown-item py-2 rounded d-flex gap-2 align-items-start" href="#">
-                        <i class="bi bi-calendar-check text-warning fs-6 mt-1"></i>
-                        <div>
-                            <div class="fw-semibold">Đơn xin nghỉ phép chờ duyệt</div>
-                            <small class="text-muted">1 giờ trước</small>
-                        </div>
-                    </a>
-                </li>
-                <li class="border-top pt-2 mt-2 text-center">
-                    <a href="#" class="text-primary text-decoration-none fw-semibold" style="font-size: 0.78rem;">Xem tất cả thông báo</a>
                 </li>
             </ul>
         </div>

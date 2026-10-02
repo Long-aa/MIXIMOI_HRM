@@ -151,6 +151,10 @@ public class User {
         return isAdmin() || isHr();
     }
 
+    public boolean canAccessInternalRecruitment() {
+        return true;
+    }
+
     public boolean canAccessPerformance() {
         return isAdmin() || isManager();
     }

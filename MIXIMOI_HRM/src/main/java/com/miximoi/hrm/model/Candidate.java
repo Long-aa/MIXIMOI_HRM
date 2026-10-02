@@ -41,6 +41,8 @@ public class Candidate {
     private String avatarInitials = "UV";
     private String education;
     private String workHistory;
+    private String cvType = "PDF"; // WORD | PDF | HANDWRITTEN
+    private String cvText;
 
     public Candidate() {}
 
@@ -155,5 +157,23 @@ public class Candidate {
             }
         }
         return list;
+    }
+
+    public String getCvType() { return cvType != null ? cvType : "PDF"; }
+    public void setCvType(String cvType) { this.cvType = cvType; }
+
+    public String getCvText() { return cvText; }
+    public void setCvText(String cvText) { this.cvText = cvText; }
+
+    public String getCvTypeFormatted() {
+        if ("WORD".equalsIgnoreCase(cvType)) return "Bản Word (.docx)";
+        if ("HANDWRITTEN".equalsIgnoreCase(cvType)) return "Bản chữ viết (OCR)";
+        return "File PDF (.pdf)";
+    }
+
+    public String getCvTypeIcon() {
+        if ("WORD".equalsIgnoreCase(cvType)) return "bi-file-earmark-word text-primary";
+        if ("HANDWRITTEN".equalsIgnoreCase(cvType)) return "bi-pen text-purple";
+        return "bi-file-earmark-pdf text-danger";
     }
 }

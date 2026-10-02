@@ -3,6 +3,7 @@ package com.miximoi.hrm.controller;
 import com.miximoi.hrm.dao.DashboardDAO;
 import com.miximoi.hrm.dao.DepartmentDAO;
 import com.miximoi.hrm.model.Department;
+import com.miximoi.hrm.model.User;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -26,6 +27,9 @@ public class DashboardServlet extends HttpServlet {
     private final DashboardDAO dashboardDAO = new DashboardDAO();
     private final DepartmentDAO departmentDAO = new DepartmentDAO();
 
+    private final com.miximoi.hrm.service.RecruitmentService recruitmentService = new com.miximoi.hrm.service.RecruitmentService();
+    private final com.miximoi.hrm.dao.NotificationDAO notificationDAO = new com.miximoi.hrm.dao.NotificationDAO();
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -34,6 +38,8 @@ public class DashboardServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
+
+        User currentUser = (User) session.getAttribute("currentUser");
 
         // 1. Xác định khoảng ngày mặc định: Đầu tháng hiện tại đến ngày hiện tại
         LocalDate today = LocalDate.now();
@@ -122,6 +128,10 @@ public class DashboardServlet extends HttpServlet {
         request.setAttribute("totalPayroll", kpiStats.get("totalPayroll"));
         request.setAttribute("currentMonth", today.getMonthValue());
         request.setAttribute("currentYear", today.getYear());
+
+        // Vị trí vừa mở tuyển dụng & Thông báo công ty
+        request.setAttribute("recentJobs",          recruitmentService.getRecentOpenRequests(4));
+        request.setAttribute("companyAnnouncements", notificationDAO.findRecent(currentUser.getId(), 5));
 
         request.getRequestDispatcher("/WEB-INF/views/dashboard/dashboard.jsp")
                .forward(request, response);
