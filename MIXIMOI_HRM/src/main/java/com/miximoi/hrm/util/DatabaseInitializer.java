@@ -315,38 +315,16 @@ public class DatabaseInitializer {
             + "status VARCHAR(30) NOT NULL DEFAULT 'PENDING', feedback TEXT, "
             + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP)",
 
-            "CREATE INDEX IF NOT EXISTS idx_ev            // Bảng notifications: hỗ trợ thông báo chung toàn công ty & link chuyển hướng
-            "CREATE TABLE IF NOT EXISTS notifications ("
-            + "id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), "
-            + "title VARCHAR(255) NOT NULL, message TEXT, type VARCHAR(50) NOT NULL DEFAULT 'INFO', "
-            + "is_read BOOLEAN NOT NULL DEFAULT FALSE, link_url VARCHAR(255), module VARCHAR(50) DEFAULT 'GENERAL', "
-            + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
-            "ALTER TABLE notifications ALTER COLUMN user_id DROP NOT NULL",
-            "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link_url VARCHAR(255)",
-            "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS module VARCHAR(50) DEFAULT 'GENERAL'",
+            "CREATE INDEX IF NOT EXISTS idx_eval_employee ON performance_evaluations(employee_id)",
+            "CREATE INDEX IF NOT EXISTS idx_eval_quarter ON performance_evaluations(quarter)",
+            "CREATE INDEX IF NOT EXISTS idx_eval_status ON performance_evaluations(status)",
 
-            // Bổ sung các cột phục vụ lọc vị trí theo thành phố, quét từ khóa CV đa định dạng (Word, PDF, Bản chữ viết)
-            "ALTER TABLE recruitment_requests ADD COLUMN IF NOT EXISTS location VARCHAR(150) DEFAULT 'Hà Nội'",
-            "ALTER TABLE recruitment_requests ADD COLUMN IF NOT EXISTS keywords VARCHAR(500)",
-            "ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cv_type VARCHAR(50) DEFAULT 'PDF'",
-            "ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cv_text TEXT",
+            // Bảng overtime: overtime_code
+            "ALTER TABLE overtime ADD COLUMN IF NOT EXISTS overtime_code VARCHAR(50)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_overtime_code ON overtime(overtime_code) WHERE overtime_code IS NOT NULL",
 
-            // Cập nhật địa điểm mẫu cho các vị trí tuyển dụng
-            "UPDATE recruitment_requests SET location = 'TP. Hồ Chí Minh' WHERE id IN (1, 3, 9, 10)",
-            "UPDATE recruitment_requests SET location = 'Đà Nẵng' WHERE id IN (8)",
-            "UPDATE recruitment_requests SET location = 'Toàn quốc (Remote)' WHERE id IN (6)",
-            "UPDATE recruitment_requests SET location = 'Hà Nội' WHERE id IN (2, 4, 5, 7, 11, 12)",
-            "UPDATE recruitment_requests SET keywords = 'React, Go, Node, Microservices, PostgreSQL, Docker, Tiếng Anh' WHERE id = 1",
-            "UPDATE recruitment_requests SET keywords = 'B2B Sales, Đàm phán, Kỹ năng thuyết trình, CRM, Tiếng Anh, Đại học' WHERE id = 2",
-            "UPDATE recruitment_requests SET keywords = 'Figma, UI/UX, Design System, Wireframe, Prototyping, User Research' WHERE id = 3",
-            "UPDATE recruitment_requests SET keywords = 'SEO, Copywriting, Social Media, Content Marketing, Tiếng Anh' WHERE id = 4",
-            "UPDATE recruitment_requests SET keywords = 'VueJS, NuxtJS, JavaScript, Tailwind, CSS3, REST API, Git' WHERE id = 8",
-            "UPDATE recruitment_requests SET keywords = 'Kubernetes, AWS, Docker, CI/CD, Terraform, Linux, Security' WHERE id = 6",
-
-            // Cập nhật định dạng CV mẫu và nội dung trích xuất cho các ứng viên (Word, PDF, Bản chữ viết tay quét OCR)
-            "UPDATE candidates SET cv_type = 'WORD', cv_text = 'BẢN WORD (.DOCX) - CV Ứng viên: ' || full_name || '. Kỹ năng chuyên môn: Java, Spring Boot, Microservices, Docker, Kubernetes, PostgreSQL, Kafka, Redis. Kinh nghiệm 4+ năm phát triển hệ thống tài chính phân tán, tối ưu hóa database truy vấn cao tải. Ngoại ngữ: Tiếng Anh giao tiếp lưu loát.' WHERE id % 3 = 1",
-            "UPDATE candidates SET cv_type = 'HANDWRITTEN', cv_text = '[BẢN CHỮ VIẾT TAY - QUÉT NHẬN DẠNG OCR TỰ ĐỘNG] Trích xuất từ tài liệu viết tay của ứng viên: ' || full_name || '. Kinh nghiệm thực chiến: Quản lý khách hàng doanh nghiệp B2B, đàm phán hợp đồng, thuyết trình, chăm sóc đối tác, kỹ năng giao tiếp tốt. Ghi chú phỏng vấn: Chữ viết rõ ràng, tư duy phản biện sắc bén.' WHERE id % 3 = 2",
-            "UPDATE candidates SET cv_type = 'PDF', cv_text = 'FILE PDF (.PDF) - CURRICULUM VITAE: ' || full_name || '. Chuyên ngành: Thiết kế UI/UX & Frontend Developer. Kỹ năng: Figma, Design System, React, VueJS, TypeScript, TailwindCSS, HTML5/CSS3. Đã tham gia triển khai 10+ dự án Web App và Mobile App. Khả năng làm việc độc lập và nhóm xuất sắc.' WHERE id % 3 = 0",
+            // Bảng work_shifts: unique index
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_work_shifts_name ON work_shifts(name)",
 
             // Bảng audit_logs: Nhật ký kiểm toán cho các thao tác nhạy cảm
             "CREATE TABLE IF NOT EXISTS audit_logs ("
@@ -390,18 +368,23 @@ public class DatabaseInitializer {
             + "('Ca hành chính', '08:30', '17:30', 8.0, 'Ca làm việc tiêu chuẩn 8h'), "
             + "('Ca sáng', '07:00', '11:30', 4.5, 'Ca làm việc buổi sáng'), "
             + "('Ca chiều', '13:00', '17:30', 4.5, 'Ca làm việc buổi chiều') "
-            + "ON CONFLICT (name) DO NOTHING"OT EXISTS idx_attendance_emp_date ON attendance(employee_id, work_date DESC)",
-            "CREATE INDEX IF NOT EXISTS idx_payroll_period_status ON payroll(pay_month, pay_year, status)",
-            "CREATE INDEX IF NOT EXISTS idx_leave_emp_dates ON leave_requests(employee_id, start_date, end_date)",
-            "CREATE INDEX IF NOT EXISTS idx_overtime_emp_date ON overtime(employee_id, overtime_date DESC)",
-            "CREATE INDEX IF NOT EXISTS idx_contracts_emp_status ON contracts(employee_id, status)",
+            + "ON CONFLICT (name) DO NOTHING",
 
-            // Seed mặc định work_shifts nếu chưa có
-            "INSERT INTO work_shifts (name, start_time, end_time, standard_hours, description) VALUES "
-            + "('Ca hành chính', '08:30', '17:30', 8.0, 'Ca làm việc tiêu chuẩn 8h'), "
-            + "('Ca sáng', '07:00', '11:30', 4.5, 'Ca làm việc buổi sáng'), "
-            + "('Ca chiều', '13:00', '17:30', 4.5, 'Ca làm việc buổi chiều') "
-            + "ON CONFLICT (name) DO NOTHING"
+            // Bảng notifications: hỗ trợ thông báo chung toàn công ty & link chuyển hướng
+            "CREATE TABLE IF NOT EXISTS notifications ("
+            + "id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), "
+            + "title VARCHAR(255) NOT NULL, message TEXT, type VARCHAR(50) NOT NULL DEFAULT 'INFO', "
+            + "is_read BOOLEAN NOT NULL DEFAULT FALSE, link_url VARCHAR(255), module VARCHAR(50) DEFAULT 'GENERAL', "
+            + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+            "ALTER TABLE notifications ALTER COLUMN user_id DROP NOT NULL",
+            "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link_url VARCHAR(255)",
+            "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS module VARCHAR(50) DEFAULT 'GENERAL'",
+
+            // Bổ sung các cột phục vụ lọc vị trí theo thành phố, quét từ khóa CV đa định dạng (Word, PDF, Bản chữ viết)
+            "ALTER TABLE recruitment_requests ADD COLUMN IF NOT EXISTS location VARCHAR(150) DEFAULT 'Hà Nội'",
+            "ALTER TABLE recruitment_requests ADD COLUMN IF NOT EXISTS keywords VARCHAR(500)",
+            "ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cv_type VARCHAR(50) DEFAULT 'PDF'",
+            "ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cv_text TEXT"
         };
 
         for (String sql : alterSqls) {
@@ -1484,6 +1467,8 @@ public class DatabaseInitializer {
             ps.executeBatch();
             System.out.println("[DatabaseInitializer] Đã nạp danh sách Thông báo tuyển dụng công ty mẫu vào PostgreSQL!");
         }
+    }
+
     private static int getSafeEmpId(List<Integer> list, int index, int fallback) {
         if (list != null && list.size() > index) {
             Integer val = list.get(index);
