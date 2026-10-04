@@ -36,6 +36,12 @@ public class BiometricAndContractTest {
         LocalDate today = LocalDate.now();
         LocalTime time = LocalTime.of(8, 15);
 
+        // Dọn dẹp dữ liệu kiểm thử cũ cho nhân viên 1 & 2 trong ngày test để đảm bảo tính độc lập
+        Attendance existing1 = attendanceDAO.findByEmployeeAndDate(1, today);
+        if (existing1 != null) attendanceDAO.delete(existing1.getId());
+        Attendance existing2 = attendanceDAO.findByEmployeeAndDate(2, today);
+        if (existing2 != null) attendanceDAO.delete(existing2.getId());
+
         // Chấm công bằng FaceID
         boolean faceCheckIn = attendanceDAO.checkInWithMethod(1, today, time, "FaceID");
         assertTrue(faceCheckIn, "Check-in FaceID phải thành công");
