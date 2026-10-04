@@ -720,7 +720,8 @@
                                     </div>
                                     <div class="rank-dept">${top.dept}</div>
                                     <div class="rank-bar-bg">
-                                        <div class="rank-bar-fill ${top.isNearLimit ? 'near-limit' : ''}" style="width: ${top.percent}%;"></div>
+                                        <c:set var="rankBarStyle" value="style=\"width: ${top.percent}%;\"" />
+                                        <div class="rank-bar-fill ${top.isNearLimit ? 'near-limit' : ''}" ${rankBarStyle}></div>
                                     </div>
                                     <c:if test="${top.isNearLimit}">
                                         <div class="rank-alert-text">
@@ -764,7 +765,9 @@
                                 <span class="fw-bold">${yearlyOtPercent}%</span>
                             </div>
                             <div class="rank-bar-bg" style="height:6px;">
-                                <div class="rank-bar-fill" style="width:${yearlyOtPercent}%; background:${yearlyOtPercent > 80 ? '#dc2626' : (yearlyOtPercent > 50 ? '#d97706' : '#166534')};"></div>
+                                <c:set var="yearlyBarColor" value="${yearlyOtPercent > 80 ? '#dc2626' : (yearlyOtPercent > 50 ? '#d97706' : '#166534')}" />
+                                <c:set var="yearlyOtStyle" value="style=\"width: ${yearlyOtPercent}%; background: ${yearlyBarColor};\"" />
+                                <div class="rank-bar-fill" ${yearlyOtStyle}></div>
                             </div>
                         </div>
                     </div>

@@ -1387,7 +1387,7 @@
                                 </thead>
                                 <tbody>
                                     <c:forEach items="${candidates}" var="c">
-                                        <tr style="cursor: pointer;" onclick="selectCandidateById(${c.id})">
+                                        <tr style="cursor: pointer;" data-id="${c.id}" onclick="selectCandidateById(this.getAttribute('data-id'))">
                                             <td class="ps-3 fw-bold font-monospace text-primary">${c.candidateCode}</td>
                                             <td class="fw-bold text-dark">${c.fullName}</td>
                                             <td><span class="badge bg-light text-dark border">${c.jobTitle}</span></td>
@@ -1400,7 +1400,7 @@
                                             <td><span class="badge bg-light text-muted border">${c.source}</span></td>
                                             <td class="pe-3 text-end">
                                                 <span class="fw-bold text-dark me-2">${c.formattedSalary}</span>
-                                                <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 shadow-sm" onclick="event.stopPropagation(); openCandidateCvModalById(${c.id})" title="Xem trực tiếp bản mềm CV">
+                                                <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 shadow-sm" data-id="${c.id}" onclick="event.stopPropagation(); openCandidateCvModalById(this.getAttribute('data-id'))" title="Xem trực tiếp bản mềm CV">
                                                     <i class="bi ${c.cvTypeIcon}"></i> Xem CV
                                                 </button>
                                             </td>
@@ -1524,7 +1524,8 @@
                                 <strong>Đánh giá của AI:</strong> ${selectedCandidate.aiRecommendation}
                             </div>
                             <div class="progress mb-1" style="height: 5px;">
-                                <div id="drawerAiProgressBar" class="progress-bar ai-match-progress-bar" style="width: ${selectedCandidate.aiMatchScore}%;"></div>
+                                <c:set var="drawerProgressCompactStyle" value="style=\"width: ${selectedCandidate.aiMatchScore}%;\"" />
+                                <div id="drawerAiProgressBar" class="progress-bar ai-match-progress-bar" ${drawerProgressCompactStyle}></div>
                             </div>
                             <div class="d-flex justify-content-between text-muted" style="font-size: 0.7rem;">
                                 <span>✔ KN: <strong id="drawerExp">${selectedCandidate.experienceYears} năm</strong></span>

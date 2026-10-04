@@ -4,6 +4,7 @@ import com.miximoi.hrm.dao.SystemSettingDAO;
 import com.miximoi.hrm.dao.UserDAO;
 import com.miximoi.hrm.model.User;
 import com.miximoi.hrm.service.AuthService;
+import com.miximoi.hrm.util.DBConnection;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -46,7 +47,7 @@ public class SettingServlet extends HttpServlet {
         Map<String, String> settings = settingDAO.getAllSettings();
         request.setAttribute("settings", settings);
 
-        Map<String, Object> healthMetrics = com.miximoi.hrm.util.DBConnection.getHealthMetrics();
+        Map<String, Object> healthMetrics = DBConnection.getHealthMetrics();
         request.setAttribute("healthMetrics", healthMetrics);
 
         String action = request.getParameter("action");

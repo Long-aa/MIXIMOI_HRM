@@ -509,7 +509,10 @@ document.getElementById('quickSearchModal')?.addEventListener('shown.bs.modal', 
 <!-- ========================================================================= -->
 <!-- 2. MODAL CẢNH BÁO TẬP TRUNG GIỮA MÀN HÌNH (ĐẬP VÀO MẮT NGAY KHI ĐĂNG NHẬP) -->
 <!-- ========================================================================= -->
-<div class="modal fade" id="centerScreenAlertModal" tabindex="-1" aria-labelledby="centerScreenAlertModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+<c:set var="activeAlertObj" value="${not empty applicationScope.activeBroadcastAlert ? applicationScope.activeBroadcastAlert : latestActiveAlert}"/>
+<div class="modal fade" id="centerScreenAlertModal" tabindex="-1" aria-labelledby="centerScreenAlertModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false"
+     data-has-alert="${not empty activeAlertObj}"
+     data-alert-id="${not empty activeAlertObj ? activeAlertObj.id : 'default_alert'}">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden; background: #ffffff;">
             <div class="modal-header border-0 pb-0" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: #fff; padding: 24px 24px 16px 24px;">
@@ -548,6 +551,20 @@ document.getElementById('quickSearchModal')?.addEventListener('shown.bs.modal', 
     </div>
 </div>
 
+<c:if test="${not empty topbarNotifications}">
+    <div id="topbarUnreadNotifsData" class="d-none" aria-hidden="true">
+        <c:forEach items="${topbarNotifications}" var="notif">
+            <c:if test="${not notif.read}">
+                <span class="unread-notif-item"
+                      data-id="${notif.id}"
+                      data-type="${notif.type}"
+                      data-title="<c:out value='${notif.title}' escapeXml='true'/>"
+                      data-message="<c:out value='${notif.message}' escapeXml='true'/>"></span>
+            </c:if>
+        </c:forEach>
+    </div>
+</c:if>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     // 1. Chuyển các modal ra ngoài direct con của body để thoát khỏi stacking context của .app-main
@@ -559,44 +576,39 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // 2. Tự động hiển thị Toast cảnh báo / nhắc nhở chưa đọc cho nhân viên khi mở bất kỳ trang nào
-    <c:if test="${not empty topbarNotifications}">
-        <c:forEach items="${topbarNotifications}" var="notif">
-            <c:if test="${not notif.read}">
-                (function() {
-                    const shownKey = 'notif_toast_shown_${notif.id}';
-                    if (!sessionStorage.getItem(shownKey)) {
-                        sessionStorage.setItem(shownKey, '1');
-                        setTimeout(() => {
-                            if (window.MixiToast) {
-                                <c:choose>
-                                    <c:when test="${notif.type eq 'WARNING' or notif.type eq 'DANGER'}">
-                                        MixiToast.warning('<c:out value="${notif.title}" escapeXml="true"/>', '<c:out value="${notif.message}" escapeXml="true"/>');
-                                    </c:when>
-                                    <c:when test="${notif.type eq 'SUCCESS'}">
-                                        MixiToast.success('<c:out value="${notif.title}" escapeXml="true"/>', '<c:out value="${notif.message}" escapeXml="true"/>');
-                                    </c:when>
-                                    <c:otherwise>
-                                        MixiToast.info('<c:out value="${notif.title}" escapeXml="true"/>', '<c:out value="${notif.message}" escapeXml="true"/>');
-                                    </c:otherwise>
-                                </c:choose>
-                            }
-                        }, 500);
+    const unreadItems = document.querySelectorAll('#topbarUnreadNotifsData .unread-notif-item');
+    unreadItems.forEach(function (item) {
+        const notifId = item.dataset.id;
+        const shownKey = 'notif_toast_shown_' + notifId;
+        if (!sessionStorage.getItem(shownKey)) {
+            sessionStorage.setItem(shownKey, '1');
+            setTimeout(function () {
+                if (window.MixiToast) {
+                    const type = item.dataset.type;
+                    const title = item.dataset.title;
+                    const message = item.dataset.message;
+                    if (type === 'WARNING' || type === 'DANGER') {
+                        MixiToast.warning(title, message);
+                    } else if (type === 'SUCCESS') {
+                        MixiToast.success(title, message);
+                    } else {
+                        MixiToast.info(title, message);
                     }
-                })();
-            </c:if>
-        </c:forEach>
-    </c:if>
+                }
+            }, 500);
+        }
+    });
 
     // 3. Modal Cảnh báo trung tâm (Center Screen Alert)
-    const hasAlert = <%= (application.getAttribute("activeBroadcastAlert") != null || request.getAttribute("latestActiveAlert") != null) %>;
-    const alertId = '<%= (application.getAttribute("activeBroadcastAlert") != null ? ((com.miximoi.hrm.model.Notification)application.getAttribute("activeBroadcastAlert")).getId() : (request.getAttribute("latestActiveAlert") != null ? ((com.miximoi.hrm.model.Notification)request.getAttribute("latestActiveAlert")).getId() : "default_alert")) %>';
-    const isDismissed = sessionStorage.getItem("miximoi_alert_dismissed_" + alertId);
+    const modalEl = document.getElementById("centerScreenAlertModal");
+    if (modalEl) {
+        const hasAlert = modalEl.dataset.hasAlert === 'true';
+        const alertId = modalEl.dataset.alertId || 'default_alert';
+        const isDismissed = sessionStorage.getItem("miximoi_alert_dismissed_" + alertId);
 
-    if (hasAlert && !isDismissed) {
-        const modalEl = document.getElementById("centerScreenAlertModal");
-        if (modalEl && typeof bootstrap !== "undefined") {
+        if (hasAlert && !isDismissed && typeof bootstrap !== "undefined") {
             const centerModal = new bootstrap.Modal(modalEl, { backdrop: "static", keyboard: false });
-            setTimeout(() => centerModal.show(), 600);
+            setTimeout(function () { centerModal.show(); }, 600);
 
             document.getElementById("btnAcknowledgeAlert")?.addEventListener("click", function () {
                 sessionStorage.setItem("miximoi_alert_dismissed_" + alertId, "true");

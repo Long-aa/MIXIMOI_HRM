@@ -397,7 +397,7 @@ public class LeaveServlet extends HttpServlet {
                             return;
                         }
                         response.sendRedirect(request.getContextPath() + "/leave?success=rejected");
-                    } catch (Exception e) {
+                    } catch (NumberFormatException | IOException e) {
                         System.err.println("LeaveServlet.reject error: " + e.getMessage());
                         if (isAjax(request)) {
                             writeJson(response, false, "Lỗi từ chối đơn: " + e.getMessage());

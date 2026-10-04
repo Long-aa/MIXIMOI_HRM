@@ -152,10 +152,7 @@ body {
    PAGE CONTENT FADE-IN ANIMATION
    ========================================================================== */
 
-/* App main bắt đầu với opacity 0, JS sẽ fade in */
-.app-main {
-  /* will-change removed to avoid trapping modals in isolated stacking context */
-}
+/* App main (will-change removed to avoid trapping modals in isolated stacking context) */
 
 /* Khi đang click một link - instant feedback */
 .sidebar-nav-link.nav-clicking {
@@ -1374,6 +1371,7 @@ a {
   line-height: 1;
   background: linear-gradient(135deg, #2563eb, #6366f1);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 1rem;
   letter-spacing: -2px;
