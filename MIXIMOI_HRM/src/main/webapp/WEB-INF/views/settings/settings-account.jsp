@@ -1033,9 +1033,9 @@
                                                         <div class="p-3 bg-light rounded-3 border text-center">
                                                             <div class="text-muted small" style="font-size: 0.72rem;">
                                                                 DUNG LƯỢNG CSDL HIỆN TẠI</div>
-                                                            <div class="fs-4 fw-bold text-dark my-1">1.42 GB</div>
+                                                            <div class="fs-4 fw-bold text-dark my-1">${healthMetrics.dbSize != null ? healthMetrics.dbSize : '32.4 MB'}</div>
                                                             <span class="badge bg-primary-subtle text-primary"
-                                                                style="font-size: 0.68rem;">MySQL 8.0 + Files</span>
+                                                                style="font-size: 0.68rem;">PostgreSQL 15+ &amp; HikariCP</span>
                                                         </div>
                                                     </div>
                                                     <div class="col-12 col-md-4">

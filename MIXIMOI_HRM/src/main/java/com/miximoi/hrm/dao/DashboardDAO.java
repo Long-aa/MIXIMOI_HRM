@@ -67,8 +67,13 @@ public class DashboardDAO {
                 }
             }
 
-            // 1.3 Nhân sự mới (start_date trong khoảng lọc)
-            StringBuilder newSql = new StringBuilder("SELECT COUNT(*) FROM employees WHERE start_date BETWEEN ? AND ? ");
+            // 1.3 Nhân sự mới (start_date trong khoảng lọc hoặc gia nhập trong 7 ngày gần đây)
+            StringBuilder newSql = new StringBuilder(
+                "SELECT COUNT(*) FROM employees WHERE status NOT IN ('INACTIVE', 'TERMINATED') "
+                + "AND ((start_date BETWEEN ? AND ?) "
+                + "  OR (created_at >= (CURRENT_TIMESTAMP - INTERVAL '7 days')) "
+                + "  OR (start_date >= (CURRENT_DATE - INTERVAL '7 days'))) "
+            );
             List<Object> newParams = new ArrayList<>();
             newParams.add(java.sql.Date.valueOf(startDate));
             newParams.add(java.sql.Date.valueOf(endDate));

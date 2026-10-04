@@ -70,6 +70,40 @@
                         </a>
                     </div>
                 </c:when>
+                <c:when test="${requiresPasswordVerification}">
+                    <%-- Khung xác thực mật khẩu 2 lớp bảo vệ thu nhập cá nhân --%>
+                    <div class="py-5">
+                        <div class="card border-0 shadow-lg p-4 p-md-5 mx-auto text-center" style="max-width: 460px; border-radius: 16px;">
+                            <div style="width:72px; height:72px; border-radius:50%; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; margin:0 auto 1.25rem; font-size:2.2rem;">
+                                <i class="bi bi-shield-lock-fill"></i>
+                            </div>
+                            <h4 class="fw-bold text-dark mb-1">Bảo Mật Thu Nhập Cá Nhân</h4>
+                            <p class="text-muted small mb-4">
+                                Để bảo vệ số liệu thu nhập và thuế TNCN, vui lòng nhập lại mật khẩu tài khoản của bạn để mở khóa xem phiếu lương điện tử.
+                            </p>
+                            <c:if test="${param.error eq 'wrong_password'}">
+                                <div class="alert alert-danger py-2 small mb-3 text-start d-flex align-items-center gap-2">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                    <span>Mật khẩu không chính xác! Vui lòng thử lại.</span>
+                                </div>
+                            </c:if>
+                            <form method="post" action="${pageContext.request.contextPath}/payslip">
+                                <input type="hidden" name="action" value="verify_password">
+                                <input type="hidden" name="payrollId" value="${payroll.id}">
+                                <div class="mb-3 text-start">
+                                    <label class="form-label small fw-semibold text-muted">Mật khẩu tài khoản</label>
+                                    <input type="password" class="form-control" name="verifyPassword" placeholder="Nhập mật khẩu của bạn..." required autofocus>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <a href="${pageContext.request.contextPath}/payslip" class="btn btn-outline-secondary w-50">Quay lại</a>
+                                    <button type="submit" class="btn btn-primary w-50 fw-bold">
+                                        <i class="bi bi-unlock-fill me-1"></i> Mở khóa
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </c:when>
                 <c:otherwise>
                     <%-- Sticky Action Topbar --%>
                     <div class="payslip-action-topbar mb-4">
@@ -112,6 +146,12 @@
                         </div>
 
                         <div class="d-flex gap-2">
+                            <a href="${pageContext.request.contextPath}/payslip?action=export_pdf&id=${payroll.id}"
+                               class="btn btn-danger btn-sm d-flex align-items-center gap-1 shadow-sm"
+                               title="Tải trực tiếp file PDF phiếu lương về máy tính">
+                                <i class="bi bi-file-earmark-pdf-fill"></i>
+                                <span>Tải file PDF</span>
+                            </a>
                             <button type="button" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-1" onclick="window.print()">
                                 <i class="bi bi-printer"></i>
                                 <span>In phiếu lương</span>

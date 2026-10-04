@@ -204,17 +204,7 @@ public class Position {
     public void setHasKpi(boolean hasKpi) { this.hasKpi = hasKpi; }
 
     public int getEmployeeCount() {
-        if (employeeCount > 0) return employeeCount;
-        String n = name != null ? name.toLowerCase() : "";
-        if (n.contains("senior software")) return 18;
-        if (n.contains("architecture") || n.contains("tech lead")) return 5;
-        if (n.contains("ui/ux")) return 6;
-        if (n.contains("trưởng phòng")) return 3;
-        if (n.contains("b2b")) return 32;
-        if (n.contains("hr specialist")) return 8;
-        if (n.contains("kế toán trưởng")) return 1;
-        if (n.contains("kế toán viên")) return 9;
-        return 4;
+        return employeeCount;
     }
     public void setEmployeeCount(int employeeCount) { this.employeeCount = employeeCount; }
 

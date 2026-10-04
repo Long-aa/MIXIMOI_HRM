@@ -59,11 +59,21 @@
                         <a href="${pageContext.request.contextPath}/payment?month=${selectedMonth < 12 ? selectedMonth + 1 : 1}&year=${selectedMonth < 12 ? selectedYear : selectedYear + 1}"
                            class="period-picker-btn"><i class="bi bi-chevron-right"></i></a>
                     </div>
-                    <a href="${pageContext.request.contextPath}/payment?action=export_unc&month=${selectedMonth}&year=${selectedYear}"
-                       class="btn-action-light text-decoration-none" title="Xuất bảng kê chi lương định dạng Napas/Vietcombank">
-                        <i class="bi bi-file-earmark-excel text-success"></i>
-                        <span>Xuất UNC Ngân Hàng</span>
-                    </a>
+                    <div class="dropdown d-inline-block">
+                        <button class="btn btn-action-light dropdown-toggle d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-file-earmark-excel text-success"></i>
+                            <span>Xuất Lệnh Chi Ngân Hàng</span>
+                        </button>
+                        <ul class="dropdown-menu shadow border-0" style="border-radius:10px; font-size:0.85rem;">
+                            <li><h6 class="dropdown-header text-uppercase" style="font-size:0.7rem; font-weight:700;">Chuẩn cổng ngân hàng doanh nghiệp</h6></li>
+                            <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/payment?action=export_bank&bank=VCB&month=${selectedMonth}&year=${selectedYear}"><i class="bi bi-bank me-2 text-success"></i>Vietcombank DigiBiz</a></li>
+                            <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/payment?action=export_bank&bank=TCB&month=${selectedMonth}&year=${selectedYear}"><i class="bi bi-bank me-2 text-danger"></i>Techcombank Business</a></li>
+                            <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/payment?action=export_bank&bank=MB&month=${selectedMonth}&year=${selectedYear}"><i class="bi bi-bank me-2 text-primary"></i>MB Bank B2B</a></li>
+                            <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/payment?action=export_bank&bank=BIDV&month=${selectedMonth}&year=${selectedYear}"><i class="bi bi-bank me-2 text-info"></i>BIDV iBank</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/payment?action=export_unc&month=${selectedMonth}&year=${selectedYear}"><i class="bi bi-file-earmark-spreadsheet me-2 text-secondary"></i>Bảng kê chi lương tổng hợp (UNC)</a></li>
+                        </ul>
+                    </div>
                     <button type="button" class="btn-action-light" data-bs-toggle="modal" data-bs-target="#modalPaymentHistory">
                         <i class="bi bi-clock-history"></i>
                         <span>Lịch sử GD</span>

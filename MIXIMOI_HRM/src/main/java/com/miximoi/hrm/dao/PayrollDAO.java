@@ -74,6 +74,21 @@ public class PayrollDAO {
         return null;
     }
 
+    public List<Payroll> findByEmployee(int employeeId) {
+        List<Payroll> list = new ArrayList<>();
+        String sql = BASE_SELECT + "WHERE pr.employee_id = ? ORDER BY pr.pay_year DESC, pr.pay_month DESC";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("PayrollDAO.findByEmployee lỗi: " + e.getMessage());
+        }
+        return list;
+    }
+
     public boolean insert(Payroll pr) {
         String sql = "INSERT INTO payroll (employee_id, pay_month, pay_year, base_salary, "
                    + "working_days, standard_days, overtime_amount, allowance, bonus, "

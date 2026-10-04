@@ -741,18 +741,34 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     window.syncAttendanceDevice = function(btn) {
+        const originalHtml = btn ? btn.innerHTML : '';
         if (btn) {
-            const originalHtml = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang đồng bộ...';
-            setTimeout(function() {
-                btn.innerHTML = '<i class="bi bi-check2 text-success me-1"></i> Đã đồng bộ!';
-                setTimeout(function() {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHtml;
-                }, 2000);
-            }, 1200);
         }
+        const ctx = document.querySelector('[data-ctx]');
+        const ctxPath = ctx ? ctx.dataset.ctx : '';
+        const params = new URLSearchParams(window.location.search);
+        const month = params.get('month') || new Date().getMonth() + 1;
+        const year  = params.get('year')  || new Date().getFullYear();
+        fetch(ctxPath + '/attendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+            body: 'action=sync&month=' + month + '&year=' + year
+        })
+        .then(r => r.ok ? r.json().catch(() => ({success: true})) : Promise.reject(r.status))
+        .then(data => {
+            if (btn) {
+                btn.innerHTML = '<i class="bi bi-check2 text-success me-1"></i> Đã đồng bộ!';
+                setTimeout(() => { btn.disabled = false; btn.innerHTML = originalHtml; }, 2500);
+            }
+            if (window.MixiToast) MixiToast.success('Đồng bộ dữ liệu chấm công thành công!');
+            setTimeout(() => location.reload(), 2600);
+        })
+        .catch(() => {
+            if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+            if (window.MixiToast) MixiToast.error('Lỗi đồng bộ. Thử lại sau.');
+        });
     };
 
     window.viewHistory = function(btnOrId) {

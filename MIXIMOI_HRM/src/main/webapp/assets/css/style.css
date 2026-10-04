@@ -8,6 +8,18 @@
 @import url('dashboard.css');
 
 :root {
+  /* HRM Design Tokens */
+  --hrm-primary: #1d4ed8;
+  --hrm-primary-hover: #1e40af;
+  --hrm-primary-light: #eff6ff;
+  --hrm-success: #10b981;
+  --hrm-warning: #f59e0b;
+  --hrm-danger: #ef4444;
+  --hrm-purple: #8b5cf6;
+  --hrm-bg-body: #f8fafc;
+  --hrm-card-radius: 12px;
+  --hrm-card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+
   /* Brand & Theme Colors */
   --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   
@@ -142,7 +154,7 @@ body {
 
 /* App main bắt đầu với opacity 0, JS sẽ fade in */
 .app-main {
-  will-change: opacity;
+  /* will-change removed to avoid trapping modals in isolated stacking context */
 }
 
 /* Khi đang click một link - instant feedback */

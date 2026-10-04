@@ -76,6 +76,12 @@ public class DatabaseInitializer {
             // 13. Nạp dữ liệu Thông báo công ty & Tuyển dụng mẫu nếu trống
             seedNotificationsIfEmpty(conn);
 
+            // 14. Nạp 28 chức danh chuẩn theo khung năng lực doanh nghiệp nếu chưa có
+            seedStandardPositionsIfEmpty(conn);
+
+            // 15. Nạp hồ sơ kỷ luật lao động mẫu nếu trống
+            seedDisciplinesIfEmpty(conn);
+
             initialized = true;
             System.out.println("[DatabaseInitializer] Đồng bộ CSDL và dữ liệu mẫu thành công!");
         } catch (SQLException e) {
@@ -105,6 +111,10 @@ public class DatabaseInitializer {
             "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS hr_status VARCHAR(20) DEFAULT 'PENDING'",
             "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS days NUMERIC(4,1) DEFAULT 1.0",
             "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS time_note VARCHAR(255)",
+            "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS reject_reason TEXT",
+            "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS approved_by_id INTEGER",
+            "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP",
+            "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
 
             // Bảng contracts: Thêm các trường pháp lý Bộ luật Lao động 2019
             "ALTER TABLE contracts ADD COLUMN IF NOT EXISTS signer_name VARCHAR(200)",
@@ -384,7 +394,40 @@ public class DatabaseInitializer {
             "ALTER TABLE recruitment_requests ADD COLUMN IF NOT EXISTS location VARCHAR(150) DEFAULT 'Hà Nội'",
             "ALTER TABLE recruitment_requests ADD COLUMN IF NOT EXISTS keywords VARCHAR(500)",
             "ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cv_type VARCHAR(50) DEFAULT 'PDF'",
-            "ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cv_text TEXT"
+            "ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cv_text TEXT",
+
+            // Cập nhật địa điểm mẫu cho các vị trí tuyển dụng
+            "UPDATE recruitment_requests SET location = 'TP. Hồ Chí Minh' WHERE id IN (1, 3, 9, 10)",
+            "UPDATE recruitment_requests SET location = 'Đà Nẵng' WHERE id IN (8)",
+            "UPDATE recruitment_requests SET location = 'Toàn quốc (Remote)' WHERE id IN (6)",
+            "UPDATE recruitment_requests SET location = 'Hà Nội' WHERE id IN (2, 4, 5, 7, 11, 12)",
+            "UPDATE recruitment_requests SET keywords = 'React, Go, Node, Microservices, PostgreSQL, Docker, Tiếng Anh' WHERE id = 1",
+            "UPDATE recruitment_requests SET keywords = 'B2B Sales, Đàm phán, Kỹ năng thuyết trình, CRM, Tiếng Anh, Đại học' WHERE id = 2",
+            "UPDATE recruitment_requests SET keywords = 'Figma, UI/UX, Design System, Wireframe, Prototyping, User Research' WHERE id = 3",
+            "UPDATE recruitment_requests SET keywords = 'SEO, Copywriting, Social Media, Content Marketing, Tiếng Anh' WHERE id = 4",
+            "UPDATE recruitment_requests SET keywords = 'VueJS, NuxtJS, JavaScript, Tailwind, CSS3, REST API, Git' WHERE id = 8",
+            "UPDATE recruitment_requests SET keywords = 'Kubernetes, AWS, Docker, CI/CD, Terraform, Linux, Security' WHERE id = 6",
+
+            // Cập nhật định dạng CV mẫu và nội dung trích xuất cho các ứng viên (Word, PDF, Bản chữ viết tay quét OCR)
+            "UPDATE candidates SET cv_type = 'WORD', cv_text = 'BẢN WORD (.DOCX) - CV Ứng viên: ' || full_name || '. Kỹ năng chuyên môn: Java, Spring Boot, Microservices, Docker, Kubernetes, PostgreSQL, Kafka, Redis. Kinh nghiệm 4+ năm phát triển hệ thống tài chính phân tán, tối ưu hóa database truy vấn cao tải. Ngoại ngữ: Tiếng Anh giao tiếp lưu loát.' WHERE id % 3 = 1",
+            "UPDATE candidates SET cv_type = 'HANDWRITTEN', cv_text = '[BẢN CHỮ VIẾT TAY - QUÉT NHẬN DẠNG OCR TỰ ĐỘNG] Trích xuất từ tài liệu viết tay của ứng viên: ' || full_name || '. Kinh nghiệm thực chiến: Quản lý khách hàng doanh nghiệp B2B, đàm phán hợp đồng, thuyết trình, chăm sóc đối tác, kỹ năng giao tiếp tốt. Ghi chú phỏng vấn: Chữ viết rõ ràng, tư duy phản biện sắc bén.' WHERE id % 3 = 2",
+            "UPDATE candidates SET cv_type = 'PDF', cv_text = 'FILE PDF (.PDF) - CURRICULUM VITAE: ' || full_name || '. Chuyên ngành: Thiết kế UI/UX & Frontend Developer. Kỹ năng: Figma, Design System, React, VueJS, TypeScript, TailwindCSS, HTML5/CSS3. Đã tham gia triển khai 10+ dự án Web App và Mobile App. Khả năng làm việc độc lập và nhóm xuất sắc.' WHERE id % 3 = 0",
+
+            // Bảng disciplines: Quản lý kỷ luật và xử lý vi phạm lao động
+            "CREATE TABLE IF NOT EXISTS disciplines ("
+            + "id SERIAL PRIMARY KEY, "
+            + "violation_code VARCHAR(50) UNIQUE NOT NULL, "
+            + "employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE, "
+            + "violation_date DATE NOT NULL, "
+            + "behavior TEXT NOT NULL, "
+            + "severity VARCHAR(20) NOT NULL DEFAULT 'MEDIUM', "
+            + "decision_form VARCHAR(150), "
+            + "handler_id INTEGER REFERENCES employees(id), "
+            + "status VARCHAR(30) NOT NULL DEFAULT 'INVESTIGATING', "
+            + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+            "CREATE INDEX IF NOT EXISTS idx_disc_emp ON disciplines(employee_id)",
+            "CREATE INDEX IF NOT EXISTS idx_disc_status ON disciplines(status)",
+            "CREATE INDEX IF NOT EXISTS idx_disc_date ON disciplines(violation_date DESC)"
         };
 
         for (String sql : alterSqls) {
@@ -1437,21 +1480,21 @@ public class DatabaseInitializer {
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             LocalDateTime now = LocalDateTime.now();
             Object[][] seed = {
-                {null, "📢 Vừa mở tuyển dụng: Senior Fullstack Engineer (React/Go)", 
-                 "Công ty MIXIMOI vừa mở tuyển dụng vị trí Senior Fullstack Engineer (React/Go) — Phòng Công nghệ & R&D (Số lượng: 3 nhân sự, Mức lương: 35 - 55 triệu VNĐ, Hạn nộp: 15/10/2026). Nhân viên quan tâm xem chi tiết & ứng tuyển nội bộ.",
-                 "RECRUITMENT", false, "/recruitment?view=internal&jobId=1", "RECRUITMENT", Timestamp.valueOf(now.minusHours(2))},
-                {null, "📢 Vừa mở tuyển dụng: Product Designer (UI/UX Senior)", 
-                 "Công ty MIXIMOI vừa mở tuyển dụng vị trí Product Designer (UI/UX Senior) — Khối Sản phẩm & Thiết kế (Số lượng: 2 nhân sự, Mức lương: 28 - 42 triệu VNĐ, Hạn nộp: 20/10/2026). Khuyến khích nhân sự các phòng ban đăng ký ứng tuyển nội bộ.",
-                 "RECRUITMENT", false, "/recruitment?view=internal&jobId=3", "RECRUITMENT", Timestamp.valueOf(now.minusHours(5))},
-                {null, "🔥 Tuyển gấp: Content Marketing Specialist", 
-                 "Ưu tiên tuyển gấp nhân sự Content Marketing Specialist — Phòng Marketing & Truyền thông (Số lượng: 2 nhân sự, Mức lương: 16 - 24 triệu VNĐ, Hạn nộp: 05/10/2026).",
-                 "RECRUITMENT", false, "/recruitment?view=internal&jobId=4", "RECRUITMENT", Timestamp.valueOf(now.minusDays(1))},
-                {null, "📢 Vừa mở tuyển dụng: Frontend Developer (VueJS / NuxtJS)", 
-                 "Công ty MIXIMOI vừa mở tuyển dụng vị trí Frontend Developer (VueJS / NuxtJS) — Khối Công nghệ (Số lượng: 2 nhân sự, Mức lương: 22 - 32 triệu VNĐ, Hạn nộp: 18/10/2026).",
-                 "RECRUITMENT", false, "/recruitment?view=internal&jobId=8", "RECRUITMENT", Timestamp.valueOf(now.minusDays(2))},
-                {null, "📢 Vừa mở tuyển dụng: Chuyên viên Tuyển dụng Kỹ thuật (Tech Recruiter)", 
-                 "Công ty MIXIMOI vừa mở tuyển dụng vị trí Tech Recruiter — Ban Nhân sự (Số lượng: 1 nhân sự, Mức lương: 16 - 25 triệu VNĐ, Hạn nộp: 08/10/2026).",
-                 "RECRUITMENT", false, "/recruitment?view=internal&jobId=11", "RECRUITMENT", Timestamp.valueOf(now.minusDays(3))}
+                {null, "⚠️ Hạn chốt giải trình chấm công tháng", 
+                 "Toàn thể nhân sự vui lòng kiểm tra bảng công, hoàn thành giải trình vắng mặt hoặc đi muộn/về sớm trước 17:00.",
+                 "WARNING", false, "/timesheet", "ATTENDANCE", Timestamp.valueOf(now.minusHours(1))},
+                {null, "💰 Bảng lương và Phiếu lương đã công bố", 
+                 "Phiếu lương kỳ gần nhất đã được phê duyệt. Nhân viên vui lòng kiểm tra đối soát thu nhập và khấu trừ bảo hiểm.",
+                 "SUCCESS", false, "/payroll", "PAYROLL", Timestamp.valueOf(now.minusHours(3))},
+                {null, "📢 Tuyển dụng nội bộ: Senior Fullstack Engineer (React/Go)", 
+                 "Công ty MIXIMOI vừa mở tuyển dụng vị trí Senior Fullstack Engineer (React/Go) — Phòng Công nghệ & R&D (Mức lương: 35 - 55 triệu VNĐ).",
+                 "INFO", false, "/recruitment?view=internal&jobId=1", "RECRUITMENT", Timestamp.valueOf(now.minusHours(6))},
+                {null, "📅 Chính sách Nghỉ phép & Đãi ngộ phúc lợi 2026", 
+                 "Ban Nhân sự cập nhật hạn mức phép năm, chế độ làm việc linh hoạt WFH và thưởng dự án mới.",
+                 "INFO", false, "/leave", "LEAVE", Timestamp.valueOf(now.minusDays(1))},
+                {null, "📢 Tuyển dụng: Product Designer (UI/UX Senior)", 
+                 "Vừa mở tuyển dụng vị trí Product Designer — Khối Sản phẩm & Thiết kế (Số lượng: 2 nhân sự, Mức lương: 28 - 42 triệu VNĐ).",
+                 "INFO", false, "/recruitment?view=internal&jobId=3", "RECRUITMENT", Timestamp.valueOf(now.minusDays(2))}
             };
             for (Object[] row : seed) {
                 if (row[0] != null) ps.setInt(1, (Integer) row[0]); else ps.setNull(1, Types.INTEGER);
@@ -1466,6 +1509,97 @@ public class DatabaseInitializer {
             }
             ps.executeBatch();
             System.out.println("[DatabaseInitializer] Đã nạp danh sách Thông báo tuyển dụng công ty mẫu vào PostgreSQL!");
+        }
+    }
+
+    private static void seedStandardPositionsIfEmpty(Connection conn) throws SQLException {
+        Object[][] positions = {
+            {"Senior Software Engineer", "Lập trình viên backend/fullstack cao cấp"},
+            {"Tech Lead / Architecture", "Kiến trúc sư hệ thống & Quản trị công nghệ"},
+            {"UI/UX Designer", "Thiết kế trải nghiệm người dùng & Giao diện sản phẩm"},
+            {"Trưởng phòng Kinh doanh", "Quản trị kênh phân phối & Chỉ tiêu doanh số"},
+            {"Chuyên viên Kinh doanh B2B", "Kinh doanh phân khúc khách hàng doanh nghiệp"},
+            {"HR Specialist (Tuyển dụng & C&B)", "Chế độ đãi ngộ, quan hệ lao động & thu hút nhân tài"},
+            {"Kế toán trưởng", "Chịu trách nhiệm báo cáo tài chính & Kiểm toán tổng thể"},
+            {"Kế toán viên thanh toán & thuế", "Quyết toán hóa đơn chứng từ, khai thuế GTGT và TNCN"},
+            {"Tổng Giám đốc (CEO)", "Định hướng chiến lược toàn diện và phát triển doanh nghiệp"},
+            {"Giám đốc Công nghệ (CTO)", "Hoạch định chiến lược công nghệ và chuyển đổi số toàn diện"},
+            {"Giám đốc Tài chính (CFO)", "Quản lý dòng tiền, chiến lược tài chính và huy động vốn"},
+            {"Giám đốc Kinh doanh (CCO)", "Xây dựng chiến lược mở rộng thị trường và kênh bán hàng"},
+            {"Giám đốc Nhân sự (CHRO)", "Chiến lược nhân tài, văn hóa doanh nghiệp và tổ chức"},
+            {"DevOps & Cloud Engineer", "Vận hành hạ tầng đám mây CI/CD, Kubernetes & bảo mật"},
+            {"QA/QC Automation Engineer", "Kiểm thử tự động hiệu năng và chất lượng phần mềm"},
+            {"Data Analyst / BI Specialist", "Phân tích dữ liệu kinh doanh và trực quan hóa dashboard"},
+            {"Chuyên viên Marketing & Brand", "Truyền thông thương hiệu, quản trị chiến dịch đa kênh"},
+            {"Trưởng nhóm Marketing Performance", "Tối ưu hóa chi phí quảng cáo và chỉ số chuyển đổi số"},
+            {"Chuyên viên Chăm sóc Khách hàng", "Hỗ trợ khách hàng, tiếp nhận giải quyết khiếu nại CSAT"},
+            {"Trưởng phòng Vận hành (COO)", "Tối ưu hóa quy trình vận hành và kiểm soát chất lượng dịch vụ"},
+            {"Chuyên viên Pháp chế & Compliance", "Kiểm soát rủi ro pháp lý hợp đồng và tuân thủ quy chế"},
+            {"Trợ lý Ban Tổng Giám đốc", "Điều phối lịch trình, tổng hợp báo cáo và thư ký cuộc họp"},
+            {"Chuyên viên Đào tạo & Phát triển L&D", "Khảo sát nhu cầu đào tạo và tổ chức lộ trình phát triển"},
+            {"Frontend Developer (React/Vue)", "Phát triển giao diện web responsive và trải nghiệm người dùng"},
+            {"Chuyên viên Phân tích Nghiệp vụ (BA)", "Thu thập yêu cầu người dùng, viết tài liệu đặc tả hệ thống"},
+            {"Thực tập sinh Lập trình (IT Intern)", "Tham gia dự án thực tế, học hỏi quy trình Agile/Scrum"},
+            {"Thực tập sinh Tuyển dụng (HR Intern)", "Sàng lọc CV, liên hệ ứng viên và hỗ trợ sắp xếp phỏng vấn"},
+            {"Kế toán kho & Tài sản", "Theo dõi xuất nhập tồn kho, kiểm kê tài sản cố định định kỳ"}
+        };
+
+        String sql = "INSERT INTO positions (name, description) VALUES (?, ?) ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (Object[] row : positions) {
+                ps.setString(1, (String) row[0]);
+                ps.setString(2, (String) row[1]);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+    }
+
+    private static void seedDisciplinesIfEmpty(Connection conn) throws SQLException {
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM disciplines")) {
+            if (rs.next() && rs.getInt(1) > 0) return;
+        } catch (SQLException ignored) {}
+
+        List<Integer> empIds = new ArrayList<>();
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT id FROM employees ORDER BY id LIMIT 20")) {
+            while (rs.next()) empIds.add(rs.getInt(1));
+        }
+        if (empIds.isEmpty()) return;
+
+        LocalDate now = LocalDate.now();
+        Object[][] seeds = {
+            {"KL-2026-008", getSafeEmpId(empIds, 0, 1), now.minusDays(12), "Tiết lộ mã nguồn nội bộ ra bên ngoài", "HIGH", "Đình chỉ công tác & họp kỷ luật", getSafeEmpId(empIds, 1, 1), "PENDING"},
+            {"KL-2026-007", getSafeEmpId(empIds, 1, 1), now.minusDays(16), "Đi làm muộn 5 lần liên tiếp trong tuần", "LOW", "Khiển trách bằng văn bản", getSafeEmpId(empIds, 2, 1), "INVESTIGATING"},
+            {"KL-2026-006", getSafeEmpId(empIds, 2, 1), now.minusDays(20), "Xô xát to tiếng trong giờ làm việc", "MEDIUM", "Cảnh cáo toàn công ty & trừ KPI", getSafeEmpId(empIds, 3, 1), "INVESTIGATING"},
+            {"KL-2026-005", getSafeEmpId(empIds, 3, 1), now.minusDays(25), "Không tuân thủ quy trình an toàn thông tin", "MEDIUM", "Trừ 50% thưởng hiệu suất tháng", getSafeEmpId(empIds, 4, 1), "RESOLVED"},
+            {"KL-2026-004", getSafeEmpId(empIds, 4, 1), now.minusDays(30), "Vắng mặt không báo cáo quá 3 ngày", "HIGH", "Kéo dài thời hạn nâng lương 6 tháng", getSafeEmpId(empIds, 1, 1), "RESOLVED"},
+            {"KL-2026-003", getSafeEmpId(empIds, 5, 1), now.minusDays(35), "Sử dụng tài sản công ty sai mục đích", "LOW", "Bồi thường chi phí & nhắc nhở", getSafeEmpId(empIds, 2, 1), "RESOLVED"},
+            {"KL-2026-002", getSafeEmpId(empIds, 6, 1), now.minusDays(45), "Vi phạm quy chế bảo mật mật khẩu hệ thống", "LOW", "Khiển trách miệng", getSafeEmpId(empIds, 3, 1), "CLOSED"},
+            {"KL-2026-001", getSafeEmpId(empIds, 7, 1), now.minusDays(60), "Làm giả chứng từ thanh toán tiếp khách", "HIGH", "Sa thải theo Điều 125 BLLĐ", getSafeEmpId(empIds, 1, 1), "CLOSED"},
+            {"KL-2026-009", getSafeEmpId(empIds, 8, 1), now.minusDays(5),  "Không bàn giao tài sản khi chuyển dự án", "LOW", "Tạm giữ phụ cấp trách nhiệm", getSafeEmpId(empIds, 2, 1), "INVESTIGATING"},
+            {"KL-2026-010", getSafeEmpId(empIds, 9, 1), now.minusDays(8),  "Gây mất đoàn kết nội bộ phòng ban", "MEDIUM", "Điều chuyển vị trí công tác", getSafeEmpId(empIds, 3, 1), "PENDING"},
+            {"KL-2026-011", getSafeEmpId(empIds, 10, 1), now.minusDays(3), "Tự ý nghỉ việc trong giờ trực vận hành", "HIGH", "Họp hội đồng kỷ luật", getSafeEmpId(empIds, 1, 1), "PENDING"},
+            {"KL-2026-012", getSafeEmpId(empIds, 11, 1), now.minusDays(50), "Làm hư hỏng thiết bị phòng lab", "LOW", "Bồi hoàn 50% giá trị thiết bị", getSafeEmpId(empIds, 4, 1), "CLOSED"}
+        };
+
+        String sql = "INSERT INTO disciplines (violation_code, employee_id, violation_date, behavior, severity, decision_form, handler_id, status) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (violation_code) DO NOTHING";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (Object[] r : seeds) {
+                ps.setString(1, (String) r[0]);
+                ps.setInt(2, (Integer) r[1]);
+                ps.setDate(3, Date.valueOf((LocalDate) r[2]));
+                ps.setString(4, (String) r[3]);
+                ps.setString(5, (String) r[4]);
+                ps.setString(6, (String) r[5]);
+                ps.setInt(7, (Integer) r[6]);
+                ps.setString(8, (String) r[7]);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            System.out.println("[DatabaseInitializer] Đã nạp danh sách Hồ sơ kỷ luật lao động mẫu vào PostgreSQL!");
         }
     }
 

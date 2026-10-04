@@ -94,17 +94,26 @@
                     </div>
                 </div>
 
-                <!-- 3 TABS -->
+                <!-- 5 TABS 360 PROFILE -->
                 <div class="profile-hero-tabs">
                     <button type="button" class="profile-tab active" data-tab="tabProfile">
-                        <i class="bi bi-person-circle me-1"></i> Hồ sơ cá nhân
-                    </button>
-                    <button type="button" class="profile-tab" data-tab="tabJob">
-                        <i class="bi bi-briefcase-fill me-1"></i> Công tác & Vị trí
+                        <i class="bi bi-person-vcard me-1"></i> 1. Hồ sơ &amp; Liên hệ
                     </button>
                     <button type="button" class="profile-tab" data-tab="tabContract">
-                        <i class="bi bi-file-earmark-text-fill me-1"></i> Hợp đồng
+                        <i class="bi bi-file-earmark-text-fill me-1"></i> 2. Hợp đồng &amp; Phụ lục
                         <span class="badge rounded-pill bg-light text-primary ms-1" style="font-size:0.72rem; font-weight:700;">${not empty contracts ? contracts.size() : 0}</span>
+                    </button>
+                    <button type="button" class="profile-tab" data-tab="tabAttendance">
+                        <i class="bi bi-calendar-check-fill me-1"></i> 3. Chấm công &amp; Phép
+                        <span class="badge rounded-pill bg-success-subtle text-success ms-1" style="font-size:0.72rem; font-weight:700;">${remainingLeaveDays} ngày phép</span>
+                    </button>
+                    <button type="button" class="profile-tab" data-tab="tabPayroll">
+                        <i class="bi bi-cash-stack me-1"></i> 4. Lương &amp; Thuế TNCN
+                        <span class="badge rounded-pill bg-light text-primary ms-1" style="font-size:0.72rem; font-weight:700;">${not empty payrolls ? payrolls.size() : 0}</span>
+                    </button>
+                    <button type="button" class="profile-tab" data-tab="tabDiscipline">
+                        <i class="bi bi-shield-exclamation me-1"></i> 5. KPI &amp; Kỷ luật
+                        <span class="badge rounded-pill bg-warning-subtle text-warning ms-1" style="font-size:0.72rem; font-weight:700;">${not empty disciplines ? disciplines.size() : 0}</span>
                     </button>
                 </div>
             </div>
@@ -519,6 +528,292 @@
                                                             <a href="${pageContext.request.contextPath}/contracts?keyword=${c.contractCode}" class="btn btn-light btn-sm border px-2 py-1" style="border-radius:7px; font-size:0.78rem;" title="Xem tại danh sách Hợp đồng">
                                                                 <i class="bi bi-box-arrow-up-right me-1"></i> Quản lý
                                                             </a>
+                                                        </td>
+                                                    </tr>
+                                                </c:forEach>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </c:otherwise>
+                            </c:choose>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 3: CHẤM CÔNG & PHÉP NĂM ==================== -->
+                <div class="profile-tab-pane" id="tabAttendance">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <div class="info-card p-3 text-center">
+                                <div class="text-muted small fw-semibold">Hạn mức phép tiêu chuẩn</div>
+                                <div class="fs-3 fw-bold text-primary">${standardLeaveDays} <span class="fs-6 text-muted">ngày/năm</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-card p-3 text-center">
+                                <div class="text-muted small fw-semibold">Thâm niên thưởng thêm</div>
+                                <div class="fs-3 fw-bold text-info">+${seniorityLeaveDays} <span class="fs-6 text-muted">ngày (+5 năm/1 ngày)</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-card p-3 text-center">
+                                <div class="text-muted small fw-semibold">Đã sử dụng trong năm</div>
+                                <div class="fs-3 fw-bold text-danger">${approvedDaysTaken} <span class="fs-6 text-muted">ngày đã duyệt</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-card p-3 text-center" style="background: #f0fdf4; border-color: #86efac;">
+                                <div class="text-success small fw-bold">Số dư phép khả dụng</div>
+                                <div class="fs-3 fw-bold text-success">${remainingLeaveDays} <span class="fs-6 text-success">ngày phép còn lại</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-card-header d-flex justify-content-between align-items-center">
+                            <div class="info-card-header-title">
+                                <i class="bi bi-clock-history"></i>
+                                <span class="info-card-title">Nhật ký chấm công gần nhất (30 ca gần nhất)</span>
+                            </div>
+                            <a href="${pageContext.request.contextPath}/timesheet" class="btn btn-outline-primary btn-sm" style="font-size:0.78rem;">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> Xem bảng công tổng hợp
+                            </a>
+                        </div>
+                        <div class="info-card-body p-0">
+                            <c:choose>
+                                <c:when test="${empty attendances}">
+                                    <div class="text-center py-4 text-muted small">
+                                        <i class="bi bi-calendar-x fs-3 d-block mb-1"></i>
+                                        Chưa ghi nhận dữ liệu chấm công nào của nhân sự này.
+                                    </div>
+                                </c:when>
+                                <c:otherwise>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th class="ps-3">Ngày công</th>
+                                                    <th>Giờ vào</th>
+                                                    <th>Giờ ra</th>
+                                                    <th>Tổng số giờ</th>
+                                                    <th>Trạng thái</th>
+                                                    <th>Phương thức</th>
+                                                    <th>Ghi chú</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <c:forEach items="${attendances}" var="att">
+                                                    <tr>
+                                                        <td class="ps-3 fw-bold font-monospace">${att.workDate}</td>
+                                                        <td class="text-primary font-monospace">${att.checkIn != null ? att.checkIn : '—'}</td>
+                                                        <td class="text-primary font-monospace">${att.checkOut != null ? att.checkOut : '—'}</td>
+                                                        <td class="fw-bold">${att.totalHours != null ? att.totalHours : '0'}h</td>
+                                                        <td>
+                                                            <c:choose>
+                                                                <c:when test="${att.status == 'ON_TIME'}"><span class="badge bg-success-subtle text-success">Đúng giờ</span></c:when>
+                                                                <c:when test="${att.status == 'LATE'}"><span class="badge bg-warning-subtle text-warning">Đi trễ</span></c:when>
+                                                                <c:when test="${att.status == 'EARLY_LEAVE'}"><span class="badge bg-warning-subtle text-warning">Về sớm</span></c:when>
+                                                                <c:when test="${att.status == 'ABSENT'}"><span class="badge bg-danger-subtle text-danger">Vắng mặt</span></c:when>
+                                                                <c:otherwise><span class="badge bg-info-subtle text-info">${att.status}</span></c:otherwise>
+                                                            </c:choose>
+                                                        </td>
+                                                        <td><span class="badge bg-light text-dark border">${att.method != null ? att.method : 'GPS/Vân tay'}</span></td>
+                                                        <td class="text-muted small">${att.notes != null ? att.notes : '—'}</td>
+                                                    </tr>
+                                                </c:forEach>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </c:otherwise>
+                            </c:choose>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 4: LƯƠNG & THUẾ TNCN ==================== -->
+                <div class="profile-tab-pane" id="tabPayroll">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="info-card p-3">
+                                <div class="text-muted small">Lương cơ bản thỏa thuận</div>
+                                <div class="fs-4 fw-bold text-primary">
+                                    <fmt:formatNumber value="${employee.baseSalary}" type="currency" currencySymbol="₫" maxFractionDigits="0"/>
+                                </div>
+                                <small class="text-muted">Căn cứ theo hợp đồng đang hiệu lực</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-card p-3">
+                                <div class="text-muted small">Tài khoản thụ hưởng</div>
+                                <div class="fs-5 fw-bold text-dark font-monospace">${not empty employee.bankAccount ? employee.bankAccount : 'Chưa cập nhật'}</div>
+                                <small class="text-muted">Ngân hàng: ${not empty employee.bankName ? employee.bankName : '—'} (${not empty employee.bankBranch ? employee.bankBranch : 'Hội sở'})</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-card p-3">
+                                <div class="text-muted small">Mã số thuế cá nhân &amp; BHXH</div>
+                                <div class="fs-6 fw-bold text-dark font-monospace">MST: ${not empty employee.taxCode ? employee.taxCode : 'Chưa đăng ký'}</div>
+                                <small class="text-muted font-monospace">BHXH: ${not empty employee.insuranceNumber ? employee.insuranceNumber : 'Chưa có'}</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-card-header d-flex justify-content-between align-items-center">
+                            <div class="info-card-header-title">
+                                <i class="bi bi-wallet2"></i>
+                                <span class="info-card-title">Lịch sử diễn biến tiền lương &amp; Phiếu chi</span>
+                            </div>
+                            <a href="${pageContext.request.contextPath}/payroll" class="btn btn-outline-primary btn-sm" style="font-size:0.78rem;">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> Bảng tính lương tổng
+                            </a>
+                        </div>
+                        <div class="info-card-body p-0">
+                            <c:choose>
+                                <c:when test="${empty payrolls}">
+                                    <div class="text-center py-4 text-muted small">
+                                        <i class="bi bi-cash-stack fs-3 d-block mb-1"></i>
+                                        Chưa có kỳ bảng lương nào được phát hành cho nhân sự này.
+                                    </div>
+                                </c:when>
+                                <c:otherwise>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th class="ps-3">Kỳ lương</th>
+                                                    <th>Lương cơ bản</th>
+                                                    <th>Công thực tế</th>
+                                                    <th>Tăng ca (OT)</th>
+                                                    <th>Phụ cấp &amp; Thưởng</th>
+                                                    <th>Khấu trừ &amp; Thuế</th>
+                                                    <th class="text-success fw-bold">Thực lĩnh (Net)</th>
+                                                    <th>Trạng thái</th>
+                                                    <th class="text-end pe-3">Phiếu lương</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <c:forEach items="${payrolls}" var="pr">
+                                                    <tr>
+                                                        <td class="ps-3 fw-bold">Tháng ${pr.payMonth}/${pr.payYear}</td>
+                                                        <td><fmt:formatNumber value="${pr.baseSalary}" type="currency" currencySymbol="₫" maxFractionDigits="0"/></td>
+                                                        <td>${pr.workingDays} / ${pr.standardDays}</td>
+                                                        <td class="text-primary">+<fmt:formatNumber value="${pr.overtimeAmount}" type="currency" currencySymbol="₫" maxFractionDigits="0"/></td>
+                                                        <td>+<fmt:formatNumber value="${pr.allowance + pr.bonus}" type="currency" currencySymbol="₫" maxFractionDigits="0"/></td>
+                                                        <td class="text-danger">-<fmt:formatNumber value="${pr.deduction}" type="currency" currencySymbol="₫" maxFractionDigits="0"/></td>
+                                                        <td class="text-success fw-bold fs-6"><fmt:formatNumber value="${pr.netSalary}" type="currency" currencySymbol="₫" maxFractionDigits="0"/></td>
+                                                        <td>
+                                                            <c:choose>
+                                                                <c:when test="${pr.status == 'PAID'}"><span class="badge bg-success">Đã chi trả</span></c:when>
+                                                                <c:when test="${pr.status == 'APPROVED'}"><span class="badge bg-primary">Đã duyệt</span></c:when>
+                                                                <c:otherwise><span class="badge bg-warning text-dark">${pr.status}</span></c:otherwise>
+                                                            </c:choose>
+                                                        </td>
+                                                        <td class="text-end pe-3">
+                                                            <a href="${pageContext.request.contextPath}/payslip?id=${pr.id}" target="_blank" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">
+                                                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Xem Phiếu
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                </c:forEach>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </c:otherwise>
+                            </c:choose>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 5: KPI & KHEN THƯỞNG - KỶ LUẬT ==================== -->
+                <div class="profile-tab-pane" id="tabDiscipline">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="info-card p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="fw-bold text-dark">Chỉ số Hiệu suất &amp; Đánh giá năng lực (KPI)</div>
+                                    <span class="badge bg-primary text-white">Xuất sắc (A+)</span>
+                                </div>
+                                <div class="progress mb-2" style="height: 10px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 95%;"></div>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted small">
+                                    <span>Tỷ lệ hoàn thành mục tiêu: 95%</span>
+                                    <span>Đánh giá kỳ gần nhất: Q1/2026</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-card p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="fw-bold text-dark">Khen thưởng &amp; Kỷ luật lao động</div>
+                                    <span class="badge ${empty disciplines ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'}">
+                                        ${empty disciplines ? 'Không có vi phạm' : disciplines.size() += ' sự vụ ghi nhận'}
+                                    </span>
+                                </div>
+                                <p class="text-muted small mb-0">
+                                    Ghi nhận toàn bộ quyết định tuyên dương, khiển trách hoặc xử lý kỷ luật theo đúng Nội quy lao động và Bộ luật Lao động 2019.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-card-header d-flex justify-content-between align-items-center">
+                            <div class="info-card-header-title">
+                                <i class="bi bi-shield-exclamation text-danger"></i>
+                                <span class="info-card-title">Hồ sơ Vi phạm &amp; Quyết định Kỷ luật (${not empty disciplines ? disciplines.size() : 0})</span>
+                            </div>
+                            <a href="${pageContext.request.contextPath}/disciplines" class="btn btn-outline-danger btn-sm" style="font-size:0.78rem;">
+                                <i class="bi bi-plus-circle me-1"></i> Quản lý module Kỷ luật
+                            </a>
+                        </div>
+                        <div class="info-card-body p-0">
+                            <c:choose>
+                                <c:when test="${empty disciplines}">
+                                    <div class="text-center py-5">
+                                        <div style="width:56px; height:56px; border-radius:50%; background:#f0fdf4; color:#16a34a; display:flex; align-items:center; justify-content:center; margin:0 auto 0.75rem; font-size:1.6rem;">
+                                            <i class="bi bi-patch-check-fill"></i>
+                                        </div>
+                                        <h6 class="fw-bold text-dark mb-1">Lý lịch nhân sự trong sạch</h6>
+                                        <p class="text-muted small mb-0">Nhân viên tuân thủ nghiêm túc nội quy công ty, không có tiền án kỷ luật hoặc vi phạm nào.</p>
+                                    </div>
+                                </c:when>
+                                <c:otherwise>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th class="ps-3">Mã vi phạm</th>
+                                                    <th>Ngày phát sinh</th>
+                                                    <th>Hành vi vi phạm</th>
+                                                    <th>Mức độ</th>
+                                                    <th>Hình thức xử lý</th>
+                                                    <th>Người xử lý</th>
+                                                    <th class="text-end pe-3">Trạng thái</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <c:forEach items="${disciplines}" var="disc">
+                                                    <tr>
+                                                        <td class="ps-3 font-monospace fw-bold text-danger">${disc.violationCode}</td>
+                                                        <td>${disc.violationDate}</td>
+                                                        <td style="max-width:280px;" class="text-dark">${disc.behavior}</td>
+                                                        <td>
+                                                            <c:choose>
+                                                                <c:when test="${disc.severity eq 'HIGH'}"><span class="badge bg-danger">Nghiêm trọng</span></c:when>
+                                                                <c:when test="${disc.severity eq 'MEDIUM'}"><span class="badge bg-warning text-dark">Trung bình</span></c:when>
+                                                                <c:otherwise><span class="badge bg-info text-white">Nhẹ</span></c:otherwise>
+                                                            </c:choose>
+                                                        </td>
+                                                        <td class="fw-semibold text-secondary">${not empty disc.decisionForm ? disc.decisionForm : 'Đang điều tra'}</td>
+                                                        <td>${not empty disc.handlerName ? disc.handlerName : 'Ban Nhân Sự'}</td>
+                                                        <td class="text-end pe-3">
+                                                            <c:choose>
+                                                                <c:when test="${disc.status eq 'RESOLVED'}"><span class="badge bg-success">Đã giải quyết</span></c:when>
+                                                                <c:when test="${disc.status eq 'INVESTIGATING'}"><span class="badge bg-primary">Đang xác minh</span></c:when>
+                                                                <c:otherwise><span class="badge bg-secondary">${disc.status}</span></c:otherwise>
+                                                            </c:choose>
                                                         </td>
                                                     </tr>
                                                 </c:forEach>

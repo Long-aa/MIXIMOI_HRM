@@ -9,6 +9,7 @@ import com.miximoi.hrm.model.Employee;
 import com.miximoi.hrm.model.Payment;
 import com.miximoi.hrm.model.Payroll;
 import com.miximoi.hrm.model.User;
+import com.miximoi.hrm.util.PasswordUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -41,6 +42,10 @@ public class PayslipServlet extends HttpServlet {
 
         User user  = (User) request.getSession().getAttribute("currentUser");
         String action = request.getParameter("action");
+        if ("export_pdf".equalsIgnoreCase(action) || "pdf".equalsIgnoreCase(action)) {
+            exportPayslipPdf(request, response, user);
+            return;
+        }
 
         if ("detail".equalsIgnoreCase(action)) {
             showDetail(request, response, user);
@@ -100,6 +105,11 @@ public class PayslipServlet extends HttpServlet {
             if (payroll == null || payroll.getEmployeeId() != user.getEmployeeId()) {
                 response.sendRedirect(request.getContextPath() + "/payslip?error=access_denied");
                 return;
+            }
+            // Lớp bảo mật 2 lớp: Yêu cầu mật khẩu trước khi xem E-Payslip
+            Boolean isUnlocked = (Boolean) request.getSession().getAttribute("payslip_unlocked_" + user.getId());
+            if (isUnlocked == null || !isUnlocked) {
+                request.setAttribute("requiresPasswordVerification", true);
             }
         }
 
@@ -181,14 +191,26 @@ public class PayslipServlet extends HttpServlet {
         if (!checkAuth(request, response)) return;
 
         User user = (User) request.getSession().getAttribute("currentUser");
+        request.setCharacterEncoding("UTF-8");
+        String action = request.getParameter("action");
+
+        // Xác thực mật khẩu bảo vệ 2 lớp trước khi xem E-Payslip
+        if ("verify_password".equalsIgnoreCase(action)) {
+            String verifyPassword = request.getParameter("verifyPassword");
+            String payrollId = request.getParameter("payrollId");
+            if (verifyPassword != null && PasswordUtil.verify(verifyPassword, user.getPassword())) {
+                request.getSession().setAttribute("payslip_unlocked_" + user.getId(), Boolean.TRUE);
+                response.sendRedirect(request.getContextPath() + "/payslip?action=detail&id=" + (payrollId != null ? payrollId : ""));
+            } else {
+                response.sendRedirect(request.getContextPath() + "/payslip?action=detail&id=" + (payrollId != null ? payrollId : "") + "&error=wrong_password");
+            }
+            return;
+        }
+
         if (!user.isAdmin() && !user.isAccountant()) {
             response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
             return;
         }
-
-        request.setCharacterEncoding("UTF-8");
-
-        String action = request.getParameter("action");
         if ("send_all".equalsIgnoreCase(action)) {
             response.sendRedirect(request.getContextPath() + "/payslip?success=sent_all");
             return;
@@ -196,6 +218,40 @@ public class PayslipServlet extends HttpServlet {
             String id = request.getParameter("id");
             response.sendRedirect(request.getContextPath()
                     + "/payslip?action=detail&id=" + (id != null ? id : "") + "&success=sent");
+            return;
+        }
+        response.sendRedirect(request.getContextPath() + "/payslip");
+    }
+
+    private void exportPayslipPdf(HttpServletRequest request, HttpServletResponse response, User user)
+            throws IOException {
+        String idStr = request.getParameter("id");
+        Payroll payroll = null;
+        if (idStr != null && !idStr.isEmpty()) {
+            try { payroll = payrollDAO.findById(Integer.parseInt(idStr)); } catch (NumberFormatException ignored) {}
+        }
+        if (payroll == null && "EMPLOYEE".equalsIgnoreCase(user.getRole())) {
+            LocalDate now = LocalDate.now();
+            payroll = payrollDAO.findByEmployeeAndPeriod(user.getEmployeeId(), now.getMonthValue(), now.getYear());
+        }
+
+        // IDOR check: Nhân viên chỉ được tải phiếu lương của chính mình
+        if ("EMPLOYEE".equalsIgnoreCase(user.getRole())) {
+            if (payroll == null || payroll.getEmployeeId() != user.getEmployeeId()) {
+                response.sendRedirect(request.getContextPath() + "/payslip?error=access_denied");
+                return;
+            }
+        }
+
+        if (payroll != null) {
+            response.setContentType("application/pdf");
+            String fileName = "phieu_luong_T" + payroll.getPayMonth() + "_" + payroll.getPayYear() + "_" + payroll.getEmployeeCode() + ".pdf";
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+            try {
+                com.miximoi.hrm.util.PdfExportUtil.generatePayslipPdf(payroll, response.getOutputStream());
+            } catch (com.lowagie.text.DocumentException | IOException e) {
+                System.err.println("Lỗi xuất PDF phiếu lương: " + e.getMessage());
+            }
             return;
         }
         response.sendRedirect(request.getContextPath() + "/payslip");

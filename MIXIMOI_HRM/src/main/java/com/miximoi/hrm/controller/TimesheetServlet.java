@@ -3,11 +3,15 @@ package com.miximoi.hrm.controller;
 import com.miximoi.hrm.dao.AttendanceDAO;
 import com.miximoi.hrm.dao.AuditLogDAO;
 import com.miximoi.hrm.dao.DepartmentDAO;
+import com.miximoi.hrm.dao.NotificationDAO;
+import com.miximoi.hrm.dao.UserDAO;
 import com.miximoi.hrm.model.Department;
+import com.miximoi.hrm.model.Notification;
 import com.miximoi.hrm.model.TimesheetDayColumn;
 import com.miximoi.hrm.model.TimesheetItem;
 import com.miximoi.hrm.model.TimesheetKpiStats;
 import com.miximoi.hrm.model.User;
+import com.miximoi.hrm.service.EmailService;
 import com.miximoi.hrm.service.TimesheetService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -19,8 +23,10 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Servlet quản lý Bảng công & Chấm công tháng.
@@ -61,16 +67,32 @@ public class TimesheetServlet extends HttpServlet {
         attendanceDAO.autoSeedMonthAttendance(month, year);
 
         // Lấy danh sách ma trận chấm công theo quyền hạn của Role
-        List<TimesheetItem> matrix = timesheetService.getTimesheetMatrix(
+        List<TimesheetItem> allMatrix = timesheetService.getTimesheetMatrix(
                 currentUser, month, year, departmentId, statusFilter, shiftType, keyword);
+        if (allMatrix == null) allMatrix = new java.util.ArrayList<>();
 
         if ("export".equalsIgnoreCase(request.getParameter("action"))) {
-            exportTimesheetToCsv(response, matrix, month, year);
+            exportTimesheetToCsv(response, allMatrix, month, year);
             return;
         }
 
         boolean isLocked = timesheetService.isTimesheetLocked(month, year);
         List<Department> departments = departmentDAO.findAll();
+
+        // Phân trang 15 nhân sự / trang
+        int pageSize = 15;
+        int totalEmployees = allMatrix.size();
+        int totalPages = (int) Math.ceil((double) totalEmployees / pageSize);
+        int page = 1;
+        try {
+            if (request.getParameter("page") != null) page = Integer.parseInt(request.getParameter("page"));
+        } catch (NumberFormatException ignored) {}
+        if (page < 1) page = 1;
+        if (page > totalPages && totalPages > 0) page = totalPages;
+
+        int fromIdx = (page - 1) * pageSize;
+        int toIdx = Math.min(fromIdx + pageSize, totalEmployees);
+        List<TimesheetItem> matrix = (totalEmployees > 0) ? allMatrix.subList(fromIdx, toIdx) : allMatrix;
 
         int daysInMonth = YearMonth.of(year, month).lengthOfMonth();
         List<TimesheetDayColumn> dayColumns = new java.util.ArrayList<>();
@@ -93,7 +115,12 @@ public class TimesheetServlet extends HttpServlet {
 
         // Đưa dữ liệu sang JSP
         request.setAttribute("matrix", matrix);
-        request.setAttribute("totalEmployees", matrix.size());
+        request.setAttribute("totalEmployees", totalEmployees);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("pageSize", pageSize);
+        request.setAttribute("fromIdx", totalEmployees > 0 ? (fromIdx + 1) : 0);
+        request.setAttribute("toIdx", toIdx);
         request.setAttribute("isLocked", isLocked);
         request.setAttribute("departments", departments);
         request.setAttribute("selectedMonth", month);
@@ -110,8 +137,8 @@ public class TimesheetServlet extends HttpServlet {
         // Các cảnh báo giải trình và thiết bị
         request.setAttribute("anomalies", timesheetService.getAnomalyReminders());
 
-        // 4 Thẻ KPI Chỉ số tổng hợp động
-        TimesheetKpiStats kpiStats = timesheetService.calculateKpiStats(matrix, month, year);
+        // 4 Thẻ KPI Chỉ số tổng hợp động (tính trên toàn bộ tập dữ liệu)
+        TimesheetKpiStats kpiStats = timesheetService.calculateKpiStats(allMatrix, month, year);
         request.setAttribute("kpiStats", kpiStats);
 
         request.getRequestDispatcher("/WEB-INF/views/attendance/timesheet.jsp")
@@ -153,15 +180,129 @@ public class TimesheetServlet extends HttpServlet {
                 }
             }
             case "sync" -> {
-                // Admin hoặc HR đồng bộ máy chấm công / nạp tự động dữ liệu hôm nay
+                // Admin hoặc HR đồng bộ dữ liệu chấm công toàn tháng
                 if (currentUser.isAdmin() || currentUser.isHr()) {
-                    attendanceDAO.autoSeedTodayData(LocalDate.now());
+                    // Đồng bộ tháng đang xem
+                    attendanceDAO.autoSeedMonthAttendance(month, year);
+                    // Nếu đang xem tháng hiện tại, seed thêm hôm nay để đảm bảo realtime
+                    LocalDate today2 = LocalDate.now();
+                    if (month == today2.getMonthValue() && year == today2.getYear()) {
+                        attendanceDAO.autoSeedTodayData(today2);
+                    }
                     response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year + "&success=synced");
                     return;
                 }
             }
             case "remind" -> {
-                // Gửi nhắc nhở giải trình
+                String target = request.getParameter("target");
+                if (target == null || target.trim().isEmpty()) {
+                    target = "ALL";
+                }
+
+                final int fMonth = month;
+                final int fYear = year;
+                NotificationDAO notifDAO = new NotificationDAO();
+                UserDAO uDAO = new UserDAO();
+                int notifCount = 0;
+                int skipCount = 0;
+
+                if ("ALL".equalsIgnoreCase(target)) {
+                    List<Map<String, String>> anomalies = timesheetService.getAnomalyReminders();
+                    if (anomalies != null) {
+                        for (Map<String, String> anom : anomalies) {
+                            String code = anom.get("code");
+                            User targetUser = uDAO.findByEmployeeCode(code);
+                            if (targetUser == null) {
+                                System.out.println("[TimesheetServlet] remind: Không tìm thấy user cho mã NV: " + code + " — bỏ qua.");
+                                skipCount++;
+                                continue;
+                            }
+                            // Kiểm tra đã gửi hôm nay chưa để tránh spam
+                            if (notifDAO.hasReminderSentToday(targetUser.getId(), "ATTENDANCE")) {
+                                System.out.println("[TimesheetServlet] remind: Đã gửi nhắc nhở hôm nay cho " + code + " — bỏ qua.");
+                                skipCount++;
+                                continue;
+                            }
+                            Notification n = new Notification();
+                            n.setUserId(targetUser.getId());
+                            n.setTitle("⚠️ Nhắc nhở giải trình chấm công tháng " + fMonth + "/" + fYear);
+                            n.setMessage("Phòng Nhân sự nhắc bạn kiểm tra bảng công, hoàn tất bù công / giải trình " + anom.get("issue") + " (" + anom.get("date") + ") trước hạn chốt.");
+                            n.setType("WARNING");
+                            n.setModule("ATTENDANCE");
+                            n.setLinkUrl("/timesheet?month=" + fMonth + "&year=" + fYear);
+                            n.setCreatedAt(LocalDateTime.now());
+                            n.setRead(false);
+                            boolean inserted = notifDAO.insert(n);
+                            if (inserted) {
+                                notifCount++;
+                                if (targetUser.getEmail() != null && !targetUser.getEmail().isEmpty()) {
+                                    final String toEmail = targetUser.getEmail();
+                                    final String toName = targetUser.getFullName();
+                                    final String nMsg = n.getMessage();
+                                    new Thread(() -> EmailService.sendBroadcastAlert(toEmail, toName, "Nhắc nhở giải trình công tháng " + fMonth + "/" + fYear, nMsg)).start();
+                                }
+                            } else {
+                                System.err.println("[TimesheetServlet] remind: insert notification thất bại cho user " + targetUser.getId());
+                            }
+                        }
+                    }
+                } else {
+                    User targetUser = uDAO.findByEmployeeCode(target);
+                    if (targetUser == null) {
+                        try {
+                            targetUser = uDAO.findByEmployeeId(Integer.parseInt(target));
+                        } catch (NumberFormatException ignored) {}
+                    }
+                    if (targetUser == null) {
+                        System.out.println("[TimesheetServlet] remind: Không tìm thấy user cho target: " + target);
+                    } else if (notifDAO.hasReminderSentToday(targetUser.getId(), "ATTENDANCE")) {
+                        System.out.println("[TimesheetServlet] remind: Đã gửi nhắc nhở hôm nay cho " + target + " — bỏ qua.");
+                        skipCount++;
+                    } else {
+                        Notification n = new Notification();
+                        n.setUserId(targetUser.getId());
+                        n.setTitle("⚠️ Nhắc nhở giải trình chấm công tháng " + fMonth + "/" + fYear);
+                        n.setMessage("Phòng Nhân sự nhắc bạn kiểm tra bảng công, hoàn tất bù công hoặc giải trình các ngày thiếu công / đi muộn trước hạn chốt.");
+                        n.setType("WARNING");
+                        n.setModule("ATTENDANCE");
+                        n.setLinkUrl("/timesheet?month=" + fMonth + "&year=" + fYear);
+                        n.setCreatedAt(LocalDateTime.now());
+                        n.setRead(false);
+                        boolean inserted = notifDAO.insert(n);
+                        if (inserted) {
+                            notifCount++;
+                            if (targetUser.getEmail() != null && !targetUser.getEmail().isEmpty()) {
+                                final String toEmail = targetUser.getEmail();
+                                final String toName = targetUser.getFullName();
+                                final String nMsg = n.getMessage();
+                                new Thread(() -> EmailService.sendBroadcastAlert(toEmail, toName, "Nhắc nhở giải trình công tháng " + fMonth + "/" + fYear, nMsg)).start();
+                            }
+                        } else {
+                            System.err.println("[TimesheetServlet] remind: insert notification thất bại cho user " + targetUser.getId());
+                        }
+                    }
+                }
+
+                AuditLogDAO.logAction(request, "REMIND_TIMESHEET", "ATTENDANCE", null,
+                        "Gửi nhắc nhở giải trình công tháng " + month + "/" + year + " tới " + target
+                        + " — Đã gửi: " + notifCount + ", Bỏ qua: " + skipCount);
+
+                String xreq = request.getHeader("X-Requested-With");
+                if ("XMLHttpRequest".equalsIgnoreCase(xreq) || "json".equalsIgnoreCase(request.getParameter("format"))) {
+                    response.setContentType("application/json;charset=UTF-8");
+                    String msg;
+                    if (notifCount > 0) {
+                        msg = "Đã gửi " + notifCount + " thông báo nhắc nhở thành công!"
+                            + (skipCount > 0 ? " (" + skipCount + " trường hợp bỏ qua do đã gửi hôm nay)" : "");
+                    } else if (skipCount > 0) {
+                        msg = "Tất cả nhân sự trong danh sách đã được nhắc nhở hôm nay rồi. Không gửi thêm để tránh spam.";
+                    } else {
+                        msg = "Không tìm thấy nhân sự phù hợp trong hệ thống hoặc không có dữ liệu bất thường cần nhắc nhở tháng " + month + "/" + year + ".";
+                    }
+                    response.getWriter().write("{\"success\":true,\"message\":\"" + msg.replace("\"", "\\\"") + "\",\"notifCount\":" + notifCount + ",\"skipCount\":" + skipCount + "}");
+                    return;
+                }
+
                 response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year + "&success=reminded");
                 return;
             }
@@ -170,6 +311,29 @@ public class TimesheetServlet extends HttpServlet {
                 List<TimesheetItem> matrix = timesheetService.getTimesheetMatrix(
                         currentUser, month, year, null, null, null, null);
                 exportTimesheetToCsv(response, matrix, month, year);
+                return;
+            }
+            case "missing_punch" -> {
+                // Quy trình Giải trình chấm công bù (Missing check-in adjustment)
+                int empId = currentUser.getEmployeeId() > 0 ? currentUser.getEmployeeId() : 1;
+                String empParam = request.getParameter("employeeId");
+                if (empParam != null && !empParam.isEmpty() && (currentUser.isAdmin() || currentUser.isHr() || currentUser.isManager())) {
+                    try {
+                        empId = Integer.parseInt(empParam);
+                    } catch (NumberFormatException ignored) {}
+                }
+                String dateStr = request.getParameter("workDate");
+                LocalDate workDate = (dateStr != null && !dateStr.isEmpty()) ? LocalDate.parse(dateStr) : LocalDate.now();
+                String checkInStr = request.getParameter("checkIn");
+                String checkOutStr = request.getParameter("checkOut");
+                String reason = request.getParameter("reason");
+
+                java.time.LocalTime inTime = (checkInStr != null && !checkInStr.isEmpty()) ? java.time.LocalTime.parse(checkInStr) : java.time.LocalTime.of(8, 30);
+                java.time.LocalTime outTime = (checkOutStr != null && !checkOutStr.isEmpty()) ? java.time.LocalTime.parse(checkOutStr) : java.time.LocalTime.of(17, 30);
+
+                attendanceDAO.recordMissingPunch(empId, workDate, inTime, outTime, reason);
+                AuditLogDAO.logAction(request, "MISSING_PUNCH_ADJUST", "ATTENDANCE", empId, "Giải trình bù công ngày " + workDate + ": " + reason);
+                response.sendRedirect(request.getContextPath() + "/timesheet?month=" + workDate.getMonthValue() + "&year=" + workDate.getYear() + "&success=adjusted");
                 return;
             }
             default -> {}

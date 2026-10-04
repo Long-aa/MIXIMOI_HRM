@@ -373,7 +373,7 @@
                     <c:choose>
                         <c:when test="${param.success eq 'locked'}">Đã khóa bảng công Tháng ${selectedMonth}/${selectedYear} thành công! Dữ liệu đã được chốt phục vụ tính lương.</c:when>
                         <c:when test="${param.success eq 'unlocked'}">Đã mở khóa kỳ quyết toán Tháng ${selectedMonth}/${selectedYear}!</c:when>
-                        <c:when test="${param.success eq 'synced'}">Đã kích hoạt đồng bộ dữ liệu thời gian thực từ 3 thiết bị chấm công ZKTeco!</c:when>
+                        <c:when test="${param.success eq 'synced'}">Đã đồng bộ dữ liệu chấm công Tháng ${selectedMonth}/${selectedYear} thành công! Bảng công đã được cập nhật mới nhất.</c:when>
                         <c:when test="${param.success eq 'reminded'}">Đã gửi email nhắc nhở giải trình thành công đến nhân viên!</c:when>
                         <c:when test="${param.success eq 'exported'}">Đã xuất báo cáo bảng công chi tiết định dạng Excel!</c:when>
                         <c:otherwise>Thao tác hoàn tất thành công!</c:otherwise>
@@ -462,10 +462,13 @@
                         </form>
                     </c:if>
 
-                    <!-- Nút Kế toán: Sang bảng lương -->
-                    <c:if test="${sessionScope.currentUser.accountant}">
-                        <a href="${pageContext.request.contextPath}/payroll" class="btn-ts-outline" title="Chuyển sang Bảng lương">
-                            <i class="bi bi-calculator text-success"></i> Chuyển sang tính lương
+                    <!-- Chuyển sang tính lương kỳ này nếu đã khóa hoặc là quyền quản lý -->
+                    <c:if test="${sessionScope.currentUser.admin or sessionScope.currentUser.hr or sessionScope.currentUser.accountant}">
+                        <a href="${pageContext.request.contextPath}/payroll?month=${selectedMonth}&year=${selectedYear}" 
+                           class="btn-ts-outline ${isLocked ? 'text-success border-success fw-bold' : ''}" 
+                           title="Chuyển sang Bảng lương kỳ Tháng ${selectedMonth}/${selectedYear}">
+                            <i class="bi bi-calculator ${isLocked ? 'text-success' : 'text-primary'}"></i> 
+                            ${isLocked ? 'Tính lương kỳ này &rarr;' : 'Xem bảng lương'}
                         </a>
                     </c:if>
 
@@ -494,12 +497,10 @@
                         </form>
                     </c:if>
 
-                    <!-- Nút Nhân viên: Gửi giải trình chấm công -->
-                    <c:if test="${sessionScope.currentUser.employee and not sessionScope.currentUser.admin and not sessionScope.currentUser.hr and not sessionScope.currentUser.manager and not sessionScope.currentUser.accountant}">
-                        <a href="${pageContext.request.contextPath}/attendance" class="btn-ts-primary text-decoration-none">
-                            <i class="bi bi-envelope-exclamation"></i> Gửi giải trình chấm công
-                        </a>
-                    </c:if>
+                    <!-- Nút Bù công / Giải trình chấm công -->
+                    <button type="button" class="btn-ts-outline text-primary border-primary" data-bs-toggle="modal" data-bs-target="#missingPunchModal" title="Tạo đơn giải trình quên chấm công vào/ra">
+                        <i class="bi bi-clock-history"></i> Bù công / Quên quẹt thẻ
+                    </button>
                 </div>
             </div>
 
@@ -794,10 +795,12 @@
                                                         <i class="bi bi-eye"></i>
                                                     </button>
                                                     <c:if test="${item.status eq 'UNEXPLAINED' or item.lateEarlyMinutes > 0}">
-                                                        <form method="post" action="${pageContext.request.contextPath}/timesheet" class="d-inline">
+                                                        <form method="post" action="${pageContext.request.contextPath}/timesheet" class="d-inline remind-form">
                                                             <input type="hidden" name="action" value="remind">
                                                             <input type="hidden" name="target" value="${item.employeeCode}">
-                                                            <button type="submit" class="action-icon-btn warn" title="Gửi email nhắc nhở giải trình">
+                                                            <input type="hidden" name="month" value="${selectedMonth}">
+                                                            <input type="hidden" name="year" value="${selectedYear}">
+                                                            <button type="submit" class="action-icon-btn warn" title="Gửi nhắc nhở giải trình công">
                                                                 <i class="bi bi-envelope"></i>
                                                             </button>
                                                         </form>
@@ -815,19 +818,24 @@
                 <!-- Phân trang Table footer -->
                 <div class="ts-table-footer">
                     <div>
-                        Hiển thị <strong>25 dòng</strong> trên tổng <strong>${totalEmployees}</strong> bản ghi
+                        Hiển thị <strong>${fromIdx} - ${toIdx}</strong> trên tổng <strong>${totalEmployees}</strong> nhân sự
                     </div>
-                    <div class="d-flex align-items-center gap-1">
-                        <button class="btn btn-sm btn-outline-light text-muted border py-1 px-2" disabled><i class="bi bi-chevron-bar-left"></i></button>
-                        <button class="btn btn-sm btn-outline-light text-muted border py-1 px-2" disabled><i class="bi bi-chevron-left"></i></button>
-                        <button class="btn btn-sm btn-primary py-1 px-2 fw-bold">1</button>
-                        <button class="btn btn-sm btn-outline-light text-dark border py-1 px-2">2</button>
-                        <button class="btn btn-sm btn-outline-light text-dark border py-1 px-2">3</button>
-                        <span class="px-1 text-muted">...</span>
-                        <button class="btn btn-sm btn-outline-light text-dark border py-1 px-2">6</button>
-                        <button class="btn btn-sm btn-outline-light text-dark border py-1 px-2"><i class="bi bi-chevron-right"></i></button>
-                        <button class="btn btn-sm btn-outline-light text-dark border py-1 px-2"><i class="bi bi-chevron-bar-right"></i></button>
-                    </div>
+                    <c:if test="${totalPages > 1}">
+                        <div class="d-flex align-items-center gap-1">
+                            <a href="${pageContext.request.contextPath}/timesheet?month=${selectedMonth}&year=${selectedYear}&page=1&departmentId=${selectedDeptId != null ? selectedDeptId : ''}&status=${selectedStatus != null ? selectedStatus : ''}&shiftType=${selectedShift != null ? selectedShift : ''}&keyword=${keyword != null ? keyword : ''}" 
+                               class="btn btn-sm btn-outline-light text-dark border py-1 px-2 ${currentPage <= 1 ? 'disabled' : ''}" title="Trang đầu"><i class="bi bi-chevron-bar-left"></i></a>
+                            <a href="${pageContext.request.contextPath}/timesheet?month=${selectedMonth}&year=${selectedYear}&page=${currentPage - 1}&departmentId=${selectedDeptId != null ? selectedDeptId : ''}&status=${selectedStatus != null ? selectedStatus : ''}&shiftType=${selectedShift != null ? selectedShift : ''}&keyword=${keyword != null ? keyword : ''}" 
+                               class="btn btn-sm btn-outline-light text-dark border py-1 px-2 ${currentPage <= 1 ? 'disabled' : ''}" title="Trang trước"><i class="bi bi-chevron-left"></i></a>
+                            <c:forEach begin="1" end="${totalPages}" var="p">
+                                <a href="${pageContext.request.contextPath}/timesheet?month=${selectedMonth}&year=${selectedYear}&page=${p}&departmentId=${selectedDeptId != null ? selectedDeptId : ''}&status=${selectedStatus != null ? selectedStatus : ''}&shiftType=${selectedShift != null ? selectedShift : ''}&keyword=${keyword != null ? keyword : ''}" 
+                                   class="btn btn-sm ${currentPage == p ? 'btn-primary text-white fw-bold' : 'btn-outline-light text-dark border'} py-1 px-2">${p}</a>
+                            </c:forEach>
+                            <a href="${pageContext.request.contextPath}/timesheet?month=${selectedMonth}&year=${selectedYear}&page=${currentPage + 1}&departmentId=${selectedDeptId != null ? selectedDeptId : ''}&status=${selectedStatus != null ? selectedStatus : ''}&shiftType=${selectedShift != null ? selectedShift : ''}&keyword=${keyword != null ? keyword : ''}" 
+                               class="btn btn-sm btn-outline-light text-dark border py-1 px-2 ${currentPage >= totalPages ? 'disabled' : ''}" title="Trang sau"><i class="bi bi-chevron-right"></i></a>
+                            <a href="${pageContext.request.contextPath}/timesheet?month=${selectedMonth}&year=${selectedYear}&page=${totalPages}&departmentId=${selectedDeptId != null ? selectedDeptId : ''}&status=${selectedStatus != null ? selectedStatus : ''}&shiftType=${selectedShift != null ? selectedShift : ''}&keyword=${keyword != null ? keyword : ''}" 
+                               class="btn btn-sm btn-outline-light text-dark border py-1 px-2 ${currentPage >= totalPages ? 'disabled' : ''}" title="Trang cuối"><i class="bi bi-chevron-bar-right"></i></a>
+                        </div>
+                    </c:if>
                 </div>
             </div>
 
@@ -930,33 +938,48 @@
                         <div class="bottom-card-title-row">
                             <span class="bcard-title"><i class="bi bi-shield-exclamation text-danger"></i> Cảnh báo giải trình</span>
                             <span class="settlement-badge" style="background:#fef2f2; color:#dc2626; border-color:#fecaca;">
-                                4 hồ sơ
+                                ${not empty anomalies ? fn:length(anomalies) : 0} hồ sơ
                             </span>
                         </div>
                         <p class="bcard-sub">Danh sách nhân sự chưa hoàn thành giải trình vắng mặt hoặc quên chấm công:</p>
 
-                        <c:forEach var="anom" items="${anomalies}">
-                            <div class="anomaly-item-row">
-                                <div>
-                                    <div class="anomaly-name">${anom.name} (${anom.code})</div>
-                                    <div class="anomaly-desc">${anom.issue} · ${anom.date}</div>
+                        <c:choose>
+                            <c:when test="${not empty anomalies}">
+                                <c:forEach var="anom" items="${anomalies}">
+                                    <div class="anomaly-item-row">
+                                        <div>
+                                            <div class="anomaly-name">${anom.name} (${anom.code})</div>
+                                            <div class="anomaly-desc">${anom.issue} · ${anom.date}</div>
+                                        </div>
+                                        <form method="post" action="${pageContext.request.contextPath}/timesheet" class="remind-form">
+                                            <input type="hidden" name="action" value="remind">
+                                            <input type="hidden" name="target" value="${anom.code}">
+                                            <input type="hidden" name="month" value="${selectedMonth}">
+                                            <input type="hidden" name="year" value="${selectedYear}">
+                                            <button type="submit" class="btn-remind-single">Nhắc nhở</button>
+                                        </form>
+                                    </div>
+                                </c:forEach>
+                            </c:when>
+                            <c:otherwise>
+                                <div class="text-muted small py-3 text-center">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i> Tất cả nhân sự đã hoàn tất giải trình công kỳ này!
                                 </div>
-                                <form method="post" action="${pageContext.request.contextPath}/timesheet">
-                                    <input type="hidden" name="action" value="remind">
-                                    <input type="hidden" name="target" value="${anom.code}">
-                                    <button type="submit" class="btn-remind-single">Nhắc nhở</button>
-                                </form>
-                            </div>
-                        </c:forEach>
+                            </c:otherwise>
+                        </c:choose>
                     </div>
 
-                    <form method="post" action="${pageContext.request.contextPath}/timesheet" class="mt-2">
-                        <input type="hidden" name="action" value="remind">
-                        <input type="hidden" name="target" value="ALL">
-                        <button type="submit" class="btn-send-all-anomalies">
-                            <i class="bi bi-send-fill"></i> Gửi thông báo đồng loạt đến 4 nhân sự
-                        </button>
-                    </form>
+                    <c:if test="${not empty anomalies}">
+                        <form method="post" action="${pageContext.request.contextPath}/timesheet" class="mt-2 remind-form">
+                            <input type="hidden" name="action" value="remind">
+                            <input type="hidden" name="target" value="ALL">
+                            <input type="hidden" name="month" value="${selectedMonth}">
+                            <input type="hidden" name="year" value="${selectedYear}">
+                            <button type="submit" class="btn-send-all-anomalies">
+                                <i class="bi bi-send-fill"></i> Gửi thông báo đồng loạt đến ${fn:length(anomalies)} nhân sự
+                            </button>
+                        </form>
+                    </c:if>
                 </div>
             </div>
 
@@ -965,6 +988,65 @@
 </div>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
+
+<!-- Modal Giải trình Chấm công bù (Missing Punch Adjustment) -->
+<div class="modal fade" id="missingPunchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:14px; overflow:hidden;">
+            <div class="modal-header bg-primary text-white p-3 px-4">
+                <h6 class="modal-title fw-bold mb-0 text-white d-flex align-items-center gap-2">
+                    <i class="bi bi-clock-history"></i>
+                    Đơn Giải Trình Bù Công / Quên Quẹt Thẻ
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="${pageContext.request.contextPath}/timesheet">
+                <input type="hidden" name="action" value="missing_punch">
+                <input type="hidden" name="month" value="${selectedMonth}">
+                <input type="hidden" name="year" value="${selectedYear}">
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        Sau khi được Quản lý / HR duyệt, bản ghi công sẽ được chuyển thành <strong>Đúng giờ (ON_TIME)</strong> và tính đủ 8.0 giờ công làm việc thực tế.
+                    </p>
+                    <c:if test="${sessionScope.currentUser.admin or sessionScope.currentUser.hr or sessionScope.currentUser.manager}">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">Nhân viên cần bù công</label>
+                            <select name="employeeId" class="form-select form-select-sm" required>
+                                <c:forEach items="${matrix}" var="item">
+                                    <option value="${item.employeeId != null ? item.employeeId : 1}">${item.employeeName} (${item.employeeCode})</option>
+                                </c:forEach>
+                            </select>
+                        </div>
+                    </c:if>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Ngày làm việc bị thiếu chấm công <span class="text-danger">*</span></label>
+                        <input type="date" name="workDate" class="form-control form-control-sm" required value="<%= java.time.LocalDate.now().toString() %>">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-muted">Giờ vào thực tế</label>
+                            <input type="time" name="checkIn" class="form-control form-control-sm" value="08:30" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-muted">Giờ ra thực tế</label>
+                            <input type="time" name="checkOut" class="form-control form-control-sm" value="17:30" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Lý do giải trình cụ thể <span class="text-danger">*</span></label>
+                        <textarea name="reason" class="form-control form-control-sm" rows="3" placeholder="VD: Máy chấm công cửa chính bị lỗi nhận diện vân tay; Đi công tác đột xuất theo điều động của Trưởng phòng..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light p-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-sm btn-primary px-3 fw-bold">
+                        <i class="bi bi-send-check me-1"></i> Gửi &amp; Duyệt bù công
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- MODAL Chi tiết bảng công (1 modal dùng chung, đặt ngoài bảng để tránh lỗi tối màn backdrop) -->
 <div class="modal fade" id="timesheetDetailModal" tabindex="-1" aria-hidden="true">
@@ -1048,6 +1130,57 @@ function openTimesheetDetail(btn) {
         modal.show();
     }
 }
+
+// Bắt sự kiện gửi nhắc nhở giải trình chấm công qua AJAX & hiển thị Toast tức thời
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.remind-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = this.querySelector('button[type="submit"]');
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" style="width:12px;height:12px;"></span> Gửi...';
+
+            const formData = new FormData(this);
+            const params = new URLSearchParams(formData);
+
+            fetch(this.action, {
+                method: 'POST',
+                body: params,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (window.MixiToast) {
+                        MixiToast.success('Đã gửi nhắc nhở', data.message || 'Đã gửi nhắc nhở giải trình công thành công!');
+                    }
+                    btn.innerHTML = '<i class="bi bi-check2"></i> Đã nhắc';
+                    btn.classList.remove('warn');
+                    btn.style.background = '#10b981';
+                    btn.style.borderColor = '#10b981';
+                    btn.style.color = '#fff';
+                } else {
+                    if (window.MixiToast) {
+                        MixiToast.error('Không thể gửi', data.message || 'Có lỗi xảy ra.');
+                    }
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            })
+            .catch(err => {
+                if (window.MixiToast) {
+                    MixiToast.error('Lỗi kết nối', 'Không thể kết nối đến máy chủ.');
+                }
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            });
+        });
+    });
+});
 </script>
 </body>
 </html>

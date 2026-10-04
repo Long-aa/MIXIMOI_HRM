@@ -65,6 +65,12 @@
                         <i class="bi bi-file-earmark-text"></i>
                         <span>Hợp đồng</span>
                     </a>
+
+                    <a href="${pageContext.request.contextPath}/disciplines"
+                       class="sidebar-nav-link ${activeMenu eq 'disciplines' or pageContext.request.servletPath.contains('discipline') ? 'active' : ''}">
+                        <i class="bi bi-shield-exclamation"></i>
+                        <span>Kỷ luật & Vi phạm</span>
+                    </a>
                 </c:if>
             </div>
         </c:if>

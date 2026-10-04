@@ -51,6 +51,58 @@ public class AttendanceDAO {
         return list;
     }
 
+    public List<Attendance> findRecentByEmployee(int employeeId, int limit) {
+        List<Attendance> list = new ArrayList<>();
+        String sql = BASE_SELECT
+                   + "WHERE a.employee_id = ? "
+                   + "ORDER BY a.work_date DESC, a.id DESC LIMIT ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setInt(2, limit > 0 ? limit : 30);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("AttendanceDAO.findRecentByEmployee lỗi: " + e.getMessage());
+        }
+        return list;
+    }
+
+    /**
+     * Quy trình giải trình chấm công bù (Missing Punch Adjustment).
+     * Tự động chuyển trạng thái bản ghi chấm công từ ABSENT thành ON_TIME hoặc cập nhật giờ thực tế.
+     */
+    public boolean recordMissingPunch(int employeeId, LocalDate date, LocalTime checkIn, LocalTime checkOut, String reason) {
+        String sql = "INSERT INTO attendance (employee_id, work_date, check_in, check_out, total_hours, status, notes, method) "
+                   + "VALUES (?, ?, ?, ?, ?, 'ON_TIME', ?, 'EXPLANATION') "
+                   + "ON CONFLICT (employee_id, work_date) "
+                   + "DO UPDATE SET check_in = EXCLUDED.check_in, "
+                   + "              check_out = EXCLUDED.check_out, "
+                   + "              total_hours = EXCLUDED.total_hours, "
+                   + "              status = 'ON_TIME', "
+                   + "              notes = EXCLUDED.notes, "
+                   + "              method = 'EXPLANATION'";
+        double hours = 8.0;
+        if (checkIn != null && checkOut != null) {
+            long mins = Duration.between(checkIn, checkOut).toMinutes();
+            if (mins > 0) hours = Math.round((mins / 60.0) * 10.0) / 10.0;
+        }
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setDate(2, Date.valueOf(date));
+            ps.setTime(3, checkIn != null ? Time.valueOf(checkIn) : Time.valueOf("08:30:00"));
+            ps.setTime(4, checkOut != null ? Time.valueOf(checkOut) : Time.valueOf("17:30:00"));
+            ps.setBigDecimal(5, java.math.BigDecimal.valueOf(hours));
+            ps.setString(6, "Bù công: " + (reason != null ? reason : "Quên quẹt thẻ"));
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("AttendanceDAO.recordMissingPunch error: " + e.getMessage());
+            return false;
+        }
+    }
+
     /** Láº¥y cháº¥m cÃ´ng cá»§a má»™t ngÃ y cá»¥ thá»ƒ */
     public Attendance findByEmployeeAndDate(int employeeId, LocalDate date) {
         String sql = BASE_SELECT + "WHERE a.employee_id = ? AND a.work_date = ?";
@@ -469,13 +521,19 @@ public class AttendanceDAO {
 
     public List<TimesheetSummary> getTimesheetSummary(int month, int year) {
         List<TimesheetSummary> list = new ArrayList<>();
+        // Tính actual_work_days đồng bộ với logic TimesheetService (không dùng hours/8)
         String sql = "SELECT e.id, e.employee_code, e.full_name, d.name AS department_name, "
                    + "COALESCE(SUM(a.total_hours), 0) AS total_hours, "
                    + "COUNT(CASE WHEN a.status IN ('ON_TIME', 'COMPLETE', 'WORKING') THEN 1 END) AS on_time_days, "
                    + "COUNT(CASE WHEN a.status = 'LATE' THEN 1 END) AS late_days, "
                    + "COUNT(CASE WHEN a.status = 'EARLY_LEAVE' THEN 1 END) AS early_days, "
                    + "COUNT(CASE WHEN a.status = 'ABSENT' THEN 1 END) AS absent_days, "
-                   + "COUNT(CASE WHEN a.status = 'ON_LEAVE' THEN 1 END) AS leave_days "
+                   + "COUNT(CASE WHEN a.status = 'ON_LEAVE' THEN 1 END) AS leave_days, "
+                   + "ROUND(CAST("
+                   + "  COUNT(CASE WHEN a.status IN ('ON_TIME','COMPLETE','WORKING','WFH','ON_LEAVE','BUSINESS_TRIP','MISSION') THEN 1 END)"
+                   + "  + COUNT(CASE WHEN a.status = 'HALF_DAY' THEN 1 END) * 0.5"
+                   + "  + COUNT(CASE WHEN a.status IN ('LATE','EARLY_LEAVE') THEN 1 END) * 0.75"
+                   + " AS NUMERIC), 1) AS actual_work_days "
                    + "FROM employees e "
                    + "LEFT JOIN departments d ON e.department_id = d.id "
                    + "LEFT JOIN attendance a ON e.id = a.employee_id "
@@ -497,8 +555,10 @@ public class AttendanceDAO {
                     ts.setEmployeeName(rs.getString("full_name"));
                     ts.setDepartmentName(rs.getString("department_name"));
                     double hours = rs.getDouble("total_hours");
-                    ts.setTotalHours(hours);
-                    ts.setTotalWorkDays(Math.round((hours / 8.0) * 10.0) / 10.0);
+                    // Dùng actual_work_days tính đúng theo status thực tế
+                    double actualDays = rs.getDouble("actual_work_days");
+                    ts.setTotalWorkDays(actualDays);
+                    ts.setTotalHours(Math.round(hours * 10.0) / 10.0);
                     ts.setOnTimeDays(rs.getInt("on_time_days"));
                     ts.setLateDays(rs.getInt("late_days"));
                     ts.setEarlyLeaveDays(rs.getInt("early_days"));

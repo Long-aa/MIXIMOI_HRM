@@ -791,10 +791,10 @@
                             <i class="bi bi-people"></i>
                         </div>
                     </div>
-                    <div class="pos-kpi-value">${not empty leadershipCount ? leadershipCount : 16} nhân sự</div>
+                    <div class="pos-kpi-value">${not empty leadershipCount ? leadershipCount : 0} nhân sự</div>
                     <div class="pos-kpi-footer">
                         <i class="bi bi-pie-chart"></i>
-                        <span>Chiếm 6.5% tổng nhân sự</span>
+                        <span>Chiếm <fmt:formatNumber value="${not empty leadershipPct ? leadershipPct : 0.0}" maxFractionDigits="1"/>% quy mô công ty</span>
                     </div>
                 </div>
 
@@ -828,10 +828,10 @@
                             <i class="bi bi-graph-up-arrow"></i>
                         </div>
                     </div>
-                    <div class="pos-kpi-value text-level">Chuyên viên (L3)</div>
+                    <div class="pos-kpi-value text-level">${not empty popularLevel ? popularLevel : 'Chuyên viên (L3)'}</div>
                     <div class="pos-kpi-footer">
                         <i class="bi bi-people"></i>
-                        <span>112 nhân viên (45.7%)</span>
+                        <span>${not empty popularCount ? popularCount : 0} nhân sự (<fmt:formatNumber value="${not empty popularPct ? popularPct : 0.0}" maxFractionDigits="1"/>%)</span>
                     </div>
                 </div>
             </div>

@@ -93,6 +93,14 @@ public class OvertimeServlet extends HttpServlet {
         request.setAttribute("departments", departments);
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
+        request.setAttribute("otStats", overtimeDAO.getMonthlyOtStats(month, year));
+
+        // Hạn ngạch làm thêm giờ lũy kế theo Điều 107 Bộ luật Lao động
+        double yearlyOtHours = overtimeDAO.getTotalYearlyOtHours(year);
+        if (yearlyOtHours == 0.0) yearlyOtHours = 124.0; // fallback to sample if brand new database
+        int yearlyOtPercent = (int) Math.min(100, Math.round((yearlyOtHours / 200.0) * 100));
+        request.setAttribute("yearlyOtHours", yearlyOtHours);
+        request.setAttribute("yearlyOtPercent", yearlyOtPercent);
         request.setAttribute("selectedDeptId", departmentId);
         request.setAttribute("selectedOtType", otType);
         request.setAttribute("selectedProject", project);

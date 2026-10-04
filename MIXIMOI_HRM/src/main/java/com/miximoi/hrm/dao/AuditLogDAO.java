@@ -116,4 +116,60 @@ public class AuditLogDAO {
         }
         return list;
     }
+
+    /**
+     * Tìm kiếm và lọc đa tiêu chí lịch sử kiểm toán.
+     */
+    public List<AuditLog> search(String keyword, String action, String module, int limit) {
+        List<AuditLog> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT * FROM audit_logs WHERE 1=1 ");
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("AND (LOWER(username) LIKE ? OR LOWER(details) LIKE ? OR LOWER(ip_address) LIKE ?) ");
+            String kw = "%" + keyword.trim().toLowerCase() + "%";
+            params.add(kw);
+            params.add(kw);
+            params.add(kw);
+        }
+        if (action != null && !action.trim().isEmpty() && !"ALL".equalsIgnoreCase(action)) {
+            sql.append("AND LOWER(action) LIKE ? ");
+            params.add("%" + action.trim().toLowerCase() + "%");
+        }
+        if (module != null && !module.trim().isEmpty() && !"ALL".equalsIgnoreCase(module)) {
+            sql.append("AND LOWER(module) = LOWER(?) ");
+            params.add(module.trim());
+        }
+        sql.append("ORDER BY created_at DESC LIMIT ?");
+        params.add(limit > 0 ? limit : 100);
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    AuditLog item = new AuditLog();
+                    item.setId(rs.getInt("id"));
+                    int uid = rs.getInt("user_id");
+                    if (!rs.wasNull()) item.setUserId(uid);
+                    item.setUsername(rs.getString("username"));
+                    item.setUserRole(rs.getString("user_role"));
+                    item.setAction(rs.getString("action"));
+                    item.setModule(rs.getString("module"));
+                    int rid = rs.getInt("record_id");
+                    if (!rs.wasNull()) item.setRecordId(rid);
+                    item.setDetails(rs.getString("details"));
+                    item.setIpAddress(rs.getString("ip_address"));
+                    Timestamp ts = rs.getTimestamp("created_at");
+                    if (ts != null) item.setCreatedAt(ts.toLocalDateTime());
+                    list.add(item);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[AuditLogDAO.search] Lỗi: " + e.getMessage());
+        }
+        return list;
+    }
 }

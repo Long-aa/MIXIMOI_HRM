@@ -45,6 +45,25 @@ public class ContractServlet extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
 
         String action = request.getParameter("action");
+        if ("export_pdf".equalsIgnoreCase(action) || "pdf".equalsIgnoreCase(action)) {
+            String idStr = request.getParameter("id");
+            if (idStr != null && !idStr.trim().isEmpty()) {
+                try {
+                    int id = Integer.parseInt(idStr.trim());
+                    Contract contract = contractDAO.findById(id);
+                    if (contract != null) {
+                        Employee emp = employeeDAO.findById(contract.getEmployeeId());
+                        response.setContentType("application/pdf");
+                        String fileName = "hop_dong_" + (contract.getContractCode() != null ? contract.getContractCode() : id) + ".pdf";
+                        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+                        com.miximoi.hrm.util.PdfExportUtil.generateContractPdf(contract, emp, response.getOutputStream());
+                        return;
+                    }
+                } catch (NumberFormatException | com.lowagie.text.DocumentException | IOException e) {
+                    System.err.println("Lỗi xuất PDF hợp đồng: " + e.getMessage());
+                }
+            }
+        }
         if ("export".equalsIgnoreCase(action)) {
             exportContractsToCsv(request, response);
             return;

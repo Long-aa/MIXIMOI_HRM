@@ -21,7 +21,7 @@ import java.util.Map;
  * - /settings (hoặc /settings?view=system): Thiết lập hệ thống doanh nghiệp (Mockup 2)
  * - /settings?view=profile: Cài đặt tài khoản cá nhân, Giao diện & Bảo mật (Mockup 4)
  */
-@WebServlet("/settings")
+@WebServlet({"/settings", "/profile", "/change-password"})
 public class SettingServlet extends HttpServlet {
 
     private final SystemSettingDAO settingDAO = new SystemSettingDAO();
@@ -34,7 +34,14 @@ public class SettingServlet extends HttpServlet {
         if (!checkAuth(request, response)) return;
 
         request.setAttribute("activeMenu", "settings");
+        String servletPath = request.getServletPath();
         String view = request.getParameter("view");
+        if ("/profile".equalsIgnoreCase(servletPath) || "/change-password".equalsIgnoreCase(servletPath)) {
+            view = "profile";
+            if ("/change-password".equalsIgnoreCase(servletPath)) {
+                request.setAttribute("activeTab", "security");
+            }
+        }
 
         Map<String, String> settings = settingDAO.getAllSettings();
         request.setAttribute("settings", settings);
@@ -81,7 +88,10 @@ public class SettingServlet extends HttpServlet {
 
         String action = request.getParameter("action");
         String view = request.getParameter("view");
-        String redirectUrl = request.getContextPath() + "/settings";
+        String servletPath = request.getServletPath();
+        String redirectUrl = ("/profile".equalsIgnoreCase(servletPath) || "/change-password".equalsIgnoreCase(servletPath))
+                ? request.getContextPath() + "/profile"
+                : request.getContextPath() + "/settings";
 
         if ("save_system".equalsIgnoreCase(action)) {
             Map<String, String> newSettings = new HashMap<>();

@@ -9,6 +9,7 @@ import com.miximoi.hrm.model.Payroll;
 import com.miximoi.hrm.model.User;
 import com.miximoi.hrm.service.PayrollService;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,6 +27,7 @@ import java.util.List;
  * URL: /payroll
  */
 @WebServlet("/payroll")
+@MultipartConfig
 public class PayrollServlet extends HttpServlet {
 
     private final PayrollService payrollService = new PayrollService();
@@ -200,16 +202,26 @@ public class PayrollServlet extends HttpServlet {
                         return;
                     }
                 }
-                // Đảm bảo dữ liệu chấm công đã có đầy đủ trước khi chốt công và tính lương
-                attendanceDAO.autoSeedMonthAttendance(month, year);
-                int count = payrollService.calculatePayrollForPeriod(month, year, userId);
-                AuditLogDAO.logAction(request, "CALCULATE_PAYROLL", "PAYROLL", null, "Tính lương kỳ " + month + "/" + year);
-                if (isAjax(request)) {
-                    writeJson(response, true, "Đã tính toán bảng lương tháng " + month + "/" + year + " thành công cho " + count + " nhân viên!");
-                    return;
+                try {
+                    // Đảm bảo dữ liệu chấm công đã có đầy đủ trước khi chốt công và tính lương
+                    attendanceDAO.autoSeedMonthAttendance(month, year);
+                    int count = payrollService.calculatePayrollForPeriod(month, year, userId);
+                    AuditLogDAO.logAction(request, "CALCULATE_PAYROLL", "PAYROLL", null, "Tính lương kỳ " + month + "/" + year);
+                    if (isAjax(request)) {
+                        writeJson(response, true, "Đã tính toán bảng lương tháng " + month + "/" + year + " thành công cho " + count + " nhân viên!");
+                        return;
+                    }
+                    response.sendRedirect(request.getContextPath()
+                            + "/payroll?month=" + month + "&year=" + year + "&success=calculated" + extra);
+                } catch (Exception e) {
+                    System.err.println("PayrollServlet.calculate error: " + e.getMessage());
+                    if (isAjax(request)) {
+                        writeJson(response, false, "Lỗi khi tính toán bảng lương: " + e.getMessage());
+                        return;
+                    }
+                    response.sendRedirect(request.getContextPath()
+                            + "/payroll?month=" + month + "&year=" + year + "&error=calc_failed" + extra);
                 }
-                response.sendRedirect(request.getContextPath()
-                        + "/payroll?month=" + month + "&year=" + year + "&success=calculated" + extra);
             }
             case "toggle_lock" -> {
                 boolean currentlyLocked = attendanceDAO.isTimesheetLocked(month, year);

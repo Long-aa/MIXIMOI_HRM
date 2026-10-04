@@ -144,16 +144,84 @@ public class OvertimeDAO {
 
 
     /**
-     * Đếm số lượng đơn theo từng tab để hiển thị badge số đếm trên tab bar.
+     * Đếm số lượng đơn theo từng tab để hiển thị badge số đếm trên tab bar chuẩn thực tế từ CSDL.
      */
     public Map<String, Integer> getCountsByTab(User user, int month, int year) {
         Map<String, Integer> map = new HashMap<>();
-        map.put("all", findByFilters(user, month, year, "all", null, null, null, null).size() + 137); // Giữ tỷ lệ hiển thị (142) như ảnh
-        map.put("pending_manager", 12);
-        map.put("pending_hr", 6);
-        map.put("approved", 118);
-        map.put("rejected", 6);
+        map.put("all", findByFilters(user, month, year, "all", null, null, null, null).size());
+        map.put("pending_manager", findByFilters(user, month, year, "pending_manager", null, null, null, null).size());
+        map.put("pending_hr", findByFilters(user, month, year, "pending_hr", null, null, null, null).size());
+        map.put("approved", findByFilters(user, month, year, "approved", null, null, null, null).size());
+        map.put("rejected", findByFilters(user, month, year, "rejected", null, null, null, null).size());
         return map;
+    }
+
+    /**
+     * Thống kê KPI làm thêm giờ chuẩn thực tế từ PostgreSQL:
+     */
+    public Map<String, Object> getMonthlyOtStats(int month, int year) {
+        Map<String, Object> stats = new HashMap<>();
+        double totalHours = 0.0;
+        BigDecimal totalCost = BigDecimal.ZERO;
+        double avgCoeff = 1.72;
+        int pendingCount = 0;
+        String topDept = "Chưa có";
+        double topDeptShare = 0.0;
+
+        String sql = "SELECT "
+                   + "COALESCE(SUM(hours), 0) AS total_hours, "
+                   + "COALESCE(SUM(amount), 0) AS total_cost, "
+                   + "COALESCE(AVG(coefficient), 1.72) AS avg_coeff, "
+                   + "COUNT(CASE WHEN status LIKE 'PENDING%' OR lead_status = 'PENDING' OR hr_status = 'PENDING' THEN 1 END) AS pending_count "
+                   + "FROM overtime "
+                   + "WHERE EXTRACT(MONTH FROM overtime_date) = ? AND EXTRACT(YEAR FROM overtime_date) = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    totalHours = rs.getDouble("total_hours");
+                    totalCost = rs.getBigDecimal("total_cost");
+                    avgCoeff = rs.getDouble("avg_coeff");
+                    pendingCount = rs.getInt("pending_count");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("OvertimeDAO.getMonthlyOtStats error: " + e.getMessage());
+        }
+
+        String deptSql = "SELECT d.name AS dept_name, SUM(o.hours) AS dept_hours "
+                       + "FROM overtime o "
+                       + "JOIN employees e ON o.employee_id = e.id "
+                       + "JOIN departments d ON e.department_id = d.id "
+                       + "WHERE EXTRACT(MONTH FROM o.overtime_date) = ? AND EXTRACT(YEAR FROM o.overtime_date) = ? "
+                       + "GROUP BY d.name ORDER BY dept_hours DESC LIMIT 1";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(deptSql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    topDept = rs.getString("dept_name");
+                    double deptHours = rs.getDouble("dept_hours");
+                    if (totalHours > 0) {
+                        topDeptShare = Math.round((deptHours / totalHours) * 1000.0) / 10.0;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("OvertimeDAO.getMonthlyOtStats topDept error: " + e.getMessage());
+        }
+
+        stats.put("totalHours", Math.round(totalHours * 10.0) / 10.0);
+        stats.put("totalCost", totalCost);
+        stats.put("avgCoeff", String.format("%.2f", avgCoeff));
+        stats.put("pendingCount", pendingCount);
+        stats.put("topDept", topDept);
+        stats.put("topDeptShare", topDeptShare);
+        stats.put("budgetPct", (int) Math.min(100, Math.round((totalHours / 1600.0) * 100)));
+        return stats;
     }
 
     /**
@@ -400,5 +468,24 @@ public class OvertimeDAO {
             System.err.println("OvertimeDAO.getTopOvertimeEmployees DB error: " + e.getMessage());
         }
         return list;
+    }
+
+    /**
+     * Tổng số giờ OT toàn công ty trong năm phục vụ kiểm soát hạn ngạch Điều 107 BLLĐ.
+     */
+    public double getTotalYearlyOtHours(int year) {
+        String sql = "SELECT COALESCE(SUM(hours), 0) FROM overtime "
+                   + "WHERE EXTRACT(YEAR FROM overtime_date) = ? "
+                   + "AND (status IN ('APPROVED', 'PAID', 'LOCKED') OR hr_status = 'APPROVED')";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return Math.round(rs.getDouble(1) * 10.0) / 10.0;
+            }
+        } catch (SQLException e) {
+            System.err.println("OvertimeDAO.getTotalYearlyOtHours DB error: " + e.getMessage());
+        }
+        return 0.0;
     }
 }

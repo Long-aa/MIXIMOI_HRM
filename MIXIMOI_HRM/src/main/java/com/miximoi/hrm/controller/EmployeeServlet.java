@@ -11,18 +11,24 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.miximoi.hrm.dao.AttendanceDAO;
 import com.miximoi.hrm.dao.ContractDAO;
 import com.miximoi.hrm.dao.DepartmentDAO;
+import com.miximoi.hrm.dao.DisciplineDAO;
 import com.miximoi.hrm.dao.EmployeeDAO;
 import com.miximoi.hrm.dao.LeaveDAO;
+import com.miximoi.hrm.dao.PayrollDAO;
 import com.miximoi.hrm.dao.PositionDAO;
 import com.miximoi.hrm.dao.RecruitmentDAO;
 import com.miximoi.hrm.dao.UserDAO;
+import com.miximoi.hrm.model.Attendance;
 import com.miximoi.hrm.model.Candidate;
 import com.miximoi.hrm.model.Contract;
 import com.miximoi.hrm.model.Department;
+import com.miximoi.hrm.model.Discipline;
 import com.miximoi.hrm.model.Employee;
 import com.miximoi.hrm.model.LeaveRequest;
+import com.miximoi.hrm.model.Payroll;
 import com.miximoi.hrm.model.Position;
 import com.miximoi.hrm.model.RecruitmentRequest;
 import com.miximoi.hrm.model.User;
@@ -58,6 +64,9 @@ public class EmployeeServlet extends HttpServlet {
     private final LeaveDAO leaveDAO = new LeaveDAO();
     private final UserDAO userDAO = new UserDAO();
     private final RecruitmentDAO recruitmentDAO = new RecruitmentDAO();
+    private final AttendanceDAO attendanceDAO = new AttendanceDAO();
+    private final PayrollDAO payrollDAO = new PayrollDAO();
+    private final DisciplineDAO disciplineDAO = new DisciplineDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -172,6 +181,18 @@ public class EmployeeServlet extends HttpServlet {
                     monthsOfService = ChronoUnit.MONTHS.between(emp.getStartDate(), LocalDate.now());
                 }
                 request.setAttribute("monthsOfService", monthsOfService);
+
+                // Tab 3: Attendance history (last 30 records)
+                List<Attendance> attendances = attendanceDAO.findRecentByEmployee(id, 30);
+                request.setAttribute("attendances", attendances);
+
+                // Tab 4: Salary & Payroll history
+                List<Payroll> payrolls = payrollDAO.findByEmployee(id);
+                request.setAttribute("payrolls", payrolls);
+
+                // Tab 5: Disciplines & Violations
+                List<Discipline> disciplines = disciplineDAO.findByEmployeeId(id);
+                request.setAttribute("disciplines", disciplines);
 
                 request.getRequestDispatcher("/WEB-INF/views/employee/employee-detail.jsp")
                         .forward(request, response);

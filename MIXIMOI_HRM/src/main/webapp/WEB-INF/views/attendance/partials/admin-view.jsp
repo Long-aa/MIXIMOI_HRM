@@ -31,6 +31,9 @@
                 <c:choose>
                     <c:when test="${param.success eq 'checkin'}">Chấm công thủ công thành công!</c:when>
                     <c:when test="${param.success eq 'updated'}">Cập nhật dữ liệu chấm công thành công!</c:when>
+                    <c:when test="${param.success eq 'synced'}"><i class="bi bi-arrow-repeat me-1"></i> Đồng bộ dữ liệu chấm công tháng ${selectedMonth}/${selectedYear} thành công!</c:when>
+                    <c:when test="${param.success eq 'locked'}">Đã khóa bảng công tháng ${selectedMonth}/${selectedYear}!</c:when>
+                    <c:when test="${param.success eq 'unlocked'}">Đã mở khóa bảng công tháng ${selectedMonth}/${selectedYear}!</c:when>
                     <c:otherwise>Thao tác dữ liệu chấm công thành công!</c:otherwise>
                 </c:choose>
             </div>
@@ -60,7 +63,7 @@
 </c:if>
 
 <!-- Page Header -->
-<div class="att-page-header">
+<div class="att-page-header" data-ctx="${pageContext.request.contextPath}">
     <div>
         <h1 class="att-title">
             Trung Tâm Quản Lý Chấm Công
@@ -70,8 +73,8 @@
     </div>
     <div class="header-actions">
         <div class="date-display"><i class="bi bi-calendar3 text-primary"></i> Hôm nay: ${todayDisplay}</div>
-        <button type="button" class="btn-att-outline" title="Đồng bộ máy chấm công ZKTeco" onclick="syncAttendanceDevice(this)">
-            <i class="bi bi-arrow-repeat text-primary"></i> Đồng bộ máy
+        <button type="button" class="btn-att-outline" title="Đồng bộ dữ liệu chấm công tháng hiện tại" onclick="syncAttendanceDevice(this)">
+            <i class="bi bi-arrow-repeat text-primary"></i> Đồng bộ
         </button>
         <a href="${pageContext.request.contextPath}/attendance?action=export&month=${selectedMonth}&year=${selectedYear}" class="btn-att-outline">
             <i class="bi bi-file-earmark-excel text-success"></i> Xuất Excel

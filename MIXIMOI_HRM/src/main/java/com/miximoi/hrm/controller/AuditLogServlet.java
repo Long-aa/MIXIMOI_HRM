@@ -37,8 +37,15 @@ public class AuditLogServlet extends HttpServlet {
             return;
         }
 
-        List<AuditLog> auditLogs = auditLogDAO.findRecent(100);
+        String keyword = request.getParameter("keyword");
+        String actionFilter = request.getParameter("actionFilter");
+        String moduleFilter = request.getParameter("moduleFilter");
+
+        List<AuditLog> auditLogs = auditLogDAO.search(keyword, actionFilter, moduleFilter, 150);
         request.setAttribute("auditLogs", auditLogs);
+        request.setAttribute("keyword", keyword);
+        request.setAttribute("actionFilter", actionFilter);
+        request.setAttribute("moduleFilter", moduleFilter);
         request.setAttribute("activeMenu", "audit_logs");
         request.getRequestDispatcher("/WEB-INF/views/admin/audit-logs.jsp")
                .forward(request, response);

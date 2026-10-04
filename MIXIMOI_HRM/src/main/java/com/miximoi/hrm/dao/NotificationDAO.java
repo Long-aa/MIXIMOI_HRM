@@ -55,6 +55,23 @@ public class NotificationDAO {
     }
 
     /**
+     * Lấy thông báo khẩn cấp / cảnh báo mới nhất của công ty để phát toast giữa màn hình khi nhân viên đăng nhập.
+     */
+    public Notification getLatestActiveAlert() {
+        String sql = "SELECT * FROM notifications WHERE type IN ('WARNING', 'DANGER', 'URGENT', 'ALERT') ORDER BY created_at DESC, id DESC LIMIT 1";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return mapRow(rs);
+            }
+        } catch (SQLException e) {
+            System.err.println("NotificationDAO.getLatestActiveAlert error: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
      * Lấy danh sách thông báo gần nhất cho người dùng (Bao gồm thông báo chung toàn công ty và thông báo riêng)
      */
     public List<Notification> findRecent(Integer userId, int limit) {
@@ -128,6 +145,28 @@ public class NotificationDAO {
             System.err.println("NotificationDAO.countUnread error: " + e.getMessage());
         }
         return 0;
+    }
+
+    /**
+     * Kiểm tra xem đã gửi thông báo nhắc nhở cho user hôm nay chưa (tránh spam trùng lặp).
+     * @param userId   ID người dùng nhận thông báo
+     * @param module   Module liên quan (ví dụ: "ATTENDANCE")
+     */
+    public boolean hasReminderSentToday(int userId, String module) {
+        String sql = "SELECT COUNT(*) FROM notifications "
+                   + "WHERE user_id = ? AND module = ? AND type = 'WARNING' "
+                   + "AND DATE(created_at) = CURRENT_DATE";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setString(2, module != null ? module : "GENERAL");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("NotificationDAO.hasReminderSentToday error: " + e.getMessage());
+        }
+        return false;
     }
 
     /**

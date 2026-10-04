@@ -379,29 +379,6 @@ public class TimesheetService {
             }
         }
 
-        if (list.isEmpty()) {
-            Map<String, String> a1 = new HashMap<>();
-            a1.put("code", "NV005");
-            a1.put("name", "Vũ Minh Tuấn");
-            a1.put("issue", "Vắng không báo trước");
-            a1.put("date", "Ngày 09/09");
-            list.add(a1);
-
-            Map<String, String> a2 = new HashMap<>();
-            a2.put("code", "NV042");
-            a2.put("name", "Hoàng Văn Đức");
-            a2.put("issue", "Quên Check-out");
-            a2.put("date", "Ngày 11/09");
-            list.add(a2);
-
-            Map<String, String> a3 = new HashMap<>();
-            a3.put("code", "NV019");
-            a3.put("name", "Lê Ngọc Diệp");
-            a3.put("issue", "Đi muộn 42 phút");
-            a3.put("date", "Chưa xác nhận");
-            list.add(a3);
-        }
-
         return list;
     }
 

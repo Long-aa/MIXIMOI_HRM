@@ -8,6 +8,7 @@ import com.miximoi.hrm.model.LeaveRequest;
 import com.miximoi.hrm.model.User;
 import com.miximoi.hrm.service.LeaveService;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,6 +26,7 @@ import java.util.List;
  * URL: /leave
  */
 @WebServlet("/leave")
+@MultipartConfig
 public class LeaveServlet extends HttpServlet {
 
     private final LeaveService leaveService = new LeaveService();
@@ -377,14 +379,38 @@ public class LeaveServlet extends HttpServlet {
             }
             case "reject" -> {
                 if (currentUser.isManager() || currentUser.isHr() || currentUser.isAdmin()) {
-                    int id = Integer.parseInt(request.getParameter("id"));
-                    String reason = request.getParameter("rejectReason");
-                    leaveService.reject(id, currentUser.getEmployeeId(), reason);
-                    if (isAjax(request)) {
-                        writeJson(response, true, "Đã từ chối đơn xin nghỉ phép thành công!", "REJECTED", "Từ chối");
+                    String idStr = request.getParameter("id");
+                    if (idStr == null || idStr.trim().isEmpty()) {
+                        if (isAjax(request)) {
+                            writeJson(response, false, "Mã đơn không hợp lệ!");
+                            return;
+                        }
+                        response.sendRedirect(request.getContextPath() + "/leave?error=invalid_id");
                         return;
                     }
-                    response.sendRedirect(request.getContextPath() + "/leave?success=rejected");
+                    try {
+                        int id = Integer.parseInt(idStr.trim());
+                        String reason = request.getParameter("rejectReason");
+                        leaveService.reject(id, currentUser.getEmployeeId(), reason);
+                        if (isAjax(request)) {
+                            writeJson(response, true, "Đã từ chối đơn xin nghỉ phép thành công!", "REJECTED", "Từ chối");
+                            return;
+                        }
+                        response.sendRedirect(request.getContextPath() + "/leave?success=rejected");
+                    } catch (Exception e) {
+                        System.err.println("LeaveServlet.reject error: " + e.getMessage());
+                        if (isAjax(request)) {
+                            writeJson(response, false, "Lỗi từ chối đơn: " + e.getMessage());
+                            return;
+                        }
+                        response.sendRedirect(request.getContextPath() + "/leave?error=reject_failed");
+                    }
+                } else {
+                    if (isAjax(request)) {
+                        writeJson(response, false, "Bạn không có quyền từ chối đơn nghỉ phép!");
+                        return;
+                    }
+                    response.sendRedirect(request.getContextPath() + "/leave?error=access_denied");
                 }
             }
             case "bulkApprove" -> {

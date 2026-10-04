@@ -90,15 +90,35 @@
 
             <!-- Table Card -->
             <div class="audit-card">
-                <div class="p-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="fw-bold text-dark" style="font-size:0.9rem;">Danh sách 100 thao tác gần nhất</span>
-                        <span class="badge bg-secondary-subtle text-secondary">${auditLogs != null ? auditLogs.size() : 0} bản ghi</span>
+                <form method="GET" action="${pageContext.request.contextPath}/audit-logs" class="p-3 border-bottom bg-light d-flex flex-wrap gap-2 align-items-center">
+                    <div class="input-group input-group-sm" style="max-width: 320px;">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="text" name="keyword" value="${keyword}" class="form-control" placeholder="Tìm theo Username, IP, Chi tiết...">
                     </div>
-                    <div>
-                        <input type="text" id="auditSearchInput" class="form-control form-control-sm" placeholder="Lọc theo người dùng, hành động..." style="width: 250px;">
-                    </div>
-                </div>
+                    <select name="moduleFilter" class="form-select form-select-sm" style="max-width: 160px;">
+                        <option value="">Tất cả phân hệ</option>
+                        <option value="PAYROLL" ${moduleFilter eq 'PAYROLL' ? 'selected' : ''}>Bảng lương (PAYROLL)</option>
+                        <option value="PAYMENT" ${moduleFilter eq 'PAYMENT' ? 'selected' : ''}>Thanh toán (PAYMENT)</option>
+                        <option value="TIMESHEET" ${moduleFilter eq 'TIMESHEET' ? 'selected' : ''}>Chấm công (TIMESHEET)</option>
+                        <option value="EMPLOYEES" ${moduleFilter eq 'EMPLOYEES' ? 'selected' : ''}>Nhân sự (EMPLOYEES)</option>
+                        <option value="CONTRACT" ${moduleFilter eq 'CONTRACT' ? 'selected' : ''}>Hợp đồng (CONTRACT)</option>
+                        <option value="LEAVE" ${moduleFilter eq 'LEAVE' ? 'selected' : ''}>Nghỉ phép (LEAVE)</option>
+                        <option value="AUTH" ${moduleFilter eq 'AUTH' ? 'selected' : ''}>Bảo mật (AUTH)</option>
+                    </select>
+                    <select name="actionFilter" class="form-select form-select-sm" style="max-width: 170px;">
+                        <option value="">Tất cả thao tác</option>
+                        <option value="APPROVE" ${actionFilter eq 'APPROVE' ? 'selected' : ''}>Phê duyệt (APPROVE)</option>
+                        <option value="LOCK" ${actionFilter eq 'LOCK' ? 'selected' : ''}>Khóa chốt (LOCK)</option>
+                        <option value="CALCULATE" ${actionFilter eq 'CALCULATE' ? 'selected' : ''}>Tính toán (CALCULATE)</option>
+                        <option value="PAY" ${actionFilter eq 'PAY' ? 'selected' : ''}>Chi trả (PAY)</option>
+                        <option value="UPDATE" ${actionFilter eq 'UPDATE' ? 'selected' : ''}>Cập nhật (UPDATE)</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-sm px-3 d-flex align-items-center gap-1">
+                        <i class="bi bi-funnel-fill"></i> Lọc dữ liệu
+                    </button>
+                    <a href="${pageContext.request.contextPath}/audit-logs" class="btn btn-outline-secondary btn-sm">Đặt lại</a>
+                    <span class="badge bg-secondary-subtle text-secondary ms-auto">${auditLogs != null ? auditLogs.size() : 0} bản ghi kiểm toán</span>
+                </form>
                 <div class="table-responsive">
                     <table class="table audit-table mb-0" id="auditTable">
                         <thead>

@@ -92,6 +92,25 @@
             <version>${bcrypt.version}</version>
         </dependency>
 
+        <!-- ===== JAKARTA MAIL (Email Notifications via SMTP) ===== -->
+        <dependency>
+            <groupId>jakarta.mail</groupId>
+            <artifactId>jakarta.mail-api</artifactId>
+            <version>2.1.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>angus-mail</artifactId>
+            <version>2.0.3</version>
+        </dependency>
+
+        <!-- ===== OPENPDF (Xuất PDF Phiếu lương & Hợp đồng lao động) ===== -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>1.3.40</version>
+        </dependency>
+
         <!-- ===== JUNIT 5 (Testing) ===== -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

@@ -81,7 +81,8 @@ public class EmployeeDAO {
             } else if ("INACTIVE".equalsIgnoreCase(status.trim())) {
                 sql.append("AND (e.status = 'INACTIVE' OR e.status = 'TERMINATED') ");
             } else if ("NEW".equalsIgnoreCase(status.trim())) {
-                sql.append("AND (e.start_date IS NOT NULL AND e.start_date >= (CURRENT_DATE - INTERVAL '90 days')) ");
+                sql.append("AND ((e.created_at IS NOT NULL AND e.created_at >= (CURRENT_TIMESTAMP - INTERVAL '7 days')) ")
+                   .append("  OR (e.start_date IS NOT NULL AND e.start_date >= (CURRENT_DATE - INTERVAL '7 days'))) ");
             } else {
                 sql.append("AND e.status = ? ");
             }
@@ -91,7 +92,7 @@ public class EmployeeDAO {
             sql.append("AND e.status NOT IN ('INACTIVE', 'TERMINATED') ");
         }
         if ("NEW".equalsIgnoreCase(status != null ? status.trim() : "")) {
-            sql.append("ORDER BY e.start_date DESC, e.employee_code");
+            sql.append("ORDER BY COALESCE(e.created_at, e.start_date::timestamp) DESC, e.employee_code");
         } else {
             sql.append("ORDER BY e.employee_code");
         }

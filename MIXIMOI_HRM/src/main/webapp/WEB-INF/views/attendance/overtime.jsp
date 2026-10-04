@@ -373,7 +373,7 @@
                 </div>
             </div>
 
-            <!-- 4 Thẻ KPI Chỉ số (Matches Screenshot 3) -->
+            <!-- 4 Thẻ KPI Chỉ số Chuẩn Thực Tế Từ CSDL -->
             <div class="ot-kpi-grid">
                 <!-- Card 1: Tổng giờ OT tháng -->
                 <div class="ot-kpi-card">
@@ -383,13 +383,13 @@
                             <div class="okpi-icon blue"><i class="bi bi-clock-history"></i></div>
                         </div>
                         <div class="okpi-val-row">
-                            <span class="okpi-val">1,420</span>
+                            <span class="okpi-val"><fmt:formatNumber value="${not empty otStats.totalHours ? otStats.totalHours : 0}" pattern="#,##0.#"/></span>
                             <span style="font-size:1rem; font-weight:700; color:#64748b;">h</span>
                         </div>
                     </div>
                     <div>
-                        <div class="okpi-sub">Ngân sách OT chu kỳ: <strong>88% (1,600h max)</strong></div>
-                        <div class="okpi-sub text-primary fw-bold mt-1"><i class="bi bi-graph-up-arrow"></i> +4.2% so với tháng trước</div>
+                        <div class="okpi-sub">Ngân sách OT chu kỳ: <strong>${not empty otStats.budgetPct ? otStats.budgetPct : 0}% (1,600h max)</strong></div>
+                        <div class="okpi-sub text-primary fw-bold mt-1"><i class="bi bi-calendar2-check"></i> Kỳ tháng ${selectedMonth}/${selectedYear}</div>
                     </div>
                 </div>
 
@@ -401,12 +401,12 @@
                             <div class="okpi-icon blue"><i class="bi bi-cash-stack"></i></div>
                         </div>
                         <div class="okpi-val-row">
-                            <span class="okpi-val">148.500.000</span>
+                            <span class="okpi-val"><fmt:formatNumber value="${not empty otStats.totalCost ? otStats.totalCost : 0}" pattern="#,##0"/></span>
                             <span style="font-size:0.9rem; font-weight:700; color:#64748b;">đ</span>
                         </div>
                     </div>
                     <div>
-                        <div class="okpi-sub">Hệ số bình quân: <strong>1.72x</strong></div>
+                        <div class="okpi-sub">Hệ số bình quân: <strong>${not empty otStats.avgCoeff ? otStats.avgCoeff : '1.72'}x</strong></div>
                         <div class="okpi-sub mt-1" style="font-size:0.73rem;">Quy đổi 150%, 200%, 300% theo Bộ luật Lao Động</div>
                     </div>
                 </div>
@@ -419,12 +419,14 @@
                             <div class="okpi-icon amber"><i class="bi bi-clipboard2-pulse"></i></div>
                         </div>
                         <div class="okpi-val-row">
-                            <span class="okpi-val text-dark">18</span>
-                            <span class="badge bg-danger text-white ms-1" style="font-size:0.68rem;">KHẨN CẤP</span>
+                            <span class="okpi-val text-dark">${not empty otStats.pendingCount ? otStats.pendingCount : 0}</span>
+                            <c:if test="${otStats.pendingCount > 0}">
+                                <span class="badge bg-danger text-white ms-1" style="font-size:0.68rem;">CẦN DUYỆT</span>
+                            </c:if>
                         </div>
                     </div>
-                    <div class="okpi-sub text-danger fw-bold">
-                        <i class="bi bi-clock me-1"></i> Yêu cầu duyệt cấp 1 &amp; HR trước 24h
+                    <div class="okpi-sub ${otStats.pendingCount > 0 ? 'text-danger' : 'text-success'} fw-bold">
+                        <i class="bi bi-clock me-1"></i> ${otStats.pendingCount > 0 ? 'Yêu cầu duyệt cấp 1 & HR trước 24h' : 'Toàn bộ đơn đã được giải quyết'}
                     </div>
                 </div>
 
@@ -436,12 +438,12 @@
                             <div class="okpi-icon blue"><i class="bi bi-diagram-3-fill"></i></div>
                         </div>
                         <div class="okpi-val-row">
-                            <span class="okpi-val" style="font-size:1.25rem;">CNTT &amp; Sản phẩm</span>
+                            <span class="okpi-val" style="font-size:1.15rem;">${not empty otStats.topDept ? otStats.topDept : 'Chưa có'}</span>
                         </div>
                     </div>
                     <div>
-                        <div class="okpi-sub">Tỷ trọng toàn công ty: <strong>45% tổng OT</strong></div>
-                        <div class="okpi-sub mt-1" style="font-size:0.73rem;">Dự án: <strong>Core Banking v4.2</strong></div>
+                        <div class="okpi-sub">Tỷ trọng toàn công ty: <strong>${not empty otStats.topDeptShare ? otStats.topDeptShare : 0}% tổng OT</strong></div>
+                        <div class="okpi-sub mt-1" style="font-size:0.73rem;">Dữ liệu tổng hợp thực tế theo CSDL</div>
                     </div>
                 </div>
             </div>
@@ -755,14 +757,14 @@
 
                         <div class="law-quota-box">
                             <div class="d-flex align-items-center justify-content-between mb-1">
-                                <span class="fw-bold"><i class="bi bi-shield-check me-1"></i> Hạn ngạch lũy kế năm 2026</span>
+                                <span class="fw-bold"><i class="bi bi-shield-check me-1"></i> Hạn ngạch lũy kế năm ${selectedYear}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-1" style="font-size:0.75rem;">
-                                <span>Toàn công ty: <strong>124h / 200h</strong></span>
-                                <span class="fw-bold">62%</span>
+                                <span>Toàn công ty: <strong>${yearlyOtHours}h / 200h</strong></span>
+                                <span class="fw-bold">${yearlyOtPercent}%</span>
                             </div>
                             <div class="rank-bar-bg" style="height:6px;">
-                                <div class="rank-bar-fill" style="width:62%; background:#166534;"></div>
+                                <div class="rank-bar-fill" style="width:${yearlyOtPercent}%; background:${yearlyOtPercent > 80 ? '#dc2626' : (yearlyOtPercent > 50 ? '#d97706' : '#166534')};"></div>
                             </div>
                         </div>
                     </div>

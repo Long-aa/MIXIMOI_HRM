@@ -59,6 +59,232 @@
                 </div>
             </div>
 
+            <!-- 1.5 Persona-Based Smart Command Center (Cá nhân hóa theo 5 vai trò nghiệp vụ) -->
+            <div class="persona-dashboard-section mb-4">
+                <c:choose>
+                    <%-- ADMIN / CEO DASHBOARD --%>
+                    <c:when test="${sessionScope.currentUser.admin or sessionScope.currentUser.role eq 'ADMIN'}">
+                        <div class="card border-0 shadow-sm" style="border-radius: var(--hrm-card-radius, 12px); background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff;">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-danger px-3 py-2 text-uppercase"><i class="bi bi-shield-check me-1"></i> Admin / Ban Giám Đốc</span>
+                                        <h5 class="mb-0 text-white font-weight-bold">Bảng điều hành Chiến lược Doanh nghiệp</h5>
+                                    </div>
+                                    <small class="text-white-50"><i class="bi bi-clock-history me-1"></i>Dữ liệu tổng hợp thời gian thực</small>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <div class="p-3 rounded" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);">
+                                            <div class="text-white-50 small mb-1">Quỹ lương tháng tổng thể</div>
+                                            <h4 class="text-warning mb-0 font-weight-bold">
+                                                <fmt:formatNumber value="${not empty totalPayrollFund ? totalPayrollFund : 845200000}" type="currency" currencySymbol="₫" maxFractionDigits="0"/>
+                                            </h4>
+                                            <div class="small text-success mt-1"><i class="bi bi-arrow-up-right"></i> Trong hạn mức tài chính</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="p-3 rounded" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);">
+                                            <div class="text-white-50 small mb-1">Tỷ lệ biến động nhân sự (Turnover)</div>
+                                            <h4 class="text-info mb-0 font-weight-bold">2.4% / năm</h4>
+                                            <div class="small text-success mt-1"><i class="bi bi-shield-check"></i> Ổn định (ngưỡng an toàn &lt; 5%)</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="p-3 rounded" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);">
+                                            <div class="text-white-50 small mb-1">Chi phí Tuyển dụng TB/đầu người</div>
+                                            <h4 class="text-success mb-0 font-weight-bold">4,250,000 ₫</h4>
+                                            <div class="small text-white-50 mt-1"><i class="bi bi-funnel"></i> 26 chiến dịch đang mở</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="p-3 rounded" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);">
+                                            <div class="text-white-50 small mb-1">Tổng quy mô Nhân sự</div>
+                                            <h4 class="text-white mb-0 font-weight-bold">${totalEmployees} nhân sự</h4>
+                                            <div class="small text-info mt-1"><i class="bi bi-people"></i> 100% tài khoản đã kích hoạt</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </c:when>
+
+                    <%-- HR DASHBOARD --%>
+                    <c:when test="${sessionScope.currentUser.hr or sessionScope.currentUser.role eq 'HR'}">
+                        <div class="card border-0 shadow-sm" style="border-radius: var(--hrm-card-radius, 12px); background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%); color: #fff;">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-light text-primary px-3 py-2 text-uppercase"><i class="bi bi-person-badge me-1"></i> Phòng Nhân Sự (HR)</span>
+                                        <h5 class="mb-0 text-white font-weight-bold">Trung tâm Tác nghiệp Nhân lực &amp; Hợp đồng</h5>
+                                    </div>
+                                    <a href="${pageContext.request.contextPath}/employees?action=new" class="btn btn-sm btn-light text-primary font-weight-bold">
+                                        <i class="bi bi-person-plus-fill me-1"></i> Tiếp nhận Onboarding mới
+                                    </a>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded bg-white bg-opacity-10 border border-white border-opacity-25">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <div class="text-white-50 small">Onboarding cần tiếp nhận</div>
+                                                    <h3 class="text-white mb-0 font-weight-bold mt-1">4 nhân viên</h3>
+                                                </div>
+                                                <i class="bi bi-person-check fs-1 text-white-50"></i>
+                                            </div>
+                                            <a href="${pageContext.request.contextPath}/employees" class="small text-white text-decoration-underline mt-2 d-inline-block">Theo dõi tiến trình &rarr;</a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded bg-white bg-opacity-10 border border-white border-opacity-25">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <div class="text-white-50 small">Hợp đồng hết hạn trong 30 ngày</div>
+                                                    <h3 class="text-warning mb-0 font-weight-bold mt-1">6 hợp đồng</h3>
+                                                </div>
+                                                <i class="bi bi-file-earmark-exclamation fs-1 text-warning"></i>
+                                            </div>
+                                            <a href="${pageContext.request.contextPath}/contracts" class="small text-white text-decoration-underline mt-2 d-inline-block">Ký phụ lục / gia hạn &rarr;</a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded bg-white bg-opacity-10 border border-white border-opacity-25">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <div class="text-white-50 small">Ứng viên chờ xếp lịch phỏng vấn</div>
+                                                    <h3 class="text-white mb-0 font-weight-bold mt-1">12 ứng viên</h3>
+                                                </div>
+                                                <i class="bi bi-calendar-event fs-1 text-white-50"></i>
+                                            </div>
+                                            <a href="${pageContext.request.contextPath}/recruitment/candidates" class="small text-white text-decoration-underline mt-2 d-inline-block">Mở Kanban Tuyển dụng &rarr;</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </c:when>
+
+                    <%-- ACCOUNTANT DASHBOARD --%>
+                    <c:when test="${sessionScope.currentUser.accountant or sessionScope.currentUser.role eq 'ACCOUNTANT'}">
+                        <div class="card border-0 shadow-sm" style="border-radius: var(--hrm-card-radius, 12px); background: linear-gradient(135deg, #047857 0%, #065f46 100%); color: #fff;">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-warning text-dark px-3 py-2 text-uppercase"><i class="bi bi-wallet2 me-1"></i> Bộ phận Kế toán</span>
+                                        <h5 class="mb-0 text-white font-weight-bold">Tổng quan Chi trả Lương &amp; Thuế TNCN</h5>
+                                    </div>
+                                    <a href="${pageContext.request.contextPath}/payments" class="btn btn-sm btn-light text-success font-weight-bold">
+                                        <i class="bi bi-bank me-1"></i> Cổng xuất Lệnh chi Ngân hàng
+                                    </a>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded bg-white bg-opacity-10 border border-white border-opacity-25">
+                                            <div class="text-white-50 small">Bảng lương chờ duyệt</div>
+                                            <h3 class="text-warning mb-0 font-weight-bold mt-1">2 kỳ lương</h3>
+                                            <a href="${pageContext.request.contextPath}/payroll" class="small text-white text-decoration-underline mt-2 d-inline-block">Rà soát &amp; gửi phê duyệt &rarr;</a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded bg-white bg-opacity-10 border border-white border-opacity-25">
+                                            <div class="text-white-50 small">Quỹ chi trả đợt này</div>
+                                            <h3 class="text-white mb-0 font-weight-bold mt-1">
+                                                <fmt:formatNumber value="${not empty totalPayrollFund ? totalPayrollFund : 845200000}" type="currency" currencySymbol="₫" maxFractionDigits="0"/>
+                                            </h3>
+                                            <a href="${pageContext.request.contextPath}/payments" class="small text-white text-decoration-underline mt-2 d-inline-block">Xuất VCB/TCB/MB Batch &rarr;</a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded bg-white bg-opacity-10 border border-white border-opacity-25">
+                                            <div class="text-white-50 small">Tài khoản chưa cập nhật Ngân hàng</div>
+                                            <h3 class="text-danger mb-0 font-weight-bold mt-1">1 nhân viên</h3>
+                                            <a href="${pageContext.request.contextPath}/employees" class="small text-white text-decoration-underline mt-2 d-inline-block">Nhắc nhở cập nhật STK &rarr;</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </c:when>
+
+                    <%-- MANAGER DASHBOARD --%>
+                    <c:when test="${sessionScope.currentUser.manager or sessionScope.currentUser.role eq 'MANAGER'}">
+                        <div class="card border-0 shadow-sm" style="border-radius: var(--hrm-card-radius, 12px); background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); color: #fff;">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-light text-purple px-3 py-2 text-uppercase"><i class="bi bi-briefcase me-1"></i> Quản Lý Bộ Phận</span>
+                                        <h5 class="mb-0 text-white font-weight-bold">Hàng đợi Phê duyệt Nhân sự trực thuộc</h5>
+                                    </div>
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-bell-fill me-1"></i> Cần xử lý ngay</span>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="p-3 rounded bg-white bg-opacity-10 border border-white border-opacity-25 d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="text-white-50 small">Đơn xin nghỉ phép đang chờ bạn duyệt</div>
+                                                <h3 class="text-white mb-0 font-weight-bold mt-1">3 yêu cầu</h3>
+                                                <a href="${pageContext.request.contextPath}/leaves" class="small text-white text-decoration-underline mt-2 d-inline-block">Xem &amp; Phê duyệt ngay &rarr;</a>
+                                            </div>
+                                            <i class="bi bi-calendar-check fs-1 text-white-50"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="p-3 rounded bg-white bg-opacity-10 border border-white border-opacity-25 d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="text-white-50 small">Đơn đăng ký Tăng ca (OT) chờ duyệt</div>
+                                                <h3 class="text-warning mb-0 font-weight-bold mt-1">2 đề xuất</h3>
+                                                <a href="${pageContext.request.contextPath}/overtime" class="small text-white text-decoration-underline mt-2 d-inline-block">Kiểm tra hạn ngạch Điều 107 &rarr;</a>
+                                            </div>
+                                            <i class="bi bi-clock-history fs-1 text-warning"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </c:when>
+
+                    <%-- EMPLOYEE DASHBOARD --%>
+                    <c:otherwise>
+                        <div class="card border-0 shadow-sm" style="border-radius: var(--hrm-card-radius, 12px); background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%); color: #fff;">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-light text-primary px-3 py-2 text-uppercase"><i class="bi bi-person-workspace me-1"></i> Cổng Nhân Viên</span>
+                                        <h5 class="mb-0 text-white font-weight-bold">Không gian Làm việc &amp; Đãi ngộ Cá nhân</h5>
+                                    </div>
+                                    <a href="${pageContext.request.contextPath}/attendance" class="btn btn-sm btn-light text-primary font-weight-bold">
+                                        <i class="bi bi-fingerprint me-1"></i> Điểm danh hôm nay
+                                    </a>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded bg-white bg-opacity-10 border border-white border-opacity-25">
+                                            <div class="text-white-50 small">Ngày công thực tế trong tháng</div>
+                                            <h3 class="text-white mb-0 font-weight-bold mt-1">21.5 / 22 ngày</h3>
+                                            <a href="${pageContext.request.contextPath}/timesheet" class="small text-white text-decoration-underline mt-2 d-inline-block">Bảng chấm công chi tiết &rarr;</a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded bg-white bg-opacity-10 border border-white border-opacity-25">
+                                            <div class="text-white-50 small">Số ngày phép năm còn lại</div>
+                                            <h3 class="text-warning mb-0 font-weight-bold mt-1">9.5 ngày</h3>
+                                            <a href="${pageContext.request.contextPath}/leaves" class="small text-white text-decoration-underline mt-2 d-inline-block">Gửi đơn xin nghỉ phép &rarr;</a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded bg-white bg-opacity-10 border border-white border-opacity-25">
+                                            <div class="text-white-50 small">Phiếu lương E-Payslip gần nhất</div>
+                                            <h3 class="text-white mb-0 font-weight-bold mt-1">Đã phát hành</h3>
+                                            <a href="${pageContext.request.contextPath}/payslip" class="small text-white text-decoration-underline mt-2 d-inline-block">Xem bảo mật (Mã PIN) &rarr;</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </c:otherwise>
+                </c:choose>
+            </div>
+
             <!-- 2. Multi-Criteria Filter Bar (Bộ lọc theo khoảng ngày, phòng ban, trạng thái) -->
             <form id="dashboardFilterForm" method="GET" action="${pageContext.request.contextPath}/dashboard" class="dashboard-filter-card">
                 <div class="filter-row-top">

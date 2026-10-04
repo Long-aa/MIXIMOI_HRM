@@ -201,10 +201,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
             fetch(rejectForm.action || window.location.pathname, {
                 method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                body: new URLSearchParams(formData),
+                headers: { 
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                }
             })
-            .then(res => res.json())
+            .then(async res => {
+                const text = await res.text();
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    throw new Error('Máy chủ phản hồi định dạng không hợp lệ (HTTP ' + res.status + ')');
+                }
+            })
             .then(data => {
                 if (submitBtn) {
                     submitBtn.disabled = false;
@@ -217,13 +227,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 if (data.success) {
                     if (window.MixiToast) {
-                        MixiToast.warning(data.message || 'Đã từ chối đơn thành công!');
+                        MixiToast.warning('Đã từ chối', data.message || 'Đã từ chối đơn thành công!');
                     }
                     const row = document.querySelector('tr.leave-row[data-id="' + leaveId + '"]');
-                    updateLeaveRowStatus(row, 'REJECTED');
+                    if (row) updateLeaveRowStatus(row, 'REJECTED');
+                    setTimeout(() => window.location.reload(), 600);
                 } else {
                     if (window.MixiToast) {
-                        MixiToast.error(data.message || 'Không thể từ chối đơn!');
+                        MixiToast.error('Không thể từ chối', data.message || 'Không thể từ chối đơn!');
                     }
                 }
             })
@@ -234,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     submitBtn.innerHTML = originalHtml;
                 }
                 if (window.MixiToast) {
-                    MixiToast.error('Lỗi kết nối máy chủ!');
+                    MixiToast.error('Lỗi kết nối máy chủ', err.message || 'Vui lòng thử lại sau.');
                 }
             });
         });

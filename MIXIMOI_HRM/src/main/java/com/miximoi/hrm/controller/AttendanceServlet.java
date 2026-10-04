@@ -418,6 +418,31 @@ public class AttendanceServlet extends HttpServlet {
                         + "&month=" + month + "&year=" + year);
             }
 
+            // ------------------------------------------------------------------
+            // Đồng bộ dữ liệu chấm công tháng (Admin/HR) — hỗ trợ AJAX
+            // ------------------------------------------------------------------
+            case "sync" -> {
+                if (!user.isAdmin() && !user.isHr()) {
+                    if (isAjax(request)) {
+                        writeJson(response, false, "Không có quyền đồng bộ");
+                        return;
+                    }
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                    return;
+                }
+                int month = parseIntParam(request.getParameter("month"), LocalDate.now().getMonthValue());
+                int year  = parseIntParam(request.getParameter("year"),  LocalDate.now().getYear());
+                // Đồng bộ toàn bộ tháng hiện tại
+                attendanceService.ensureMonthDataExists(month, year);
+                // Và seed thêm dữ liệu hôm nay nếu thiếu
+                attendanceService.ensureMonthDataExists(LocalDate.now().getMonthValue(), LocalDate.now().getYear());
+                if (isAjax(request)) {
+                    writeJson(response, true, "Đồng bộ dữ liệu chấm công tháng " + month + "/" + year + " thành công!");
+                    return;
+                }
+                response.sendRedirect(request.getContextPath() + "/attendance?success=synced&month=" + month + "&year=" + year);
+            }
+
             default -> response.sendRedirect(request.getContextPath() + "/attendance");
         }
     }

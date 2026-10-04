@@ -414,7 +414,9 @@ function initUrlToastDetector() {
     'cancelled': 'Đã hủy thành công!',
     'exported': 'Đã xuất dữ liệu thành công!',
     'locked': 'Đã khóa bảng công thành công!',
-    'unlocked': 'Đã mở khóa bảng công thành công!'
+    'unlocked': 'Đã mở khóa bảng công thành công!',
+    'reminded': 'Đã gửi thông báo nhắc nhở giải trình công thành công!',
+    'broadcast_sent': 'Đã phát thông báo cảnh báo toàn công ty thành công!'
   };
 
   const errorMessages = {
@@ -458,3 +460,88 @@ document.addEventListener('DOMContentLoaded', () => {
   initLinkPrefetch();
   initUrlToastDetector();
 });
+
+/* ============================================================
+   HRM CLIENT-SIDE UTILITY LIBRARY (GIAI ĐOẠN 2)
+   ============================================================ */
+window.HRM = window.HRM || {
+  toast: function(title, message, type = 'info') {
+    if (window.MixiToast) {
+      if (type === 'success') window.MixiToast.success(title, message);
+      else if (type === 'error' || type === 'danger') window.MixiToast.error(title, message);
+      else if (type === 'warning') window.MixiToast.warning(title, message);
+      else window.MixiToast.info(title, message);
+      return;
+    }
+    let container = document.getElementById('hrm-toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'hrm-toast-container';
+      container.style.cssText = 'position:fixed;top:1.5rem;right:1.5rem;z-index:99999;display:flex;flex-direction:column;gap:0.75rem;max-width:380px;';
+      document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    const color = type === 'success' ? '#10b981' : (type === 'error' || type === 'danger' ? '#ef4444' : (type === 'warning' ? '#f59e0b' : '#1d4ed8'));
+    toast.style.cssText = `background:#fff;border-left:4px solid ${color};border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.12);padding:12px 16px;display:flex;align-items:start;gap:10px;`;
+    toast.innerHTML = `
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:0.88rem;color:#0f172a;margin-bottom:2px;">` + title + `</div>
+        <div style="font-size:0.8rem;color:#64748b;">` + message + `</div>
+      </div>
+      <button type="button" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.1rem;line-height:1;" onclick="this.parentElement.remove()">&times;</button>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity 0.4s ease';
+      setTimeout(() => toast.remove(), 400);
+    }, 4500);
+  },
+
+  confirm: function(title, text, callback) {
+    if (window.confirm(title + '\n\n' + text)) {
+      if (typeof callback === 'function') callback();
+    }
+  },
+
+  ajaxSubmit: function(form, onSuccess, onError) {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const origHtml = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
+    }
+
+    const formData = new FormData(form);
+    const url = form.action || window.location.href;
+    const method = form.method || 'POST';
+
+    fetch(url, {
+      method: method,
+      body: formData,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => {
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return res.json();
+      }
+      return res.text();
+    })
+    .then(data => {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = origHtml;
+      }
+      if (typeof onSuccess === 'function') onSuccess(data);
+    })
+    .catch(err => {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = origHtml;
+      }
+      if (typeof onError === 'function') onError(err);
+      else HRM.toast('Lỗi xử lý', err.message || 'Không thể kết nối đến máy chủ', 'error');
+    });
+  }
+};

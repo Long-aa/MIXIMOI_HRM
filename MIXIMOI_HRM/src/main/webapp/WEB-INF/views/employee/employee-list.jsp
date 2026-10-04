@@ -262,7 +262,7 @@
                                                     <div>
                                                         <div class="emp-name" style="display:flex; align-items:center; gap:6px;">
                                                             <c:out value="${emp.fullName}"/>
-                                                            <c:if test="${not empty emp.createdAt and emp.createdAt.isAfter(sevenDaysAgo)}">
+                                                            <c:if test="${emp.newEmployee}">
                                                                 <span style="display:inline-flex; align-items:center; gap:3px; background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; font-size:0.6rem; font-weight:800; padding:1px 7px; border-radius:999px; letter-spacing:0.5px; text-transform:uppercase; animation:pulse 2s infinite;">✦ NEW</span>
                                                             </c:if>
                                                         </div>

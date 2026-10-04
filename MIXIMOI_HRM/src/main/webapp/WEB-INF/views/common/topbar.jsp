@@ -92,9 +92,9 @@
                     <span class="breadcrumb-current">Phiếu lương</span>
                 </c:when>
                 <c:when test="${activeMenu eq 'disciplines'}">
-                    <span class="breadcrumb-parent">Quản lý lương</span>
+                    <span class="breadcrumb-parent">Quản lý nhân sự</span>
                     <span class="breadcrumb-slash">/</span>
-                    <span class="breadcrumb-current">Kỷ luật</span>
+                    <span class="breadcrumb-current">Kỷ luật &amp; Vi phạm</span>
                 </c:when>
                 <c:when test="${activeMenu eq 'performance'}">
                     <span class="breadcrumb-parent">Quản lý hiệu suất</span>
@@ -164,9 +164,20 @@
             Integer uid = cu != null ? cu.getId() : null;
             request.setAttribute("topbarNotifications", nDao.findRecent(uid, 6));
             request.setAttribute("topbarUnreadCount", nDao.countUnread(uid));
+            request.setAttribute("latestActiveAlert", nDao.getLatestActiveAlert());
         } catch (Exception ignored) {}
     }
 %>
+        <!-- Nút phát cảnh báo toàn công ty (Chỉ Admin & HR) -->
+        <c:if test="${sessionScope.currentUser.admin or sessionScope.currentUser.hr or sessionScope.currentUser.role eq 'ADMIN' or sessionScope.currentUser.role eq 'HR'}">
+            <button class="btn btn-sm btn-outline-danger d-none d-md-flex align-items-center gap-1 shadow-xs rounded-pill px-3 py-1 fw-bold"
+                    type="button" data-bs-toggle="modal" data-bs-target="#broadcastAlertModal"
+                    title="Phát cảnh báo khẩn cấp hoặc thông báo quan trọng tới toàn thể nhân viên">
+                <i class="bi bi-megaphone-fill text-danger"></i>
+                <span class="d-none d-xl-inline">Phát cảnh báo</span>
+            </button>
+        </c:if>
+
         <!-- Notification Bell -->
         <div class="dropdown">
             <button class="topbar-btn position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo hệ thống & Tuyển dụng">
@@ -177,39 +188,47 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="width: 360px; font-size: 0.85rem;">
                 <li class="px-2 py-1 fw-bold text-dark border-bottom pb-2 mb-2 d-flex justify-content-between align-items-center">
-                    <span>Thông báo công ty</span>
-                    <c:choose>
-                        <c:when test="${not empty topbarUnreadCount and topbarUnreadCount > 0}">
-                            <span class="badge bg-danger">${topbarUnreadCount} mới</span>
-                        </c:when>
-                        <c:otherwise>
-                            <span class="badge bg-primary-subtle text-primary">Đã cập nhật</span>
-                        </c:otherwise>
-                    </c:choose>
+                    <span>Thông báo hệ thống</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <c:choose>
+                            <c:when test="${not empty topbarUnreadCount and topbarUnreadCount > 0}">
+                                <span class="badge bg-danger" id="topbarUnreadBadge">${topbarUnreadCount} mới</span>
+                                <a href="javascript:void(0)" onclick="markAllNotificationsAsRead(event)" class="text-primary small text-decoration-none" style="font-size: 0.72rem; cursor: pointer;">Đã đọc tất cả</a>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="badge bg-primary-subtle text-primary" id="topbarUnreadBadge">Đã cập nhật</span>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
                 </li>
 
                 <c:choose>
                     <c:when test="${not empty topbarNotifications}">
                         <c:forEach items="${topbarNotifications}" var="n">
                             <li>
-                                <a class="dropdown-item py-2 px-2 rounded d-flex gap-2 align-items-start border-bottom-subtle" 
-                                   href="${pageContext.request.contextPath}${not empty n.linkUrl ? n.linkUrl : '/recruitment?view=internal'}">
+                                <a class="dropdown-item py-2 px-2 rounded d-flex gap-2 align-items-start border-bottom-subtle ${n.read ? 'opacity-75' : 'bg-light bg-opacity-50'}" 
+                                   href="${pageContext.request.contextPath}/notifications?action=mark_read&id=${n.id}&redirect=${not empty n.linkUrl ? n.linkUrl : '/dashboard'}">
                                     <c:choose>
                                         <c:when test="${n.recruitment}">
-                                            <i class="bi bi-megaphone-fill text-danger fs-6 mt-1 flex-shrink-0"></i>
+                                            <i class="bi bi-briefcase-fill text-info fs-6 mt-1 flex-shrink-0"></i>
                                         </c:when>
                                         <c:when test="${n.type eq 'SUCCESS'}">
                                             <i class="bi bi-check-circle-fill text-success fs-6 mt-1 flex-shrink-0"></i>
                                         </c:when>
-                                        <c:when test="${n.type eq 'WARNING'}">
-                                            <i class="bi bi-exclamation-circle-fill text-warning fs-6 mt-1 flex-shrink-0"></i>
+                                        <c:when test="${n.type eq 'WARNING' or n.type eq 'DANGER'}">
+                                            <i class="bi bi-exclamation-triangle-fill text-warning fs-6 mt-1 flex-shrink-0"></i>
                                         </c:when>
                                         <c:otherwise>
                                             <i class="bi bi-bell-fill text-primary fs-6 mt-1 flex-shrink-0"></i>
                                         </c:otherwise>
                                     </c:choose>
                                     <div class="flex-grow-1" style="min-width: 0;">
-                                        <div class="fw-semibold text-truncate text-dark" style="font-size: 0.82rem;" title="${n.title}">${n.title}</div>
+                                        <div class="fw-semibold text-truncate text-dark d-flex justify-content-between align-items-center" style="font-size: 0.82rem;" title="${n.title}">
+                                            <span>${n.title}</span>
+                                            <c:if test="${not n.read}">
+                                                <span class="badge bg-danger rounded-circle p-1" style="width:6px;height:6px;"></span>
+                                            </c:if>
+                                        </div>
                                         <p class="text-muted mb-0 small text-truncate" style="font-size: 0.74rem;">${n.message}</p>
                                         <small class="text-primary fw-medium" style="font-size: 0.7rem;">${n.timeAgo}</small>
                                     </div>
@@ -225,11 +244,11 @@
                 </c:choose>
 
                 <li class="border-top pt-2 mt-2 text-center d-flex justify-content-between px-2">
-                    <a href="${pageContext.request.contextPath}/recruitment?view=internal" class="text-primary text-decoration-none fw-semibold" style="font-size: 0.78rem;">
-                        <i class="bi bi-briefcase me-1"></i>Tuyển dụng nội bộ
+                    <a href="${pageContext.request.contextPath}/timesheet" class="text-primary text-decoration-none fw-semibold" style="font-size: 0.78rem;">
+                        <i class="bi bi-calendar3 me-1"></i>Bảng chấm công
                     </a>
-                    <a href="${pageContext.request.contextPath}/dashboard" class="text-muted text-decoration-none" style="font-size: 0.78rem;">
-                        Bảng tin công ty
+                    <a href="${pageContext.request.contextPath}/payroll" class="text-muted text-decoration-none" style="font-size: 0.78rem;">
+                        <i class="bi bi-cash-stack me-1"></i>Phiếu lương
                     </a>
                 </li>
             </ul>
@@ -431,4 +450,214 @@ document.getElementById('quickSearchModal')?.addEventListener('shown.bs.modal', 
         filterPalette('');
     }
 });
+</script>
+
+<!-- ========================================================================= -->
+<!-- 1. MODAL PHÁT CẢNH BÁO CHO ADMIN & HR                                      -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="broadcastAlertModal" tabindex="-1" aria-labelledby="broadcastAlertModalLabel" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 580px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 14px; overflow: hidden; background: #ffffff;">
+            <form method="POST" action="${pageContext.request.contextPath}/notifications">
+                <input type="hidden" name="action" value="broadcast">
+                <div class="modal-header border-0" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; padding: 20px 24px;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-megaphone-fill text-warning fs-5"></i>
+                        <h5 class="modal-title fw-bold text-white mb-0" id="broadcastAlertModalLabel">Phát Cảnh Báo / Thông Báo Toàn Công Ty</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4" style="background: #ffffff; color: #1e293b;">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Mức độ thông báo <span class="text-danger">*</span></label>
+                        <select name="type" class="form-select form-select-sm" required style="background: #ffffff; color: #1e293b; border: 1px solid #cbd5e1;">
+                            <option value="WARNING" selected>⚠️ WARNING — Cảnh báo vi phạm / Nhắc hạn chốt công</option>
+                            <option value="DANGER">🚨 DANGER — Cảnh báo khẩn cấp từ Ban Giám Đốc</option>
+                            <option value="INFO">ℹ️ INFO — Thông báo chính sách / Phúc lợi mới</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Tiêu đề cảnh báo (Đập vào mắt nhân viên) <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control" placeholder="VD: Khẩn cấp: Hạn chốt giải trình công tháng trước 17:00 hôm nay" required maxlength="120" style="background: #ffffff; color: #1e293b; border: 1px solid #cbd5e1;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Nội dung chi tiết thông báo <span class="text-danger">*</span></label>
+                        <textarea name="message" class="form-control" rows="4" placeholder="Nhập nội dung thông báo hoặc chỉ thị cần nhân sự thực hiện ngay..." required style="background: #ffffff; color: #1e293b; border: 1px solid #cbd5e1;"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Liên kết điều hướng (Khi bấm Xem chi tiết)</label>
+                        <input type="text" name="linkUrl" class="form-control form-control-sm" placeholder="VD: /timesheet hoặc /payroll hoặc /disciplines" value="/timesheet" style="background: #ffffff; color: #1e293b; border: 1px solid #cbd5e1;">
+                    </div>
+                    <div class="form-check form-switch p-3 rounded bg-light border">
+                        <input class="form-check-input ms-0 me-2" type="checkbox" name="sendEmail" id="chkSendEmail" checked>
+                        <label class="form-check-label fw-semibold text-dark small" for="chkSendEmail">
+                            <i class="bi bi-envelope-at-fill text-primary me-1"></i>Đồng thời gửi email thông báo tự động (SMTP) tới toàn thể nhân viên
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3 px-4">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-sm btn-danger px-4 fw-bold">
+                        <i class="bi bi-send-fill me-1"></i>Phát cảnh báo ngay lập tức
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- 2. MODAL CẢNH BÁO TẬP TRUNG GIỮA MÀN HÌNH (ĐẬP VÀO MẮT NGAY KHI ĐĂNG NHẬP) -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="centerScreenAlertModal" tabindex="-1" aria-labelledby="centerScreenAlertModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden; background: #ffffff;">
+            <div class="modal-header border-0 pb-0" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: #fff; padding: 24px 24px 16px 24px;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center justify-content-center bg-white text-danger rounded-circle shadow-sm flex-shrink-0" style="width: 48px; height: 48px; font-size: 1.5rem;">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <div>
+                        <span class="badge bg-white text-danger font-monospace text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">Cảnh báo quan trọng</span>
+                        <h5 class="modal-title fw-bold mb-0 text-white" id="centerScreenAlertModalLabel">
+                            <c:out value="${not empty applicationScope.activeBroadcastAlert ? applicationScope.activeBroadcastAlert.title : (not empty latestActiveAlert ? latestActiveAlert.title : 'THÔNG BÁO TỪ BAN GIÁM ĐỐC & NHÂN SỰ')}"/>
+                        </h5>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body p-4" style="background: #ffffff; color: #1e293b;">
+                <div class="p-3 rounded-3 mb-3" style="background: #fff1f2; border: 1px solid #fecdd3; font-size: 0.95rem; line-height: 1.6;">
+                    <p class="mb-0 fw-medium text-dark" id="centerScreenAlertMessage">
+                        <c:out value="${not empty applicationScope.activeBroadcastAlert ? applicationScope.activeBroadcastAlert.message : (not empty latestActiveAlert ? latestActiveAlert.message : 'Toàn thể nhân sự vui lòng kiểm tra và hoàn thành giải trình chấm công tháng, rà soát phiếu lương cá nhân và tuân thủ nội quy lao động công ty.')}"/>
+                    </p>
+                </div>
+                <div class="d-flex align-items-center justify-content-between text-muted small">
+                    <span><i class="bi bi-shield-check text-success me-1"></i>Phát từ Ban Lãnh đạo &amp; HR</span>
+                    <span><i class="bi bi-clock me-1"></i>Hiệu lực toàn hệ thống</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 px-4 pb-4 gap-2 d-flex justify-content-end bg-white">
+                <a href="${pageContext.request.contextPath}${not empty applicationScope.activeBroadcastAlert.linkUrl ? applicationScope.activeBroadcastAlert.linkUrl : (not empty latestActiveAlert.linkUrl ? latestActiveAlert.linkUrl : '/timesheet')}" class="btn btn-outline-secondary px-3" style="border-radius: 8px;">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Xem chi tiết
+                </a>
+                <button type="button" class="btn btn-danger px-4 fw-bold shadow-sm" style="border-radius: 8px;" id="btnAcknowledgeAlert">
+                    <i class="bi bi-check2-circle me-1"></i>Tôi đã hiểu và xác nhận
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // 1. Chuyển các modal ra ngoài direct con của body để thoát khỏi stacking context của .app-main
+    ['broadcastAlertModal', 'centerScreenAlertModal', 'quickSearchModal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.parentNode !== document.body) {
+            document.body.appendChild(el);
+        }
+    });
+
+    // 2. Tự động hiển thị Toast cảnh báo / nhắc nhở chưa đọc cho nhân viên khi mở bất kỳ trang nào
+    <c:if test="${not empty topbarNotifications}">
+        <c:forEach items="${topbarNotifications}" var="notif">
+            <c:if test="${not notif.read}">
+                (function() {
+                    const shownKey = 'notif_toast_shown_${notif.id}';
+                    if (!sessionStorage.getItem(shownKey)) {
+                        sessionStorage.setItem(shownKey, '1');
+                        setTimeout(() => {
+                            if (window.MixiToast) {
+                                <c:choose>
+                                    <c:when test="${notif.type eq 'WARNING' or notif.type eq 'DANGER'}">
+                                        MixiToast.warning('<c:out value="${notif.title}" escapeXml="true"/>', '<c:out value="${notif.message}" escapeXml="true"/>');
+                                    </c:when>
+                                    <c:when test="${notif.type eq 'SUCCESS'}">
+                                        MixiToast.success('<c:out value="${notif.title}" escapeXml="true"/>', '<c:out value="${notif.message}" escapeXml="true"/>');
+                                    </c:when>
+                                    <c:otherwise>
+                                        MixiToast.info('<c:out value="${notif.title}" escapeXml="true"/>', '<c:out value="${notif.message}" escapeXml="true"/>');
+                                    </c:otherwise>
+                                </c:choose>
+                            }
+                        }, 500);
+                    }
+                })();
+            </c:if>
+        </c:forEach>
+    </c:if>
+
+    // 3. Modal Cảnh báo trung tâm (Center Screen Alert)
+    const hasAlert = <%= (application.getAttribute("activeBroadcastAlert") != null || request.getAttribute("latestActiveAlert") != null) %>;
+    const alertId = '<%= (application.getAttribute("activeBroadcastAlert") != null ? ((com.miximoi.hrm.model.Notification)application.getAttribute("activeBroadcastAlert")).getId() : (request.getAttribute("latestActiveAlert") != null ? ((com.miximoi.hrm.model.Notification)request.getAttribute("latestActiveAlert")).getId() : "default_alert")) %>';
+    const isDismissed = sessionStorage.getItem("miximoi_alert_dismissed_" + alertId);
+
+    if (hasAlert && !isDismissed) {
+        const modalEl = document.getElementById("centerScreenAlertModal");
+        if (modalEl && typeof bootstrap !== "undefined") {
+            const centerModal = new bootstrap.Modal(modalEl, { backdrop: "static", keyboard: false });
+            setTimeout(() => centerModal.show(), 600);
+
+            document.getElementById("btnAcknowledgeAlert")?.addEventListener("click", function () {
+                sessionStorage.setItem("miximoi_alert_dismissed_" + alertId, "true");
+                centerModal.hide();
+                if (typeof HRM !== "undefined" && HRM.toast) {
+                    HRM.toast("Đã ghi nhận", "Bạn đã xác nhận thông báo cảnh báo từ công ty.", "success");
+                }
+            });
+        }
+    }
+});
+
+// Hàm đánh dấu đã đọc tất cả thông báo
+function markAllNotificationsAsRead(e) {
+    if (e) e.stopPropagation();
+    fetch('${pageContext.request.contextPath}/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=mark_all_read'
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const badge = document.getElementById('topbarUnreadBadge');
+            if (badge) {
+                badge.className = 'badge bg-primary-subtle text-primary';
+                badge.innerText = 'Đã cập nhật';
+            }
+            const dot = document.querySelector('.topbar-badge-dot');
+            if (dot) dot.style.display = 'none';
+            if (window.MixiToast) {
+                MixiToast.success('Đã đọc', 'Đã đánh dấu tất cả thông báo là đã đọc.');
+            }
+        }
+    })
+    .catch(() => {});
+}
+
+// Polling định kỳ mỗi 20s kiểm tra thông báo mới gửi tới nhân sự và bật Toast tức thời
+setInterval(function() {
+    fetch('${pageContext.request.contextPath}/notifications?action=unread_toast')
+    .then(r => r.json())
+    .then(data => {
+        if (data && data.hasToast) {
+            const toastKey = 'notif_toast_shown_' + data.id;
+            if (!sessionStorage.getItem(toastKey)) {
+                sessionStorage.setItem(toastKey, '1');
+                if (window.MixiToast) {
+                    if (data.type === 'WARNING' || data.type === 'DANGER') {
+                        MixiToast.warning(data.title, data.message);
+                    } else if (data.type === 'SUCCESS') {
+                        MixiToast.success(data.title, data.message);
+                    } else {
+                        MixiToast.info(data.title, data.message);
+                    }
+                }
+                const dot = document.querySelector('.topbar-badge-dot');
+                if (dot) dot.style.display = 'block';
+            }
+        }
+    })
+    .catch(() => {});
+}, 20000);
 </script>

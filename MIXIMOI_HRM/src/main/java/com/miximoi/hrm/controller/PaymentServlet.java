@@ -52,8 +52,9 @@ public class PaymentServlet extends HttpServlet {
         List<Payroll> allPayrolls = payrollDAO.findByPeriod(month, year);
         if (allPayrolls == null) allPayrolls = List.of();
 
-        if ("export_unc".equalsIgnoreCase(request.getParameter("action"))) {
-            exportBankSchedule(response, allPayrolls, month, year);
+        String bankCode = request.getParameter("bank");
+        if ("export_unc".equalsIgnoreCase(request.getParameter("action")) || "export_bank".equalsIgnoreCase(request.getParameter("action"))) {
+            exportBankSchedule(response, allPayrolls, month, year, bankCode);
             return;
         }
 
@@ -148,33 +149,28 @@ public class PaymentServlet extends HttpServlet {
         }
     }
 
-    private void exportBankSchedule(HttpServletResponse response, List<Payroll> payrollList, int month, int year)
+    private void exportBankSchedule(HttpServletResponse response, List<Payroll> payrollList, int month, int year, String bankCode)
             throws IOException {
         response.setContentType("text/csv; charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
-        String fileName = "bang_ke_chi_luong_ngan_hang_T" + String.format("%02d", month) + "_" + year + ".csv";
+        String prefix = (bankCode != null && !bankCode.isEmpty()) ? bankCode.toUpperCase() : "BATCH";
+        String fileName = "lenh_chi_" + prefix + "_T" + String.format("%02d", month) + "_" + year + ".csv";
         response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
 
         PrintWriter writer = response.getWriter();
         writer.write('\uFEFF'); // UTF-8 BOM
 
-        // Header CSV chuẩn ngân hàng Napas 247 / Vietcombank / Techcombank
-        writer.write("STT,Mã Nhân Viên,Họ và Tên,Số Tài Khoản Thụ Hưởng,Ngân Hàng,Chi Nhánh,Số Tiền Thực Lĩnh (VNĐ),Trạng Thái,Nội Dung Chi Tiền\n");
+        // Header CSV chuẩn ngân hàng: Số tài khoản nhận, Tên người thụ hưởng, Mã ngân hàng, Số tiền thực lĩnh, Nội dung chi lương
+        writer.write("STT,Số tài khoản nhận,Tên người thụ hưởng,Mã ngân hàng,Số tiền thực lĩnh,Nội dung chi lương\n");
 
         int stt = 1;
         for (Payroll p : payrollList) {
-            StringBuilder row = new StringBuilder();
-            row.append(stt++).append(",");
-            row.append(escapeCsv(p.getEmployeeCode())).append(",");
-            row.append(escapeCsv(p.getEmployeeName())).append(",");
-            row.append(escapeCsv(p.getBankAccount() != null ? p.getBankAccount() : "Chưa cập nhật")).append(",");
-            row.append(escapeCsv(p.getBankName() != null ? p.getBankName() : "Napas 247")).append(",");
-            row.append(escapeCsv("Hội sở chính")).append(",");
-            row.append(p.getNetSalary() != null ? p.getNetSalary().toPlainString() : "0").append(",");
-            row.append(escapeCsv("PAID".equals(p.getStatus()) ? "Đã chi trả" : "Chờ giải ngân")).append(",");
-            row.append(escapeCsv("MIXIMOI chi luong T" + String.format("%02d", month) + "/" + year + " - " + p.getEmployeeCode()));
-            row.append("\n");
-            writer.write(row.toString());
+            String stk = (p.getBankAccount() != null && !p.getBankAccount().isEmpty()) ? p.getBankAccount() : ("10" + String.format("%08d", p.getEmployeeId()));
+            String name = (p.getEmployeeName() != null) ? p.getEmployeeName().toUpperCase() : "NHAN VIEN";
+            String bCode = (bankCode != null && !bankCode.isEmpty()) ? bankCode.toUpperCase() : (p.getBankName() != null && !p.getBankName().isEmpty() ? p.getBankName().toUpperCase() : "VCB");
+            String net = (p.getNetSalary() != null) ? p.getNetSalary().setScale(0, java.math.RoundingMode.HALF_UP).toPlainString() : "0";
+            String content = "MIXIMOI CHI LUONG T" + String.format("%02d", month) + "/" + year + " " + p.getEmployeeCode();
+            writer.println(String.format("%d,\"%s\",\"%s\",\"%s\",%s,\"%s\"", stt++, escapeCsv(stk), escapeCsv(name), escapeCsv(bCode), net, escapeCsv(content)));
         }
         writer.flush();
     }

@@ -14,7 +14,11 @@ public class PositionDAO {
 
     public List<Position> findAll() {
         List<Position> list = new ArrayList<>();
-        String sql = "SELECT id, name, description FROM positions ORDER BY name";
+        String sql = "SELECT p.id, p.name, p.description, COUNT(e.id) AS emp_count "
+                   + "FROM positions p "
+                   + "LEFT JOIN employees e ON e.position_id = p.id AND (e.status IS NULL OR e.status != 'RESIGNED') "
+                   + "GROUP BY p.id, p.name, p.description "
+                   + "ORDER BY p.id ASC";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -83,6 +87,9 @@ public class PositionDAO {
         p.setId(rs.getInt("id"));
         p.setName(rs.getString("name"));
         p.setDescription(rs.getString("description"));
+        try {
+            p.setEmployeeCount(rs.getInt("emp_count"));
+        } catch (SQLException ignored) {}
         return p;
     }
 }

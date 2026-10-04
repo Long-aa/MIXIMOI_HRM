@@ -212,12 +212,13 @@ public class Employee {
     public void setMentorName(String mentorName) { this.mentorName = mentorName; }
 
     /**
-     * Kiểm tra nhân viên mới gia nhập (trong vòng 30 ngày) để hiển thị tag NEW
+     * Kiểm tra nhân viên mới gia nhập (trong vòng 7 ngày gần đây) để hiển thị tag NEW
      */
     public boolean isNewEmployee() {
         LocalDate now = LocalDate.now();
-        return (createdAt != null && createdAt.toLocalDate().isAfter(now.minusDays(30)))
-                || (startDate != null && startDate.isAfter(now.minusDays(30)));
+        LocalDate sevenDaysAgo = now.minusDays(7);
+        return (createdAt != null && !createdAt.toLocalDate().isBefore(sevenDaysAgo))
+                || (startDate != null && !startDate.isBefore(sevenDaysAgo));
     }
 
     @Override

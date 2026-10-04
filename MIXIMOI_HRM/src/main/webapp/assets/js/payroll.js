@@ -82,24 +82,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 2200);
 
         // Send AJAX Request to Servlet
-        const formData = new FormData();
-        formData.append('action', 'calculate');
-        formData.append('month', month);
-        formData.append('year', year);
-        if (confirmLock) formData.append('confirmLock', 'true');
-        formData.append('ajax', 'true');
+        const params = new URLSearchParams();
+        params.append('action', 'calculate');
+        params.append('month', month);
+        params.append('year', year);
+        if (confirmLock) params.append('confirmLock', 'true');
+        params.append('ajax', 'true');
 
-        fetch(window.location.href, {
+        fetch(window.location.pathname, {
             method: 'POST',
-            body: formData,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            body: params,
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+            }
         })
         .then(async res => {
-            const data = await res.json().catch(() => null);
-            if (!data) {
-                throw new Error('Máy chủ phản hồi mã lỗi HTTP: ' + res.status);
+            const text = await res.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error('Máy chủ phản hồi định dạng không hợp lệ (HTTP ' + res.status + ')');
             }
-            return data;
         })
         .then(data => {
             clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4);
