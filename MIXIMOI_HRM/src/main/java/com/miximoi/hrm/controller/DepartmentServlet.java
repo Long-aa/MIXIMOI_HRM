@@ -21,7 +21,7 @@ import java.io.IOException;
  *   - Manager: Chỉ xem danh sách phòng ban
  *   - Accountant, Employee: Không có quyền truy cập (redirect)
  */
-@WebServlet("/departments")
+@WebServlet(urlPatterns = {"/departments", "/department"})
 public class DepartmentServlet extends HttpServlet {
 
     private final DepartmentDAO departmentDAO = new DepartmentDAO();

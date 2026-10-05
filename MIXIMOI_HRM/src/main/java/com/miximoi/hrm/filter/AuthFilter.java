@@ -68,17 +68,18 @@ public class AuthFilter implements Filter {
             }
         }
 
-        // 2. Chỉ ADMIN và HR được vào /positions, /contracts, /departments, /disciplines
+        // 2. Chỉ ADMIN và HR được vào /positions, /contracts, /disciplines
         if (path.startsWith("/positions") || path.startsWith("/contracts") 
-                || path.startsWith("/departments") || path.startsWith("/disciplines")) {
+                || path.startsWith("/disciplines")) {
             if (!"ADMIN".equals(role) && !"HR".equals(role)) {
                 response.sendRedirect(request.getContextPath() + "/dashboard?error=access_denied");
                 return;
             }
         }
 
-        // 3. Quản lý hồ sơ nhân sự, KPI & Đánh giá hiệu suất: ADMIN, HR, MANAGER
-        if (path.startsWith("/employees") || path.startsWith("/performance") 
+        // 3. Quản lý hồ sơ nhân sự, phòng ban, KPI & Đánh giá hiệu suất: ADMIN, HR, MANAGER
+        if (path.startsWith("/employees") || path.startsWith("/departments") || path.startsWith("/department")
+                || path.startsWith("/performance") 
                 || path.startsWith("/kpi") || path.startsWith("/evaluations")
                 || path.startsWith("/performance-evaluations")) {
             if (!"ADMIN".equals(role) && !"HR".equals(role) && !"MANAGER".equals(role)) {

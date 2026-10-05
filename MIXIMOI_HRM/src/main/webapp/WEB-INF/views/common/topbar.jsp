@@ -158,16 +158,20 @@
     <!-- Right Side Actions & User Profile -->
     <div class="topbar-actions">
 <%
-    if (request.getAttribute("topbarNotifications") == null) {
-        try {
+    try {
+        com.miximoi.hrm.model.User cu = (com.miximoi.hrm.model.User) session.getAttribute("currentUser");
+        Integer uid = cu != null ? cu.getId() : null;
+        if (uid != null) {
             com.miximoi.hrm.dao.NotificationDAO nDao = new com.miximoi.hrm.dao.NotificationDAO();
-            com.miximoi.hrm.model.User cu = (com.miximoi.hrm.model.User) session.getAttribute("currentUser");
-            Integer uid = cu != null ? cu.getId() : null;
-            request.setAttribute("topbarNotifications", nDao.findRecent(uid, 6));
-            request.setAttribute("topbarUnreadCount", nDao.countUnread(uid));
-            request.setAttribute("latestActiveAlert", nDao.getLatestActiveAlertForUser(uid));
-        } catch (Exception ignored) {}
-    }
+            if (request.getAttribute("topbarNotifications") == null) {
+                request.setAttribute("topbarNotifications", nDao.findRecent(uid, 6));
+                request.setAttribute("topbarUnreadCount", nDao.countUnread(uid));
+            }
+            if (request.getAttribute("latestActiveAlert") == null) {
+                request.setAttribute("latestActiveAlert", nDao.getLatestActiveAlertForUser(uid));
+            }
+        }
+    } catch (Exception ignored) {}
 %>
         <!-- Nút phát cảnh báo toàn công ty (Chỉ Admin & HR) -->
         <c:if test="${sessionScope.currentUser.admin or sessionScope.currentUser.hr or sessionScope.currentUser.role eq 'ADMIN' or sessionScope.currentUser.role eq 'HR'}">
@@ -546,7 +550,7 @@ document.getElementById('quickSearchModal')?.addEventListener('shown.bs.modal', 
 <div class="modal fade" id="centerScreenAlertModal" tabindex="-1" aria-labelledby="centerScreenAlertModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false"
      data-has-alert="${not empty activeAlertObj}"
      data-alert-id="${not empty activeAlertObj ? activeAlertObj.id : 'default_alert'}"
-     data-just-login="${requestScope.justLoggedIn ? 'true' : 'false'}">
+     data-just-login="${requestScope.justLoggedIn or sessionScope.justLoggedIn ? 'true' : 'false'}">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 540px;">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden; background: #ffffff;">
             <!-- Modal Header với phong cách nổi bật đập vào mắt -->
@@ -660,6 +664,12 @@ document.addEventListener("DOMContentLoaded", function () {
         const isDismissed = alertId ? sessionStorage.getItem("miximoi_alert_dismissed_" + alertId) : null;
 
         if (hasAlert && !isDismissed && alertId && alertId !== 'default_alert') {
+            // Hiển thị Toast cảnh báo đập vào mắt ngay góc màn hình song song với Modal
+            if (window.MixiToast) {
+                const alertMsg = document.getElementById("centerScreenAlertMessage")?.textContent?.trim() || "";
+                MixiToast.warning("LỜI NHẮC TỪ PHÒNG NHÂN SỰ", alertMsg || "Bạn có lời nhắc giải trình công mới cần xử lý!");
+            }
+
             // Hiển thị modal với cơ chế thử lại nếu Bootstrap bundle chưa parse xong
             function showCenterModal(attempts) {
                 if (typeof bootstrap !== "undefined" && bootstrap.Modal) {

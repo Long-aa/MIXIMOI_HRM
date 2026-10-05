@@ -24,7 +24,7 @@ import java.util.List;
  * Servlet quản lý thanh toán & lệnh chi lương.
  * URL: /payment
  */
-@WebServlet("/payment")
+@WebServlet(urlPatterns = {"/payment", "/payments"})
 public class PaymentServlet extends HttpServlet {
 
     private final PayrollDAO     payrollDAO     = new PayrollDAO();

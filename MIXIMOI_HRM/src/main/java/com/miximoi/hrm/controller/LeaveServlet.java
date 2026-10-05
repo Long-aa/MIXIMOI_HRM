@@ -25,7 +25,7 @@ import java.util.List;
  * Servlet quản lý Nghỉ phép & Nghỉ lễ.
  * URL: /leave
  */
-@WebServlet("/leave")
+@WebServlet(urlPatterns = {"/leave", "/leaves"})
 @MultipartConfig
 public class LeaveServlet extends HttpServlet {
 

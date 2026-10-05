@@ -223,7 +223,7 @@
                                             <div>
                                                 <div class="text-white-50 small">Đơn xin nghỉ phép đang chờ bạn duyệt</div>
                                                 <h3 class="text-white mb-0 font-weight-bold mt-1">3 yêu cầu</h3>
-                                                <a href="${pageContext.request.contextPath}/leaves" class="small text-white text-decoration-underline mt-2 d-inline-block">Xem &amp; Phê duyệt ngay &rarr;</a>
+                                                <a href="${pageContext.request.contextPath}/leave" class="small text-white text-decoration-underline mt-2 d-inline-block">Xem &amp; Phê duyệt ngay &rarr;</a>
                                             </div>
                                             <i class="bi bi-calendar-check fs-1 text-white-50"></i>
                                         </div>
@@ -268,7 +268,7 @@
                                         <div class="p-3 rounded bg-white bg-opacity-10 border border-white border-opacity-25">
                                             <div class="text-white-50 small">Số ngày phép năm còn lại</div>
                                             <h3 class="text-warning mb-0 font-weight-bold mt-1">9.5 ngày</h3>
-                                            <a href="${pageContext.request.contextPath}/leaves" class="small text-white text-decoration-underline mt-2 d-inline-block">Gửi đơn xin nghỉ phép &rarr;</a>
+                                            <a href="${pageContext.request.contextPath}/leave" class="small text-white text-decoration-underline mt-2 d-inline-block">Gửi đơn xin nghỉ phép &rarr;</a>
                                         </div>
                                     </div>
                                     <div class="col-md-4">

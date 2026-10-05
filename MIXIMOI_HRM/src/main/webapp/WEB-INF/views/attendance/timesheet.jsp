@@ -1153,7 +1153,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
             })
-            .then(res => res.json())
+            .then(async res => {
+                const text = await res.text();
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error("Server raw response:", text);
+                    throw new Error("Phản hồi máy chủ không hợp lệ (mã " + res.status + ")");
+                }
+            })
             .then(data => {
                 if (data.success) {
                     if (window.MixiToast) {
@@ -1166,15 +1174,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     btn.style.color = '#fff';
                 } else {
                     if (window.MixiToast) {
-                        MixiToast.error('Không thể gửi', data.message || 'Có lỗi xảy ra.');
+                        MixiToast.warning('Thông báo', data.message || 'Không thể gửi nhắc nhở.');
                     }
                     btn.disabled = false;
                     btn.innerHTML = origHtml;
                 }
             })
             .catch(err => {
+                console.error("Remind error:", err);
                 if (window.MixiToast) {
-                    MixiToast.error('Lỗi kết nối', 'Không thể kết nối đến máy chủ.');
+                    MixiToast.error('Lỗi kết nối', err.message || 'Không thể kết nối đến máy chủ.');
                 }
                 btn.disabled = false;
                 btn.innerHTML = origHtml;

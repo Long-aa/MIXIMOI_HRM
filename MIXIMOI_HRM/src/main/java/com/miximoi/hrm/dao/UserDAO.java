@@ -112,6 +112,43 @@ public class UserDAO {
     }
 
     /**
+     * Tìm user theo mã nhân viên. Nếu nhân viên có trong hệ thống nhưng chưa được cấp
+     * tài khoản bảng users, tự động khởi tạo tài khoản mặc định (user: mã NV viết thường, pass: miximoi@2026).
+     */
+    public User findOrCreateUserByEmployeeCode(String code) {
+        if (code == null || code.trim().isEmpty()) return null;
+        User user = findByEmployeeCode(code.trim());
+        if (user != null) return user;
+
+        String empSql = "SELECT id, full_name, email, employee_code FROM employees WHERE UPPER(employee_code) = UPPER(?)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(empSql)) {
+            ps.setString(1, code.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int empId = rs.getInt("id");
+                    String empCode = rs.getString("employee_code");
+                    String username = empCode.toLowerCase();
+                    if (findByUsername(username) == null) {
+                        User newUser = new User();
+                        newUser.setUsername(username);
+                        newUser.setPassword("$2a$12$RKn6YXs8E0Vg7A.wHsgC8O9L3uLuBlyynP7d0ob0X6SWWxdjKOmwC"); // miximoi@2026
+                        newUser.setRole("EMPLOYEE");
+                        newUser.setEmployeeId(empId);
+                        newUser.setActive(true);
+                        if (insert(newUser)) {
+                            return findByEmployeeCode(empCode);
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("UserDAO.findOrCreateUserByEmployeeCode error: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
      * Tìm kiếm và lọc danh sách tài khoản theo điều kiện.
      */
     public List<User> findAllFiltered(String keyword, String role, Integer deptId, String status) {

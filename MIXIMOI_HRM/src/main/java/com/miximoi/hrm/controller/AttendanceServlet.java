@@ -34,7 +34,7 @@ import java.util.Map;
  * [F2.3] Kiểm tra role trước mọi thao tác xóa/bulk.
  * [F2.4] Phân trang DB-side thay vì subList() tại Java.
  */
-@WebServlet({"/attendance"})
+@WebServlet(urlPatterns = {"/attendance", "/attendances"})
 public class AttendanceServlet extends HttpServlet {
 
     // [F1.2] Chỉ inject Service — không inject DAO trực tiếp

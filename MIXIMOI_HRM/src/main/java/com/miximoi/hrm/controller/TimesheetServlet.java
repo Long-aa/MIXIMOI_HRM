@@ -32,7 +32,7 @@ import java.util.Map;
  * Servlet quản lý Bảng công & Chấm công tháng.
  * URL: /timesheet
  */
-@WebServlet({"/timesheet"})
+@WebServlet(urlPatterns = {"/timesheet", "/timesheets"})
 public class TimesheetServlet extends HttpServlet {
 
     private final TimesheetService timesheetService = new TimesheetService();
@@ -194,39 +194,78 @@ public class TimesheetServlet extends HttpServlet {
                 }
             }
             case "remind" -> {
-                String target = request.getParameter("target");
-                if (target == null || target.trim().isEmpty()) {
-                    target = "ALL";
-                }
+                String xreq = request.getHeader("X-Requested-With");
+                boolean isAjax = "XMLHttpRequest".equalsIgnoreCase(xreq) || "json".equalsIgnoreCase(request.getParameter("format"));
+                try {
+                    String target = request.getParameter("target");
+                    if (target == null || target.trim().isEmpty()) {
+                        target = "ALL";
+                    }
 
-                final int fMonth = month;
-                final int fYear = year;
-                NotificationDAO notifDAO = new NotificationDAO();
-                UserDAO uDAO = new UserDAO();
-                int notifCount = 0;
-                int skipCount = 0;
+                    final int fMonth = month;
+                    final int fYear = year;
+                    NotificationDAO notifDAO = new NotificationDAO();
+                    UserDAO uDAO = new UserDAO();
+                    int notifCount = 0;
+                    int skipCount = 0;
 
-                if ("ALL".equalsIgnoreCase(target)) {
-                    List<Map<String, String>> anomalies = timesheetService.getAnomalyReminders();
-                    if (anomalies != null) {
-                        for (Map<String, String> anom : anomalies) {
-                            String code = anom.get("code");
-                            User targetUser = uDAO.findByEmployeeCode(code);
-                            if (targetUser == null) {
-                                System.out.println("[TimesheetServlet] remind: Không tìm thấy user cho mã NV: " + code + " — bỏ qua.");
-                                skipCount++;
-                                continue;
+                    if ("ALL".equalsIgnoreCase(target)) {
+                        List<Map<String, String>> anomalies = timesheetService.getAnomalyReminders();
+                        if (anomalies != null && !anomalies.isEmpty()) {
+                            for (Map<String, String> anom : anomalies) {
+                                String code = anom.get("code");
+                                User targetUser = uDAO.findOrCreateUserByEmployeeCode(code);
+                                if (targetUser == null) {
+                                    System.out.println("[TimesheetServlet] remind: Không tìm thấy user cho mã NV: " + code + " — bỏ qua.");
+                                    skipCount++;
+                                    continue;
+                                }
+                                // Kiểm tra đã gửi hôm nay chưa để tránh spam
+                                if (notifDAO.hasReminderSentToday(targetUser.getId(), "ATTENDANCE")) {
+                                    System.out.println("[TimesheetServlet] remind: Đã gửi nhắc nhở hôm nay cho " + code + " — bỏ qua.");
+                                    skipCount++;
+                                    continue;
+                                }
+                                Notification n = new Notification();
+                                n.setUserId(targetUser.getId());
+                                n.setTitle("⚠️ Nhắc nhở giải trình chấm công tháng " + fMonth + "/" + fYear);
+                                n.setMessage("Phòng Nhân sự nhắc bạn kiểm tra bảng công, hoàn tất bù công / giải trình " + anom.get("issue") + " (" + anom.get("date") + ") trước hạn chốt.");
+                                n.setType("WARNING");
+                                n.setModule("ATTENDANCE");
+                                n.setLinkUrl("/timesheet?month=" + fMonth + "&year=" + fYear);
+                                n.setCreatedAt(LocalDateTime.now());
+                                n.setRead(false);
+                                boolean inserted = notifDAO.insert(n);
+                                if (inserted) {
+                                    notifCount++;
+                                    if (targetUser.getEmail() != null && !targetUser.getEmail().isEmpty()) {
+                                        final String toEmail = targetUser.getEmail();
+                                        final String toName = targetUser.getFullName();
+                                        final String nMsg = n.getMessage();
+                                        new Thread(() -> EmailService.sendBroadcastAlert(toEmail, toName, "Nhắc nhở giải trình công tháng " + fMonth + "/" + fYear, nMsg)).start();
+                                    }
+                                } else {
+                                    System.err.println("[TimesheetServlet] remind: insert notification thất bại cho user " + targetUser.getId());
+                                }
                             }
-                            // Kiểm tra đã gửi hôm nay chưa để tránh spam
-                            if (notifDAO.hasReminderSentToday(targetUser.getId(), "ATTENDANCE")) {
-                                System.out.println("[TimesheetServlet] remind: Đã gửi nhắc nhở hôm nay cho " + code + " — bỏ qua.");
-                                skipCount++;
-                                continue;
-                            }
+                        }
+                    } else {
+                        User targetUser = uDAO.findOrCreateUserByEmployeeCode(target);
+                        if (targetUser == null) {
+                            try {
+                                targetUser = uDAO.findByEmployeeId(Integer.parseInt(target));
+                            } catch (NumberFormatException ignored) {}
+                        }
+                        if (targetUser == null) {
+                            targetUser = uDAO.findByUsername(target);
+                        }
+                        if (targetUser == null) {
+                            System.out.println("[TimesheetServlet] remind: Không tìm thấy tài khoản người dùng cho mã NV/ID: " + target);
+                        } else {
                             Notification n = new Notification();
                             n.setUserId(targetUser.getId());
-                            n.setTitle("⚠️ Nhắc nhở giải trình chấm công tháng " + fMonth + "/" + fYear);
-                            n.setMessage("Phòng Nhân sự nhắc bạn kiểm tra bảng công, hoàn tất bù công / giải trình " + anom.get("issue") + " (" + anom.get("date") + ") trước hạn chốt.");
+                            n.setTitle("⚠️ Lời nhắc giải trình chấm công Tháng " + fMonth + "/" + fYear);
+                            n.setMessage("Phòng Nhân sự nhắc nhở: Vui lòng kiểm tra bảng công Tháng " + fMonth + "/" + fYear + ", bổ sung bù công hoặc giải trình các ngày thiếu công / đi muộn trước hạn chốt kỳ lương.");
                             n.setType("WARNING");
                             n.setModule("ATTENDANCE");
                             n.setLinkUrl("/timesheet?month=" + fMonth + "&year=" + fYear);
@@ -246,65 +285,43 @@ public class TimesheetServlet extends HttpServlet {
                             }
                         }
                     }
-                } else {
-                    User targetUser = uDAO.findByEmployeeCode(target);
-                    if (targetUser == null) {
-                        try {
-                            targetUser = uDAO.findByEmployeeId(Integer.parseInt(target));
-                        } catch (NumberFormatException ignored) {}
-                    }
-                    if (targetUser == null) {
-                        targetUser = uDAO.findByUsername(target);
-                    }
-                    if (targetUser == null) {
-                        System.out.println("[TimesheetServlet] remind: Không tìm thấy tài khoản người dùng cho mã NV/ID: " + target);
-                    } else {
-                        Notification n = new Notification();
-                        n.setUserId(targetUser.getId());
-                        n.setTitle("⚠️ Lời nhắc giải trình chấm công Tháng " + fMonth + "/" + fYear);
-                        n.setMessage("Phòng Nhân sự nhắc nhở: Vui lòng kiểm tra bảng công Tháng " + fMonth + "/" + fYear + ", bổ sung bù công hoặc giải trình các ngày thiếu công / đi muộn trước hạn chốt kỳ lương.");
-                        n.setType("WARNING");
-                        n.setModule("ATTENDANCE");
-                        n.setLinkUrl("/timesheet?month=" + fMonth + "&year=" + fYear);
-                        n.setCreatedAt(LocalDateTime.now());
-                        n.setRead(false);
-                        boolean inserted = notifDAO.insert(n);
-                        if (inserted) {
-                            notifCount++;
-                            if (targetUser.getEmail() != null && !targetUser.getEmail().isEmpty()) {
-                                final String toEmail = targetUser.getEmail();
-                                final String toName = targetUser.getFullName();
-                                final String nMsg = n.getMessage();
-                                new Thread(() -> EmailService.sendBroadcastAlert(toEmail, toName, "Nhắc nhở giải trình công tháng " + fMonth + "/" + fYear, nMsg)).start();
-                            }
+
+                    AuditLogDAO.logAction(request, "REMIND_TIMESHEET", "ATTENDANCE", null,
+                            "Gửi nhắc nhở giải trình công tháng " + month + "/" + year + " tới " + target
+                            + " — Đã gửi: " + notifCount + ", Bỏ qua: " + skipCount);
+
+                    if (isAjax) {
+                        response.setContentType("application/json;charset=UTF-8");
+                        String msg;
+                        boolean success = true;
+                        if (notifCount > 0) {
+                            msg = "Đã gửi " + notifCount + " thông báo nhắc nhở thành công!"
+                                + (skipCount > 0 ? " (" + skipCount + " trường hợp bỏ qua do đã gửi hôm nay)" : "");
+                        } else if (skipCount > 0) {
+                            msg = "Tất cả nhân sự trong danh sách đã được nhắc nhở hôm nay rồi. Không gửi thêm để tránh làm phiền.";
                         } else {
-                            System.err.println("[TimesheetServlet] remind: insert notification thất bại cho user " + targetUser.getId());
+                            success = false;
+                            msg = "Không tìm thấy thông tin nhân sự phù hợp hoặc không có dữ liệu bất thường cần nhắc nhở tháng " + month + "/" + year + ".";
                         }
+                        String cleanMsg = msg.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", " ");
+                        response.getWriter().write("{\"success\":" + success + ",\"message\":\"" + cleanMsg + "\",\"notifCount\":" + notifCount + ",\"skipCount\":" + skipCount + "}");
+                        return;
                     }
-                }
 
-                AuditLogDAO.logAction(request, "REMIND_TIMESHEET", "ATTENDANCE", null,
-                        "Gửi nhắc nhở giải trình công tháng " + month + "/" + year + " tới " + target
-                        + " — Đã gửi: " + notifCount + ", Bỏ qua: " + skipCount);
-
-                String xreq = request.getHeader("X-Requested-With");
-                if ("XMLHttpRequest".equalsIgnoreCase(xreq) || "json".equalsIgnoreCase(request.getParameter("format"))) {
-                    response.setContentType("application/json;charset=UTF-8");
-                    String msg;
-                    if (notifCount > 0) {
-                        msg = "Đã gửi " + notifCount + " thông báo nhắc nhở thành công!"
-                            + (skipCount > 0 ? " (" + skipCount + " trường hợp bỏ qua do đã gửi hôm nay)" : "");
-                    } else if (skipCount > 0) {
-                        msg = "Tất cả nhân sự trong danh sách đã được nhắc nhở hôm nay rồi. Không gửi thêm để tránh spam.";
-                    } else {
-                        msg = "Không tìm thấy nhân sự phù hợp trong hệ thống hoặc không có dữ liệu bất thường cần nhắc nhở tháng " + month + "/" + year + ".";
+                    response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year + "&success=reminded");
+                    return;
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                    if (isAjax) {
+                        response.setContentType("application/json;charset=UTF-8");
+                        String err = t.getMessage() != null ? t.getMessage() : "Lỗi hệ thống không xác định";
+                        String cleanErr = err.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", " ");
+                        response.getWriter().write("{\"success\":false,\"message\":\"Lỗi máy chủ khi gửi nhắc nhở: " + cleanErr + "\"}");
+                        return;
                     }
-                    response.getWriter().write("{\"success\":true,\"message\":\"" + msg.replace("\"", "\\\"") + "\",\"notifCount\":" + notifCount + ",\"skipCount\":" + skipCount + "}");
+                    response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year + "&error=server_error");
                     return;
                 }
-
-                response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year + "&success=reminded");
-                return;
             }
             case "export" -> {
                 // Xuất file CSV ma trận chấm công với UTF-8 BOM chuẩn Excel
@@ -399,6 +416,13 @@ public class TimesheetServlet extends HttpServlet {
             throws IOException {
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("currentUser") == null) {
+            String xreq = request.getHeader("X-Requested-With");
+            if ("XMLHttpRequest".equalsIgnoreCase(xreq) || "json".equalsIgnoreCase(request.getParameter("format"))) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"success\":false,\"message\":\"Phiên làm việc đã hết hạn. Vui lòng tải lại trang và đăng nhập lại.\"}");
+                return false;
+            }
             response.sendRedirect(request.getContextPath() + "/login");
             return false;
         }

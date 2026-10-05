@@ -26,7 +26,7 @@ import java.util.List;
  * Servlet quản lý bảng lương.
  * URL: /payroll
  */
-@WebServlet("/payroll")
+@WebServlet(urlPatterns = {"/payroll", "/payrolls"})
 @MultipartConfig
 public class PayrollServlet extends HttpServlet {
 
