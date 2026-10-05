@@ -5,57 +5,57 @@ package com.miximoi.hrm.model;
  */
 public class RecruitmentDashboardStats {
     // 4 KPI Cards
-    private int openPositionsCount = 12;       // Vị trí đang tuyển
-    private int openDepartmentsCount = 8;      // Số phòng ban đang tuyển
-    private int newPositionsDiffMonth = 3;     // +3 so với tháng trước
-    private int totalCandidates = 86;          // Ứng viên tiếp nhận
-    private double candidateGrowthPct = 28.0;  // +28% tỷ lệ ứng tuyển
-    private int interviewingCandidatesCount = 24;// Đang phỏng vấn (vòng 1 & CM)
-    private int todayInterviewsCount = 3;      // 3 ca hôm nay (mockup ghi 8 lịch hoặc 3 ca)
-    private int hiredCandidatesCount = 5;      // Đã tuyển dụng
-    private double fillRate = 41.7;            // Tỷ lệ lấp đầy: 41.7%
-    private int newHiresThisWeek = 2;          // +2 ứng viên tuần này
+    private int openPositionsCount = 0;        // Vị trí đang tuyển
+    private int openDepartmentsCount = 0;      // Số phòng ban đang tuyển
+    private int newPositionsDiffMonth = 0;     // Số vị trí mới so với tháng trước
+    private int totalCandidates = 0;          // Ứng viên tiếp nhận
+    private double candidateGrowthPct = 0.0;   // Tỷ lệ tăng trưởng ứng tuyển
+    private int interviewingCandidatesCount = 0;// Đang phỏng vấn (vòng 1 & CM)
+    private int todayInterviewsCount = 0;      // Số ca phỏng vấn hôm nay
+    private int hiredCandidatesCount = 0;      // Đã tuyển dụng
+    private double fillRate = 0.0;             // Tỷ lệ lấp đầy
+    private int newHiresThisWeek = 0;          // Ứng viên nhận việc tuần này
 
     // Funnel 5 Stages
-    private double avgTimeToHireDays = 18.5;   // Time-to-hire TB: 18.5 ngày
+    private double avgTimeToHireDays = 0.0;    // Time-to-hire TB (ngày)
 
-    private int funnelStage1Count = 86;        // 1. Ứng viên mới (100%)
-    private double funnelStage1Pct = 100.0;
+    private int funnelStage1Count = 0;         // 1. Ứng viên mới
+    private double funnelStage1Pct = 0.0;
     private double funnelStage1Drop = 0.0;
 
-    private int funnelStage2Count = 54;        // 2. Sàng lọc CV (62.8%)
-    private double funnelStage2Pct = 62.8;
-    private double funnelStage2Drop = -37.2;
+    private int funnelStage2Count = 0;         // 2. Sàng lọc CV
+    private double funnelStage2Pct = 0.0;
+    private double funnelStage2Drop = 0.0;
 
-    private int funnelStage3Count = 24;        // 3. Phỏng vấn & Test (27.9%)
-    private double funnelStage3Pct = 27.9;
-    private double funnelStage3Drop = -34.9;
+    private int funnelStage3Count = 0;         // 3. Phỏng vấn & Test
+    private double funnelStage3Pct = 0.0;
+    private double funnelStage3Drop = 0.0;
 
-    private int funnelStage4Count = 8;         // 4. Gửi Offer lương (9.3%)
-    private double funnelStage4Pct = 9.3;
-    private double funnelStage4Drop = -18.6;
+    private int funnelStage4Count = 0;         // 4. Gửi Offer lương
+    private double funnelStage4Pct = 0.0;
+    private double funnelStage4Drop = 0.0;
 
-    private int funnelStage5Count = 5;         // 5. Đã nhận việc (5.8%)
-    private double funnelStage5Pct = 5.8;
+    private int funnelStage5Count = 0;         // 5. Đã nhận việc
+    private double funnelStage5Pct = 0.0;
 
     // Sourcing Channels
-    private int sourceLinkedInCount = 36;
-    private double sourceLinkedInPct = 42.0;
+    private int sourceLinkedInCount = 0;
+    private double sourceLinkedInPct = 0.0;
 
-    private int sourceTopCVCount = 30;
-    private double sourceTopCVPct = 35.0;
+    private int sourceTopCVCount = 0;
+    private double sourceTopCVPct = 0.0;
 
-    private int sourceRefCount = 13;
-    private double sourceRefPct = 15.0;
+    private int sourceRefCount = 0;
+    private double sourceRefPct = 0.0;
 
-    private int sourceOtherCount = 7;
-    private double sourceOtherPct = 8.0;
+    private int sourceOtherCount = 0;
+    private double sourceOtherPct = 0.0;
 
     // Filter pill counts
-    private int totalRequestsCount = 12;
-    private int openRequestsCount = 8;
-    private int urgentRequestsCount = 3;
-    private int expiringRequestsCount = 2;
+    private int totalRequestsCount = 0;
+    private int openRequestsCount = 0;
+    private int urgentRequestsCount = 0;
+    private int expiringRequestsCount = 0;
 
     public RecruitmentDashboardStats() {}
 

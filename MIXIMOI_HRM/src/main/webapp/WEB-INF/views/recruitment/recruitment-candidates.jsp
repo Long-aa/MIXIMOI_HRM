@@ -108,7 +108,7 @@
                                                 </a>
                                                 <button type="button"
                                                     class="btn btn-outline-secondary d-flex align-items-center gap-2"
-                                                    onclick="alert('Bộ lọc nâng cao theo kỹ năng & nguồn đang hoạt động.')">
+                                                    data-bs-toggle="modal" data-bs-target="#candAdvancedFilterModal">
                                                     <i class="bi bi-sliders"></i>
                                                     <span>Lọc nâng cao</span>
                                                 </button>
@@ -835,11 +835,11 @@
                                                         </button>
                                                         <button class="btn btn-sm btn-light border py-1 px-2"
                                                             title="Xem trước"
-                                                            onclick="alert('Đang hiển thị chế độ xem nhanh tệp CV PDF của ứng viên.')"><i
+                                                            onclick="if (window.MixiToast) MixiToast.info('Xem CV', 'Đang mở chế độ xem nhanh tệp CV PDF...'); else alert('Đang hiển thị chế độ xem nhanh tệp CV PDF của ứng viên.');"><i
                                                                 class="bi bi-eye"></i></button>
                                                         <button class="btn btn-sm btn-light border py-1 px-2"
                                                             title="Tải xuống"
-                                                            onclick="alert('Đã tải xuống tệp CV của ứng viên.')"><i
+                                                            onclick="if (window.MixiToast) MixiToast.success('Tải CV', 'Đã tải xuống tệp CV của ứng viên thành công.'); else alert('Đã tải xuống tệp CV của ứng viên.');"><i
                                                                 class="bi bi-download"></i></button>
                                                     </div>
                                                 </div>
@@ -2016,7 +2016,7 @@
                                     <button type="button" class="btn btn-outline-secondary"
                                         data-bs-dismiss="modal">Đóng</button>
                                     <button type="button" class="btn btn-primary"
-                                        onclick="alert('Đã lưu kết quả phân tích AI vào hồ sơ ứng viên.')">
+                                        onclick="if (window.MixiToast) MixiToast.success('Lưu AI Insight', 'Đã lưu kết quả phân tích AI vào hồ sơ ứng viên thành công!'); else alert('Đã lưu kết quả phân tích AI vào hồ sơ ứng viên.');">
                                         <i class="bi bi-save me-1"></i> Lưu kết quả AI
                                     </button>
                                 </div>

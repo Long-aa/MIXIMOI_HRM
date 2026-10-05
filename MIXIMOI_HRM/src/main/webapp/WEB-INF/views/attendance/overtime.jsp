@@ -783,7 +783,7 @@
                             Đơn làm ngoài giờ dưới 2 giờ vào ngày thường tự động thông qua cấp quản lý trực tiếp nếu có gắn mã Task Jira hợp lệ.
                         </p>
                         <c:if test="${sessionScope.currentUser.admin or sessionScope.currentUser.hr}">
-                            <button type="button" class="btn-auto-config" onclick="alert('Mở cấu hình luồng duyệt OT tự động cho HR & Admin.');">
+                            <button type="button" class="btn-auto-config" onclick="if (window.MixiToast) MixiToast.info('Cấu hình OT', 'Chính sách tự động duyệt OT (< 2h) đã được kích hoạt theo chuẩn công ty.'); else alert('Mở cấu hình luồng duyệt OT tự động cho HR & Admin.');">
                                 Cấu hình luồng duyệt OT
                             </button>
                         </c:if>

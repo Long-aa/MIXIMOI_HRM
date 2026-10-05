@@ -55,6 +55,30 @@ public class NotificationDAO {
     }
 
     /**
+     * Lấy thông báo khẩn cấp / cảnh báo chưa đọc mới nhất dành riêng cho nhân viên (hoặc thông báo chung toàn công ty).
+     */
+    public Notification getLatestActiveAlertForUser(Integer userId) {
+        if (userId == null) return null;
+        String sql = "SELECT * FROM notifications "
+                   + "WHERE is_read = false "
+                   + "AND (user_id = ? OR (user_id IS NULL AND module = 'BROADCAST')) "
+                   + "AND type IN ('WARNING', 'DANGER', 'URGENT', 'ALERT') "
+                   + "ORDER BY created_at DESC, id DESC LIMIT 1";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("NotificationDAO.getLatestActiveAlertForUser error: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
      * Lấy thông báo khẩn cấp / cảnh báo mới nhất của công ty để phát toast giữa màn hình khi nhân viên đăng nhập.
      */
     public Notification getLatestActiveAlert() {
@@ -185,18 +209,14 @@ public class NotificationDAO {
     }
 
     /**
-     * Đánh dấu toàn bộ thông báo đã đọc
+     * Đánh dấu toàn bộ thông báo đã đọc của một người dùng
      */
     public boolean markAllAsRead(Integer userId) {
-        StringBuilder sql = new StringBuilder("UPDATE notifications SET is_read = true WHERE 1=1 ");
-        if (userId != null && userId > 0) {
-            sql.append("AND (user_id IS NULL OR user_id = ?)");
-        }
+        if (userId == null || userId <= 0) return false;
+        String sql = "UPDATE notifications SET is_read = true WHERE user_id = ?";
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            if (userId != null && userId > 0) {
-                ps.setInt(1, userId);
-            }
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("NotificationDAO.markAllAsRead error: " + e.getMessage());

@@ -797,9 +797,9 @@
                                             <span class="badge ${iv.status eq 'SCHEDULED' ? 'bg-info-subtle text-info' : 'bg-success-subtle text-success'}">
                                                 ${iv.status eq 'SCHEDULED' ? 'Đã lên lịch' : 'Đã hoàn tất'}
                                             </span>
-                                            <button class="btn btn-sm btn-link text-decoration-none p-0" onclick="alert('Xem chi tiết đánh giá ứng viên: ${iv.candidateName}')">
+                                            <a class="btn btn-sm btn-link text-decoration-none p-0" href="${pageContext.request.contextPath}/recruitment/candidates?keyword=${iv.candidateName}">
                                                 Chi tiết <i class="bi bi-chevron-right"></i>
-                                            </button>
+                                            </a>
                                         </div>
                                     </div>
                                 </div>

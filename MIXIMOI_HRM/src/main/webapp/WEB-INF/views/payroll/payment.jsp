@@ -378,7 +378,7 @@
                     </div>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2"
-                                onclick="alert('Đang xuất file UNC XML định dạng Napas...');">
+                                onclick="if (window.MixiToast) MixiToast.info('Ủy nhiệm chi', 'Đang kết xuất tệp UNC XML (chuẩn Napas H2H 2026)...'); else alert('Đang xuất file UNC XML định dạng Napas...');">
                             <i class="bi bi-file-earmark-spreadsheet"></i>
                             <span>Xuất file UNC</span>
                         </button>

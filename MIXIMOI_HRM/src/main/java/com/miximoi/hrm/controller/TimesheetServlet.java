@@ -254,15 +254,15 @@ public class TimesheetServlet extends HttpServlet {
                         } catch (NumberFormatException ignored) {}
                     }
                     if (targetUser == null) {
-                        System.out.println("[TimesheetServlet] remind: Không tìm thấy user cho target: " + target);
-                    } else if (notifDAO.hasReminderSentToday(targetUser.getId(), "ATTENDANCE")) {
-                        System.out.println("[TimesheetServlet] remind: Đã gửi nhắc nhở hôm nay cho " + target + " — bỏ qua.");
-                        skipCount++;
+                        targetUser = uDAO.findByUsername(target);
+                    }
+                    if (targetUser == null) {
+                        System.out.println("[TimesheetServlet] remind: Không tìm thấy tài khoản người dùng cho mã NV/ID: " + target);
                     } else {
                         Notification n = new Notification();
                         n.setUserId(targetUser.getId());
-                        n.setTitle("⚠️ Nhắc nhở giải trình chấm công tháng " + fMonth + "/" + fYear);
-                        n.setMessage("Phòng Nhân sự nhắc bạn kiểm tra bảng công, hoàn tất bù công hoặc giải trình các ngày thiếu công / đi muộn trước hạn chốt.");
+                        n.setTitle("⚠️ Lời nhắc giải trình chấm công Tháng " + fMonth + "/" + fYear);
+                        n.setMessage("Phòng Nhân sự nhắc nhở: Vui lòng kiểm tra bảng công Tháng " + fMonth + "/" + fYear + ", bổ sung bù công hoặc giải trình các ngày thiếu công / đi muộn trước hạn chốt kỳ lương.");
                         n.setType("WARNING");
                         n.setModule("ATTENDANCE");
                         n.setLinkUrl("/timesheet?month=" + fMonth + "&year=" + fYear);

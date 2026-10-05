@@ -163,7 +163,7 @@
                                 </button>
                             </c:when>
                             <c:when test="${empty todayCheckIn}">
-                                <button type="button" class="btn-biometric-checkout" onclick="alert('Bạn chưa điểm danh check-in vào ca hôm nay!');">
+                                <button type="button" class="btn-biometric-checkout" onclick="if (window.MixiToast) MixiToast.warning('Chưa vào ca', 'Bạn chưa điểm danh check-in vào ca hôm nay!'); else alert('Bạn chưa điểm danh check-in vào ca hôm nay!');">
                                     <i class="bi bi-box-arrow-right"></i> Check-out
                                 </button>
                             </c:when>

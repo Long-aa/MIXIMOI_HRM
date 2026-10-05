@@ -737,7 +737,8 @@
                                                     <c:forEach begin="1" end="${daysInMonth != null ? daysInMonth : 30}" var="d">
                                                         <c:set var="code" value="${item.getDayStatus(d)}"/>
                                                         <c:set var="isWk" value="${d == 5 or d == 6 or d == 12 or d == 13 or d == 19 or d == 20 or d == 26 or d == 27}"/>
-                                                        <td class="${isWk ? 'weekend-cell' : ''} ${d == 29 ? 'today-cell' : ''}">
+                                                        <c:set var="isToday" value="${selectedMonth == currentMonth and selectedYear == currentYear and d == currentDay}"/>
+                                                        <td class="${isWk ? 'weekend-cell' : ''} ${isToday ? 'today-cell' : ''}">
                                                             <c:choose>
                                                                 <c:when test="${code eq '1.0'}"><span class="cell-badge cell-code-full">1.0</span></c:when>
                                                                 <c:when test="${code eq '0.5'}"><span class="cell-badge cell-code-half">½</span></c:when>

@@ -132,7 +132,7 @@
                 </div>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="button" class="btn btn-primary" onclick="alert('Đã sẵn sàng điều phối hồ sơ ứng viên.')">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="if (window.MixiToast) MixiToast.success('Điều phối hồ sơ', 'Đã ghi nhận xem CV và sẵn sàng điều phối ứng viên.'); else alert('Đã sẵn sàng điều phối hồ sơ ứng viên.');">
                         <i class="bi bi-check2-circle me-1"></i>Xác Nhận Xem CV Xong
                     </button>
                 </div>

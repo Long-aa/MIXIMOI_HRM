@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
 <!-- Topbar Header -->
 <header class="app-topbar">
@@ -164,7 +165,7 @@
             Integer uid = cu != null ? cu.getId() : null;
             request.setAttribute("topbarNotifications", nDao.findRecent(uid, 6));
             request.setAttribute("topbarUnreadCount", nDao.countUnread(uid));
-            request.setAttribute("latestActiveAlert", nDao.getLatestActiveAlert());
+            request.setAttribute("latestActiveAlert", nDao.getLatestActiveAlertForUser(uid));
         } catch (Exception ignored) {}
     }
 %>
@@ -507,45 +508,90 @@ document.getElementById('quickSearchModal')?.addEventListener('shown.bs.modal', 
 </div>
 
 <!-- ========================================================================= -->
+<!-- ========================================================================= -->
 <!-- 2. MODAL CẢNH BÁO TẬP TRUNG GIỮA MÀN HÌNH (ĐẬP VÀO MẮT NGAY KHI ĐĂNG NHẬP) -->
 <!-- ========================================================================= -->
-<c:set var="activeAlertObj" value="${not empty applicationScope.activeBroadcastAlert ? applicationScope.activeBroadcastAlert : latestActiveAlert}"/>
+<c:set var="activeAlertObj" value="${not empty latestActiveAlert ? latestActiveAlert : applicationScope.activeBroadcastAlert}"/>
+<c:set var="isReminder" value="${activeAlertObj.module eq 'ATTENDANCE' or fn:contains(activeAlertObj.title, 'Nhắc nhở')}"/>
+
+<style>
+.alert-hdr-reminder {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    color: #fff;
+    padding: 24px 24px 18px 24px;
+}
+.alert-hdr-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    color: #fff;
+    padding: 24px 24px 18px 24px;
+}
+.alert-body-reminder {
+    background: #fffbeb;
+    border: 1.5px solid #fde68a;
+    font-size: 0.96rem;
+    line-height: 1.65;
+}
+.alert-body-danger {
+    background: #fff1f2;
+    border: 1.5px solid #fecdd3;
+    font-size: 0.96rem;
+    line-height: 1.65;
+}
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%       { transform: scale(1.12); opacity: 0.85; }
+}
+</style>
+
 <div class="modal fade" id="centerScreenAlertModal" tabindex="-1" aria-labelledby="centerScreenAlertModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false"
      data-has-alert="${not empty activeAlertObj}"
-     data-alert-id="${not empty activeAlertObj ? activeAlertObj.id : 'default_alert'}">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden; background: #ffffff;">
-            <div class="modal-header border-0 pb-0" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: #fff; padding: 24px 24px 16px 24px;">
+     data-alert-id="${not empty activeAlertObj ? activeAlertObj.id : 'default_alert'}"
+     data-just-login="${requestScope.justLoggedIn ? 'true' : 'false'}">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 540px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden; background: #ffffff;">
+            <!-- Modal Header với phong cách nổi bật đập vào mắt -->
+            <div class="modal-header border-0 pb-0 ${isReminder ? 'alert-hdr-reminder' : 'alert-hdr-danger'}">
+
                 <div class="d-flex align-items-center gap-3">
-                    <div class="d-flex align-items-center justify-content-center bg-white text-danger rounded-circle shadow-sm flex-shrink-0" style="width: 48px; height: 48px; font-size: 1.5rem;">
-                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    <div class="d-flex align-items-center justify-content-center bg-white ${isReminder ? 'text-warning' : 'text-danger'} rounded-circle shadow-sm flex-shrink-0" style="width: 52px; height: 52px; font-size: 1.6rem; animation: pulse 2s infinite;">
+                        <i class="bi ${isReminder ? 'bi-bell-fill' : 'bi-exclamation-triangle-fill'}"></i>
                     </div>
                     <div>
-                        <span class="badge bg-white text-danger font-monospace text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">Cảnh báo quan trọng</span>
-                        <h5 class="modal-title fw-bold mb-0 text-white" id="centerScreenAlertModalLabel">
-                            <c:out value="${not empty applicationScope.activeBroadcastAlert ? applicationScope.activeBroadcastAlert.title : (not empty latestActiveAlert ? latestActiveAlert.title : 'THÔNG BÁO TỪ BAN GIÁM ĐỐC & NHÂN SỰ')}"/>
+                        <span class="badge bg-white ${isReminder ? 'text-warning' : 'text-danger'} font-monospace text-uppercase mb-1" style="font-size: 0.74rem; letter-spacing: 0.6px; font-weight: 700;">
+                            <i class="bi ${isReminder ? 'bi-clock-history' : 'bi-shield-exclamation'} me-1"></i>
+                            ${isReminder ? 'LỜI NHẮC QUAN TRỌNG TỪ PHÒNG NHÂN SỰ' : 'CẢNH BÁO QUAN TRỌNG TOÀN CÔNG TY'}
+                        </span>
+                        <h5 class="modal-title fw-bold mb-0 text-white" id="centerScreenAlertModalLabel" style="font-size: 1.15rem; line-height: 1.35;">
+                            <c:out value="${activeAlertObj.title}"/>
                         </h5>
                     </div>
                 </div>
             </div>
+            
+            <!-- Modal Body -->
             <div class="modal-body p-4" style="background: #ffffff; color: #1e293b;">
-                <div class="p-3 rounded-3 mb-3" style="background: #fff1f2; border: 1px solid #fecdd3; font-size: 0.95rem; line-height: 1.6;">
+                <div class="p-3 rounded-3 mb-3 ${isReminder ? 'alert-body-reminder' : 'alert-body-danger'}">
+
                     <p class="mb-0 fw-medium text-dark" id="centerScreenAlertMessage">
-                        <c:out value="${not empty applicationScope.activeBroadcastAlert ? applicationScope.activeBroadcastAlert.message : (not empty latestActiveAlert ? latestActiveAlert.message : 'Toàn thể nhân sự vui lòng kiểm tra và hoàn thành giải trình chấm công tháng, rà soát phiếu lương cá nhân và tuân thủ nội quy lao động công ty.')}"/>
+                        <c:out value="${activeAlertObj.message}"/>
                     </p>
                 </div>
                 <div class="d-flex align-items-center justify-content-between text-muted small">
-                    <span><i class="bi bi-shield-check text-success me-1"></i>Phát từ Ban Lãnh đạo &amp; HR</span>
-                    <span><i class="bi bi-clock me-1"></i>Hiệu lực toàn hệ thống</span>
+                    <span><i class="bi bi-person-badge-fill text-primary me-1"></i>Gửi riêng tới: <strong>${sessionScope.currentUser.fullName != null ? sessionScope.currentUser.fullName : sessionScope.currentUser.username}</strong></span>
+                    <span><i class="bi bi-clock me-1"></i>Hôm nay</span>
                 </div>
             </div>
+
+            <!-- Modal Footer với Nút giải trình ngay và Nút đóng -->
             <div class="modal-footer border-0 pt-0 px-4 pb-4 gap-2 d-flex justify-content-end bg-white">
-                <a href="${pageContext.request.contextPath}${not empty applicationScope.activeBroadcastAlert.linkUrl ? applicationScope.activeBroadcastAlert.linkUrl : (not empty latestActiveAlert.linkUrl ? latestActiveAlert.linkUrl : '/timesheet')}" class="btn btn-outline-secondary px-3" style="border-radius: 8px;">
-                    <i class="bi bi-box-arrow-up-right me-1"></i>Xem chi tiết
-                </a>
-                <button type="button" class="btn btn-danger px-4 fw-bold shadow-sm" style="border-radius: 8px;" id="btnAcknowledgeAlert">
-                    <i class="bi bi-check2-circle me-1"></i>Tôi đã hiểu và xác nhận
+                <button type="button" class="btn btn-outline-secondary px-3" style="border-radius: 9px;" id="btnAcknowledgeAlert">
+                    <i class="bi bi-check2 me-1"></i>Tôi đã hiểu / Đóng
                 </button>
+                <a href="${pageContext.request.contextPath}${not empty activeAlertObj.linkUrl ? activeAlertObj.linkUrl : '/timesheet'}" 
+                   class="btn ${isReminder ? 'btn-warning text-dark' : 'btn-danger'} px-4 fw-bold shadow-sm" 
+                   style="border-radius: 9px;" id="btnActionResolveAlert">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>${isReminder ? 'Đi tới giải trình ngay' : 'Xem chi tiết'}
+                </a>
             </div>
         </div>
     </div>
@@ -575,9 +621,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // 2. Tự động hiển thị Toast cảnh báo / nhắc nhở chưa đọc cho nhân viên khi mở bất kỳ trang nào
+    // 2. Hiển thị Toast cảnh báo / nhắc nhở chưa đọc cho nhân viên
     const unreadItems = document.querySelectorAll('#topbarUnreadNotifsData .unread-notif-item');
-    unreadItems.forEach(function (item) {
+    unreadItems.forEach(function (item, idx) {
         const notifId = item.dataset.id;
         const shownKey = 'notif_toast_shown_' + notifId;
         if (!sessionStorage.getItem(shownKey)) {
@@ -595,27 +641,72 @@ document.addEventListener("DOMContentLoaded", function () {
                         MixiToast.info(title, message);
                     }
                 }
-            }, 500);
+            }, 600 + (idx * 300));
         }
     });
 
-    // 3. Modal Cảnh báo trung tâm (Center Screen Alert)
+    // 3. Modal Cảnh báo & Lời nhắc trung tâm ĐẬP VÀO MẮT khi nhân viên đăng nhập
     const modalEl = document.getElementById("centerScreenAlertModal");
     if (modalEl) {
         const hasAlert = modalEl.dataset.hasAlert === 'true';
-        const alertId = modalEl.dataset.alertId || 'default_alert';
-        const isDismissed = sessionStorage.getItem("miximoi_alert_dismissed_" + alertId);
+        const alertId = modalEl.dataset.alertId;
+        const justLogin = modalEl.dataset.justLogin === 'true';
 
-        if (hasAlert && !isDismissed && typeof bootstrap !== "undefined") {
-            const centerModal = new bootstrap.Modal(modalEl, { backdrop: "static", keyboard: false });
-            setTimeout(function () { centerModal.show(); }, 600);
+        // Nếu nhân viên vừa đăng nhập, xóa trạng thái đã đóng trước đó để đập vào mắt ngay
+        if (justLogin && alertId && alertId !== 'default_alert') {
+            sessionStorage.removeItem("miximoi_alert_dismissed_" + alertId);
+        }
 
+        const isDismissed = alertId ? sessionStorage.getItem("miximoi_alert_dismissed_" + alertId) : null;
+
+        if (hasAlert && !isDismissed && alertId && alertId !== 'default_alert') {
+            // Hiển thị modal với cơ chế thử lại nếu Bootstrap bundle chưa parse xong
+            function showCenterModal(attempts) {
+                if (typeof bootstrap !== "undefined" && bootstrap.Modal) {
+                    const centerModal = new bootstrap.Modal(modalEl, { backdrop: "static", keyboard: false });
+                    centerModal.show();
+                } else if (attempts > 0) {
+                    setTimeout(() => showCenterModal(attempts - 1), 150);
+                } else {
+                    // Fallback pure CSS/DOM
+                    modalEl.classList.add('show');
+                    modalEl.style.display = 'block';
+                    document.body.classList.add('modal-open');
+                }
+            }
+            setTimeout(() => showCenterModal(10), 300);
+
+            // Hàm gửi AJAX đánh dấu đã đọc trong Database
+            function markAlertReadInDB(id) {
+                if (!id || id === 'default_alert') return;
+                fetch('${pageContext.request.contextPath}/notifications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'action=mark_read&id=' + encodeURIComponent(id)
+                }).catch(() => {});
+            }
+
+            // Bấm "Tôi đã hiểu / Đóng"
             document.getElementById("btnAcknowledgeAlert")?.addEventListener("click", function () {
                 sessionStorage.setItem("miximoi_alert_dismissed_" + alertId, "true");
-                centerModal.hide();
-                if (typeof HRM !== "undefined" && HRM.toast) {
-                    HRM.toast("Đã ghi nhận", "Bạn đã xác nhận thông báo cảnh báo từ công ty.", "success");
+                markAlertReadInDB(alertId);
+                if (typeof bootstrap !== "undefined" && bootstrap.Modal) {
+                    const inst = bootstrap.Modal.getInstance(modalEl);
+                    if (inst) inst.hide();
+                } else {
+                    modalEl.style.display = 'none';
+                    modalEl.classList.remove('show');
+                    document.body.classList.remove('modal-open');
                 }
+                if (window.MixiToast) {
+                    MixiToast.success("Đã ghi nhận", "Bạn đã xác nhận lời nhắc từ Phòng Nhân sự.");
+                }
+            });
+
+            // Bấm "Đi tới giải trình ngay"
+            document.getElementById("btnActionResolveAlert")?.addEventListener("click", function () {
+                sessionStorage.setItem("miximoi_alert_dismissed_" + alertId, "true");
+                markAlertReadInDB(alertId);
             });
         }
     }

@@ -41,6 +41,15 @@ public class DashboardServlet extends HttpServlet {
 
         User currentUser = (User) session.getAttribute("currentUser");
 
+        // Đọc và XÓA flag justLoggedIn để modal cảnh báo chỉ hiện đúng 1 lần khi vừa đăng nhập.
+        // Nếu không xóa, mọi request đến dashboard đều có justLogin=true, khiến JS xóa sessionStorage
+        // và modal hiển thị lại liên tục mỗi lần nhân viên quay về trang Dashboard.
+        Boolean justLoggedIn = (Boolean) session.getAttribute("justLoggedIn");
+        request.setAttribute("justLoggedIn", Boolean.TRUE.equals(justLoggedIn));
+        if (Boolean.TRUE.equals(justLoggedIn)) {
+            session.removeAttribute("justLoggedIn");
+        }
+
         // 1. Xác định khoảng ngày mặc định: Đầu tháng hiện tại đến ngày hiện tại
         LocalDate today = LocalDate.now();
         LocalDate defaultStartDate = today.withDayOfMonth(1);

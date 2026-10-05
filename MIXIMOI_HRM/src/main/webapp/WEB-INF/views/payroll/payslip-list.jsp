@@ -40,7 +40,7 @@
                     <p class="text-muted mb-0" style="font-size:0.875rem;">Quản lý, phát hành và đối soát phiếu lương điện tử A4 xác thực số SHA-256 cho CBNV.</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn-action-light" onclick="alert('Đang nén và tải ${totalSlips} file PDF phiếu lương ký số...');">
+                    <button type="button" class="btn-action-light" onclick="if (window.MixiToast) MixiToast.info('Xuất tài liệu', 'Đang nén và chuẩn bị tệp ZIP chứa ${totalSlips} phiếu lương PDF ký số...'); else alert('Đang nén và tải ${totalSlips} file PDF phiếu lương ký số...');">
                         <i class="bi bi-file-earmark-zip"></i>
                         <span>Xuất ZIP toàn bộ PDF</span>
                     </button>

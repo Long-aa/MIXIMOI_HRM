@@ -307,12 +307,12 @@
                                                             class="d-flex flex-wrap gap-2 justify-content-center justify-content-sm-start">
                                                             <button type="button"
                                                                 class="btn btn-sm btn-light border shadow-sm d-flex align-items-center gap-1"
-                                                                onclick="alert('Vui lòng chọn ảnh đại diện định dạng PNG, JPG (tối đa 2MB)');">
+                                                                onclick="if (window.MixiToast) MixiToast.info('Tải ảnh đại diện', 'Vui lòng chọn ảnh định dạng PNG, JPG (tối đa 2MB)'); else alert('Vui lòng chọn ảnh đại diện định dạng PNG, JPG (tối đa 2MB)');">
                                                                 <i class="bi bi-camera"></i> Tải ảnh mới
                                                             </button>
                                                             <button type="button"
                                                                 class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
-                                                                onclick="alert('Đã khôi phục avatar mặc định');">
+                                                                onclick="if (window.MixiToast) MixiToast.success('Thành công', 'Đã khôi phục avatar mặc định'); else alert('Đã khôi phục avatar mặc định');">
                                                                 <i class="bi bi-trash"></i> Xóa ảnh
                                                             </button>
                                                         </div>
@@ -655,11 +655,11 @@
                                                     </div>
                                                     <div class="d-flex flex-wrap gap-2 mt-2">
                                                         <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                            onclick="alert('Mã QR xác thực 2FA mới đã được gửi tới email quản trị.');">
+                                                            onclick="if (window.MixiToast) MixiToast.info('Xác thực 2FA', 'Mã QR xác thực 2FA mới đã được gửi tới email quản trị.'); else alert('Mã QR xác thực 2FA mới đã được gửi tới email quản trị.');">
                                                             <i class="bi bi-qr-code me-1"></i> Thiết lập lại mã 2FA
                                                         </button>
                                                         <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                            onclick="alert('Danh sách 10 mã dự phòng đã được tạo thành công.');">
+                                                            onclick="if (window.MixiToast) MixiToast.success('Mã khôi phục', 'Danh sách 10 mã dự phòng đã được tạo thành công.'); else alert('Danh sách 10 mã dự phòng đã được tạo thành công.');">
                                                             <i class="bi bi-key me-1"></i> Mã khôi phục dự phòng
                                                         </button>
                                                     </div>
@@ -706,7 +706,7 @@
                                                             gần đây</h3>
                                                         <button type="button"
                                                             class="btn btn-sm btn-link text-danger text-decoration-none p-0"
-                                                            onclick="alert('Đã đăng xuất toàn bộ các thiết bị ngoại vi khác.');">
+                                                            onclick="if (window.MixiToast) MixiToast.warning('Phiên đăng nhập', 'Đã đăng xuất toàn bộ các thiết bị ngoại vi khác.'); else alert('Đã đăng xuất toàn bộ các thiết bị ngoại vi khác.');">
                                                             <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất tất cả
                                                             thiết bị khác
                                                         </button>
@@ -900,7 +900,7 @@
                                                             42ms)</span>
                                                     </div>
                                                     <button type="button" class="btn btn-sm btn-outline-primary"
-                                                        onclick="alert('Đã gửi email thử nghiệm thành công tới admin@miximoi.vn!');">
+                                                        onclick="if (window.MixiToast) MixiToast.success('SMTP Test', 'Đã gửi email thử nghiệm thành công tới admin@miximoi.vn!'); else alert('Đã gửi email thử nghiệm thành công tới admin@miximoi.vn!');">
                                                         <i class="bi bi-send me-1"></i> Gửi email thử nghiệm (Test)
                                                     </button>
                                                 </div>
@@ -976,7 +976,7 @@
                                                             logs)</span>
                                                         <button type="button" class="btn btn-sm btn-outline-primary"
                                                             style="font-size: 0.72rem;"
-                                                            onclick="alert('Đang đồng bộ dữ liệu chấm công từ ZKTeco BioTime...');">
+                                                            onclick="if (window.MixiToast) MixiToast.info('Đồng bộ máy chấm công', 'Đang đồng bộ dữ liệu chấm công từ ZKTeco BioTime...'); else alert('Đang đồng bộ dữ liệu chấm công từ ZKTeco BioTime...');">
                                                             <i class="bi bi-arrow-repeat me-1"></i> Đồng bộ ngay
                                                         </button>
                                                     </div>
@@ -1006,7 +1006,7 @@
                                                             <code>https://hooks.slack.com/services/T0123...</code></span>
                                                         <button type="button" class="btn btn-sm btn-outline-secondary"
                                                             style="font-size: 0.72rem;"
-                                                            onclick="alert('Đã gửi thông điệp kiểm tra tới kênh Slack #hrm-alerts!');">
+                                                            onclick="if (window.MixiToast) MixiToast.success('Slack Webhook', 'Đã gửi thông điệp kiểm tra tới kênh Slack #hrm-alerts!'); else alert('Đã gửi thông điệp kiểm tra tới kênh Slack #hrm-alerts!');">
                                                             <i class="bi bi-broadcast me-1"></i> Kiểm tra Webhook
                                                         </button>
                                                     </div>
