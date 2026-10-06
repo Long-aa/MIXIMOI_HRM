@@ -346,12 +346,116 @@
         }
         .btn-send-all-anomalies:hover { background: #2563eb; color: #fff; }
 
+        /* ===== TAB NAVIGATION BAR ===== */
+        .ts-tab-nav {
+            display: flex; align-items: center; gap: 4px;
+            background: #fff; border-radius: 13px; border: 1.5px solid #f1f5f9;
+            padding: 6px 8px; margin-bottom: 1.15rem;
+            box-shadow: 0 2px 8px rgba(15,23,42,0.03); flex-wrap: wrap;
+        }
+        .ts-tab-btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            height: 36px; padding: 0 14px; border: none; border-radius: 9px;
+            font-size: 0.83rem; font-weight: 600; color: #64748b;
+            background: transparent; cursor: pointer; transition: all 0.18s;
+            position: relative; white-space: nowrap;
+        }
+        .ts-tab-btn:hover { background: #f8fafc; color: #1e293b; }
+        .ts-tab-btn.active {
+            background: #eff6ff; color: #2563eb;
+            box-shadow: 0 1px 4px rgba(37,99,235,0.12);
+        }
+        .ts-tab-btn .tab-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 18px; height: 18px; padding: 0 5px;
+            background: #dc2626; color: #fff;
+            border-radius: 999px; font-size: 0.65rem; font-weight: 800;
+            line-height: 1;
+        }
+        .ts-tab-btn.active .tab-badge { background: #2563eb; }
+        .ts-tab-divider { width: 1px; height: 22px; background: #e2e8f0; margin: 0 4px; }
+        .ts-tab-online-dot {
+            width: 7px; height: 7px; border-radius: 50%; background: #22c55e;
+            display: inline-block; animation: pulse-green 2s infinite;
+        }
+        @keyframes pulse-green {
+            0%,100%{opacity:1;transform:scale(1);}
+            50%{opacity:.5;transform:scale(1.4);}
+        }
+
+        /* ===== ANOMALY TAB CONTENT ===== */
+        .anom-header-card {
+            background: #fff; border-radius: 14px; border: 1.5px solid #fecaca;
+            padding: 1.25rem 1.5rem; margin-bottom: 1.15rem;
+            box-shadow: 0 2px 10px rgba(220,38,38,0.05);
+        }
+        .anom-filter-bar {
+            background: #fff; border-radius: 13px; border: 1.5px solid #f1f5f9;
+            padding: 0.85rem 1.15rem; margin-bottom: 1.15rem;
+            box-shadow: 0 2px 8px rgba(15,23,42,0.03);
+        }
+        .anom-table-card {
+            background: #fff; border-radius: 14px; border: 1.5px solid #f1f5f9;
+            overflow: hidden; box-shadow: 0 2px 12px rgba(15,23,42,0.04);
+            margin-bottom: 1.5rem;
+        }
+        .anom-table-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 1rem 1.25rem; border-bottom: 1.5px solid #f8fafc;
+        }
+        .anom-table-title { font-size: 1rem; font-weight: 800; color: #0f172a; }
+        .anom-tbl { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+        .anom-tbl thead tr { background: #f8fafc; }
+        .anom-tbl th {
+            padding: 0.7rem 1rem; font-size: 0.72rem; font-weight: 700;
+            color: #64748b; text-transform: uppercase; letter-spacing: 0.4px;
+            border-bottom: 1.5px solid #f1f5f9; white-space: nowrap;
+        }
+        .anom-tbl td {
+            padding: 0.75rem 1rem; border-bottom: 1px solid #f8fafc;
+            vertical-align: middle; color: #334155;
+        }
+        .anom-tbl tbody tr:hover { background: #fafbfd; }
+        .anom-tbl tbody tr:last-child td { border-bottom: none; }
+        .anom-type-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 10px; border-radius: 999px; font-size: 0.73rem; font-weight: 700;
+        }
+        .anom-type-late    { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+        .anom-type-early   { background: #fdf4ff; color: #9333ea; border: 1px solid #e9d5ff; }
+        .anom-type-absent  { background: #fff1f2; color: #dc2626; border: 1px solid #fecdd3; }
+        .anom-status-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 10px; border-radius: 999px; font-size: 0.73rem; font-weight: 700;
+        }
+        .anom-status-pending  { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+        .anom-status-resolved { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+        .anom-emp-name { font-weight: 700; color: #0f172a; font-size: 0.84rem; }
+        .anom-emp-code { font-size: 0.72rem; color: #94a3b8; }
+        .anom-kpi-row {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 1rem; margin-bottom: 1.15rem;
+        }
+        .anom-kpi-card {
+            background: #fff; border-radius: 12px; border: 1.5px solid #f1f5f9;
+            padding: 1rem 1.15rem; box-shadow: 0 2px 8px rgba(15,23,42,0.03);
+            display: flex; align-items: center; gap: 12px;
+        }
+        .anom-kpi-icon {
+            width: 40px; height: 40px; border-radius: 10px; display: flex;
+            align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;
+        }
+        .anom-kpi-val { font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1; }
+        .anom-kpi-lbl { font-size: 0.72rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
+
         @media (max-width: 1200px) {
             .ts-kpi-grid { grid-template-columns: repeat(2, 1fr); }
             .ts-bottom-grid { grid-template-columns: 1fr; }
+            .anom-kpi-row { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 768px) {
             .ts-kpi-grid { grid-template-columns: 1fr; }
+            .anom-kpi-row { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -521,7 +625,7 @@
                     <div class="kpi-bottom-text">
                         <span class="text-primary fw-bold"><i class="bi bi-graph-up-arrow"></i> ${kpiStats.attendanceRate}%</span>
                         <span>tỷ lệ đi làm đủ</span>
-                        <div class="kpi-progress-bar ms-auto"><div class="kpi-progress-fill" style="width:${kpiStats.attendanceRate}%;"></div></div>
+                        <div class="kpi-progress-bar ms-auto"><div class="kpi-progress-fill" data-progress="${kpiStats.attendanceRate}"></div></div>
                     </div>
                 </div>
 
@@ -579,6 +683,26 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ===== TAB NAVIGATION BAR ===== -->
+            <div class="ts-tab-nav" role="tablist">
+                <button class="ts-tab-btn active" id="tab-timesheet" data-target="pane-timesheet" role="tab" type="button">
+                    <i class="bi bi-calendar3"></i> Bảng tổng hợp công tháng
+                </button>
+                <div class="ts-tab-divider"></div>
+                <button class="ts-tab-btn" id="tab-anomaly" data-target="pane-anomaly" role="tab" type="button">
+                    <i class="bi bi-exclamation-triangle-fill text-warning"></i> Bất thường &amp; Giải trình
+                    <c:if test="${not empty anomalies}">
+                        <span class="tab-badge">${fn:length(anomalies)}</span>
+                    </c:if>
+                </button>
+            </div>
+
+            <!-- ===== TAB CONTENT WRAPPER ===== -->
+            <div id="ts-tab-content">
+
+            <!-- PANE 1: Bảng tổng hợp công tháng (default active) -->
+            <div id="pane-timesheet" class="ts-tab-pane active">
 
             <!-- Thanh bộ lọc (Filter Bar) -->
             <div class="ts-filter-bar">
@@ -984,6 +1108,264 @@
                 </div>
             </div>
 
+            </div><!-- /pane-timesheet -->
+
+            <!-- ===== PANE 2: Bất thường & Giải trình ===== -->
+            <div id="pane-anomaly" class="ts-tab-pane" style="display:none;">
+
+                <!-- Thống kê tổng quan bất thường -->
+                <div class="anom-kpi-row">
+                    <div class="anom-kpi-card">
+                        <div class="anom-kpi-icon" style="background:#fff7ed;color:#ea580c;"><i class="bi bi-clock-history"></i></div>
+                        <div>
+                            <div class="anom-kpi-val" id="kpiLateCount">
+                                <c:set var="lateCount" value="0"/>
+                                <c:forEach var="a" items="${anomalies}">
+                                    <c:if test="${a.issue eq 'Đi muộn'}"><c:set var="lateCount" value="${lateCount + 1}"/></c:if>
+                                </c:forEach>
+                                ${lateCount}
+                            </div>
+                            <div class="anom-kpi-lbl">Đi muộn</div>
+                        </div>
+                    </div>
+                    <div class="anom-kpi-card">
+                        <div class="anom-kpi-icon" style="background:#fdf4ff;color:#9333ea;"><i class="bi bi-box-arrow-left"></i></div>
+                        <div>
+                            <div class="anom-kpi-val">
+                                <c:set var="earlyCount" value="0"/>
+                                <c:forEach var="a" items="${anomalies}">
+                                    <c:if test="${a.issue eq 'Về sớm'}"><c:set var="earlyCount" value="${earlyCount + 1}"/></c:if>
+                                </c:forEach>
+                                ${earlyCount}
+                            </div>
+                            <div class="anom-kpi-lbl">Về sớm</div>
+                        </div>
+                    </div>
+                    <div class="anom-kpi-card">
+                        <div class="anom-kpi-icon" style="background:#fff1f2;color:#dc2626;"><i class="bi bi-person-x"></i></div>
+                        <div>
+                            <div class="anom-kpi-val">
+                                <c:set var="absentCount" value="0"/>
+                                <c:forEach var="a" items="${anomalies}">
+                                    <c:if test="${a.issue eq 'Vắng chưa phép'}"><c:set var="absentCount" value="${absentCount + 1}"/></c:if>
+                                </c:forEach>
+                                ${absentCount}
+                            </div>
+                            <div class="anom-kpi-lbl">Vắng chưa phép</div>
+                        </div>
+                    </div>
+                    <div class="anom-kpi-card">
+                        <div class="anom-kpi-icon" style="background:#ecfdf5;color:#059669;"><i class="bi bi-check-circle"></i></div>
+                        <div>
+                            <div class="anom-kpi-val" id="kpiTotalAnom">${not empty anomalies ? fn:length(anomalies) : 0}</div>
+                            <div class="anom-kpi-lbl">Tổng cần xử lý</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bộ lọc bất thường -->
+                <div class="anom-filter-bar">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-4">
+                            <div class="filter-search-box">
+                                <i class="bi bi-search"></i>
+                                <input type="text" id="anomSearchInput" class="filter-search-input"
+                                       placeholder="Tìm theo mã NV, họ tên..." oninput="filterAnomalyTable()">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="anomTypeFilter" class="form-select ts-select" onchange="filterAnomalyTable()">
+                                <option value="">Loại bất thường: Tất cả</option>
+                                <option value="Đi muộn">Đi muộn</option>
+                                <option value="Về sớm">Về sớm</option>
+                                <option value="Vắng chưa phép">Vắng chưa phép</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="anomStatusFilter" class="form-select ts-select" onchange="filterAnomalyTable()">
+                                <option value="">Trạng thái: Tất cả</option>
+                                <option value="Chưa giải trình">Chưa giải trình</option>
+                                <option value="Đã duyệt">Đã duyệt</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex gap-2 justify-content-end">
+                            <button type="button" class="btn-ts-reset" onclick="clearAnomalyFilters()" title="Xóa bộ lọc">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
+                            <c:if test="${not empty anomalies and (sessionScope.currentUser.admin or sessionScope.currentUser.hr)}">
+                                <form method="post" action="${pageContext.request.contextPath}/timesheet" class="d-inline remind-form">
+                                    <input type="hidden" name="action" value="remind">
+                                    <input type="hidden" name="target" value="ALL">
+                                    <input type="hidden" name="month" value="${selectedMonth}">
+                                    <input type="hidden" name="year" value="${selectedYear}">
+                                    <button type="submit" class="btn-ts-primary" style="height:38px;font-size:0.82rem;" title="Gửi nhắc nhở tới tất cả nhân sự có bất thường">
+                                        <i class="bi bi-send-fill"></i> Nhắc tất cả
+                                    </button>
+                                </form>
+                            </c:if>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bảng danh sách bất thường -->
+                <div class="anom-table-card">
+                    <div class="anom-table-header">
+                        <div>
+                            <span class="anom-table-title"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Danh sách bất thường cần xử lý</span>
+                            <span class="settlement-badge ms-2" style="background:#fff1f2;color:#dc2626;border-color:#fecdd3;">
+                                ${not empty anomalies ? fn:length(anomalies) : 0} hồ sơ
+                            </span>
+                        </div>
+                        <span class="text-muted" style="font-size:0.78rem;">
+                            <i class="bi bi-calendar3 me-1"></i>Tháng ${selectedMonth < 10 ? '0' : ''}${selectedMonth}/${selectedYear}
+                        </span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="anom-tbl" id="anomalyTable">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px; padding-left:1.25rem;">#</th>
+                                    <th style="min-width:200px;">Nhân viên</th>
+                                    <th>Loại bất thường</th>
+                                    <th>Ngày</th>
+                                    <th>Trạng thái</th>
+                                    <th style="min-width:160px;">Ghi chú</th>
+                                    <th style="width:130px; padding-right:1.25rem;">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="anomalyTbody">
+                                <c:choose>
+                                    <c:when test="${not empty anomalies}">
+                                        <c:forEach var="anom" items="${anomalies}" varStatus="st">
+                                            <tr class="anom-row"
+                                                data-name="${fn:toLowerCase(anom.name)}"
+                                                data-code="${fn:toLowerCase(anom.code)}"
+                                                data-type="${anom.issue}"
+                                                data-status="Chưa giải trình">
+                                                <td style="padding-left:1.25rem; color:#94a3b8; font-weight:600;">${st.index + 1}</td>
+                                                <td>
+                                                    <div class="anom-emp-name">${anom.name}</div>
+                                                    <div class="anom-emp-code"><i class="bi bi-person-badge me-1"></i>${anom.code}</div>
+                                                </td>
+                                                <td>
+                                                    <c:choose>
+                                                        <c:when test="${anom.issue eq 'Đi muộn'}">
+                                                            <span class="anom-type-badge anom-type-late"><i class="bi bi-clock"></i>${anom.issue}</span>
+                                                        </c:when>
+                                                        <c:when test="${anom.issue eq 'Về sớm'}">
+                                                            <span class="anom-type-badge anom-type-early"><i class="bi bi-box-arrow-left"></i>${anom.issue}</span>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <span class="anom-type-badge anom-type-absent"><i class="bi bi-person-x"></i>${anom.issue}</span>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </td>
+                                                <td>
+                                                    <span style="font-size:0.82rem;font-weight:600;color:#334155;">
+                                                        <i class="bi bi-calendar-event me-1 text-muted"></i>${anom.date}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="anom-status-badge anom-status-pending">
+                                                        <i class="bi bi-hourglass-split"></i>Chưa giải trình
+                                                    </span>
+                                                </td>
+                                                <td style="color:#64748b;font-size:0.8rem;">—</td>
+                                                <td style="padding-right:1.25rem;">
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <button type="button" class="btn-ts-outline text-primary border-primary"
+                                                                style="height:30px;padding:0 10px;font-size:0.76rem;"
+                                                                data-bs-toggle="modal" data-bs-target="#missingPunchModal"
+                                                                title="Tạo đơn giải trình bù công">
+                                                            <i class="bi bi-pencil-square"></i> Giải trình
+                                                        </button>
+                                                        <c:if test="${sessionScope.currentUser.admin or sessionScope.currentUser.hr}">
+                                                            <form method="post" action="${pageContext.request.contextPath}/timesheet" class="remind-form d-inline">
+                                                                <input type="hidden" name="action" value="remind">
+                                                                <input type="hidden" name="target" value="${anom.code}">
+                                                                <input type="hidden" name="month" value="${selectedMonth}">
+                                                                <input type="hidden" name="year" value="${selectedYear}">
+                                                                <button type="submit" class="btn-remind-single" title="Gửi thông báo nhắc nhở">
+                                                                    <i class="bi bi-bell"></i>
+                                                                </button>
+                                                            </form>
+                                                        </c:if>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </c:forEach>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <tr id="anomEmptyRow">
+                                            <td colspan="7" class="text-center py-5">
+                                                <i class="bi bi-check-circle-fill text-success" style="font-size:2.5rem;display:block;margin-bottom:0.75rem;"></i>
+                                                <div style="font-size:1rem;font-weight:700;color:#059669;">Tuyệt vời!</div>
+                                                <div class="text-muted" style="font-size:0.85rem;">Tất cả nhân sự đã hoàn tất giải trình công kỳ ${selectedMonth}/${selectedYear}.</div>
+                                            </td>
+                                        </tr>
+                                    </c:otherwise>
+                                </c:choose>
+                                <!-- empty row when filter yields nothing -->
+                                <tr id="anomFilterEmptyRow" style="display:none;">
+                                    <td colspan="7" class="text-center py-4 text-muted">
+                                        <i class="bi bi-search" style="font-size:1.8rem;display:block;margin-bottom:0.5rem;color:#cbd5e1;"></i>
+                                        Không tìm thấy kết quả phù hợp với bộ lọc
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Hướng dẫn quy trình giải trình -->
+                <div style="background:#fff;border-radius:14px;border:1.5px solid #f1f5f9;padding:1.25rem 1.5rem;box-shadow:0 2px 10px rgba(15,23,42,0.03);">
+                    <div style="font-size:0.85rem;font-weight:800;color:#0f172a;margin-bottom:0.75rem;">
+                        <i class="bi bi-info-circle-fill text-primary me-2"></i>Quy trình xử lý bất thường chấm công
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="width:32px;height:32px;border-radius:50%;background:#eff6ff;color:#2563eb;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;flex-shrink:0;">1</div>
+                                <div>
+                                    <div style="font-size:0.8rem;font-weight:700;color:#1e293b;">Phát hiện bất thường</div>
+                                    <div style="font-size:0.72rem;color:#94a3b8;">Hệ thống tự động phát hiện từ dữ liệu máy chấm công</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="width:32px;height:32px;border-radius:50%;background:#fff7ed;color:#ea580c;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;flex-shrink:0;">2</div>
+                                <div>
+                                    <div style="font-size:0.8rem;font-weight:700;color:#1e293b;">Nhắc nhở nhân sự</div>
+                                    <div style="font-size:0.72rem;color:#94a3b8;">HR gửi thông báo qua hệ thống &amp; email tự động</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="width:32px;height:32px;border-radius:50%;background:#fdf4ff;color:#9333ea;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;flex-shrink:0;">3</div>
+                                <div>
+                                    <div style="font-size:0.8rem;font-weight:700;color:#1e293b;">Nhân viên giải trình</div>
+                                    <div style="font-size:0.72rem;color:#94a3b8;">Điền đơn bù công / lý do vắng mặt trên hệ thống</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="width:32px;height:32px;border-radius:50%;background:#ecfdf5;color:#059669;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;flex-shrink:0;">4</div>
+                                <div>
+                                    <div style="font-size:0.8rem;font-weight:700;color:#1e293b;">HR duyệt &amp; chốt</div>
+                                    <div style="font-size:0.72rem;color:#94a3b8;">Phê duyệt, cập nhật bảng công và chốt kỳ lương</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /pane-anomaly -->
+
+            </div><!-- /ts-tab-content -->
+
         </div>
     </main>
 </div>
@@ -1191,6 +1573,82 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// ===== TAB SWITCHING & UI INIT =====
+document.addEventListener('DOMContentLoaded', function () {
+    // Dynamic progress bar init
+    document.querySelectorAll('[data-progress]').forEach(function (el) {
+        const val = el.getAttribute('data-progress');
+        if (val !== null && val !== '') {
+            el.style.width = val + '%';
+        }
+    });
+
+    const tabBtns = document.querySelectorAll('.ts-tab-btn');
+    tabBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            // Deactivate all tabs
+            tabBtns.forEach(b => b.classList.remove('active'));
+            // Hide all panes
+            document.querySelectorAll('.ts-tab-pane').forEach(p => p.style.display = 'none');
+            // Activate clicked tab
+            this.classList.add('active');
+            const target = this.dataset.target;
+            const pane = document.getElementById(target);
+            if (pane) pane.style.display = '';
+        });
+    });
+
+    // Auto-open anomaly tab if URL has #anomaly hash
+    if (window.location.hash === '#anomaly') {
+        const anomBtn = document.getElementById('tab-anomaly');
+        if (anomBtn) anomBtn.click();
+    }
+});
+
+// ===== ANOMALY TABLE CLIENT-SIDE FILTER =====
+function filterAnomalyTable() {
+    const keyword = (document.getElementById('anomSearchInput')?.value || '').toLowerCase().trim();
+    const typeFilter = (document.getElementById('anomTypeFilter')?.value || '').trim();
+    const statusFilter = (document.getElementById('anomStatusFilter')?.value || '').trim();
+
+    const rows = document.querySelectorAll('#anomalyTbody .anom-row');
+    let visibleCount = 0;
+
+    rows.forEach(function (row) {
+        const name = (row.dataset.name || '');
+        const code = (row.dataset.code || '');
+        const type = (row.dataset.type || '');
+        const status = (row.dataset.status || '');
+
+        const matchKeyword = !keyword || name.includes(keyword) || code.includes(keyword);
+        const matchType = !typeFilter || type === typeFilter;
+        const matchStatus = !statusFilter || status === statusFilter;
+
+        if (matchKeyword && matchType && matchStatus) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Show/hide the "no results" empty row
+    const emptyRow = document.getElementById('anomFilterEmptyRow');
+    if (emptyRow) {
+        emptyRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+    }
+}
+
+function clearAnomalyFilters() {
+    const inp = document.getElementById('anomSearchInput');
+    if (inp) inp.value = '';
+    const typeF = document.getElementById('anomTypeFilter');
+    if (typeF) typeF.value = '';
+    const statusF = document.getElementById('anomStatusFilter');
+    if (statusF) statusF.value = '';
+    filterAnomalyTable();
+}
 </script>
 </body>
 </html>

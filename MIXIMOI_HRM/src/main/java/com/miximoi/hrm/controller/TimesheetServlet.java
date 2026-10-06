@@ -310,8 +310,8 @@ public class TimesheetServlet extends HttpServlet {
 
                     response.sendRedirect(request.getContextPath() + "/timesheet?month=" + month + "&year=" + year + "&success=reminded");
                     return;
-                } catch (Throwable t) {
-                    t.printStackTrace();
+                } catch (Exception t) {
+                    getServletContext().log("TimesheetServlet: Lỗi gửi nhắc nhở giải trình", t);
                     if (isAjax) {
                         response.setContentType("application/json;charset=UTF-8");
                         String err = t.getMessage() != null ? t.getMessage() : "Lỗi hệ thống không xác định";
